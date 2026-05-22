@@ -1,0 +1,64 @@
+{
+  "name": "project-helper",
+  "version": "1.0.0",
+  "description": "开发项目管理器：扫描本地项目并用 VSCode 快速打开",
+  "main": "electron/main.js",
+  "author": "jackraylei",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BUILDY0/project-helper.git"
+  },
+  "scripts": {
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "build:renderer": "vite build",
+    "build": "npm run build:renderer && electron-builder",
+    "release": "npm run build:renderer && electron-builder --publish always",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1",
+    "vite": "^5.0.12",
+    "@vitejs/plugin-vue": "^5.0.3",
+    "vue": "^3.4.15",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.jackraylei.projecthelper",
+    "productName": "ProjectHelper",
+    "files": [
+      "electron/**/*",
+      "dist/**/*"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BUILDY0",
+        "repo": "project-helper"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+name: Release
+
+# 推送 v* 标签时触发：构建 Windows 安装包并发布到 GitHub Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & publish to GitHub Release
+        env:
+          # GH_TOKEN 是 electron-builder 上传 Release 所需，使用 Actions 自带的 GITHUB_TOKEN
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release
