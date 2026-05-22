@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "开发项目管理器：扫描本地项目并用 VSCode 快速打开",
   "main": "electron/main.js",
-  "author": "jackraylei",
+  "author": "BUILDY0",
   "license": "MIT",
   "repository": {
     "type": "git",
