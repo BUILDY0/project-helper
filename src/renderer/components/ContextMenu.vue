@@ -139,7 +139,7 @@ const onItemClick = (item) => {
   background: var(--color-border);
   margin: 4px 6px;
 }
-/* 菜单脚注：紧凑、小字、置灰，超长省略 */
+/* 菜单脚注：紧凑、小字、置灰、居中，超长省略 */
 .ctx-footnote {
   padding: 4px 12px;
   font-size: 11px;
@@ -148,5 +148,6 @@ const onItemClick = (item) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
 }
 </style>
