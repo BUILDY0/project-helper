@@ -51,6 +51,15 @@ function createWindow() {
   return win
 }
 
+// 全局兜底：避免主进程未捕获异常 / Promise rejection 触发 Electron 原生错误对话框
+// 这类异常多来自 autoUpdater 网络失败等非致命场景，仅写日志即可
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
+
 app.whenReady().then(async () => {
   // 移除默认菜单，避免 alt 键唤起系统菜单
   Menu.setApplicationMenu(null)
@@ -526,6 +535,8 @@ function setupAutoUpdater() {
   // 由用户在「有新版本」提示中确认后再下载，避免占用流量
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
+  // 关闭 electron-updater 内部 logger（默认会用 console，错误信息不弹窗，但避免日志噪音）
+  autoUpdater.logger = null
 
   const send = (status, payload) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
