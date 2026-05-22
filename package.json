@@ -17,7 +17,11 @@
     "build:renderer": "vite build",
     "build": "npm run build:icon && npm run build:renderer && electron-builder",
     "release": "npm run build:renderer && electron-builder --publish always",
-    "start": "electron ."
+    "start": "electron .",
+    "version:patch": "npm version patch -m \"chore: release v%s\"",
+    "version:minor": "npm version minor -m \"chore: release v%s\"",
+    "version:major": "npm version major -m \"chore: release v%s\"",
+    "version:set": "npm version --no-git-tag-version"
   },
   "dependencies": {
     "electron-updater": "^6.1.7"
