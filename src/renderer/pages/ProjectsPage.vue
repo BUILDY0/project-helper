@@ -22,7 +22,7 @@
             v-model="keyword"
             class="search-input"
             type="text"
-            placeholder="搜索项目（文件夹名 / 项目名 / 描述）"
+            placeholder="搜索项目（路径 / 项目名 / 描述）"
           />
           <button
             v-if="keyword"
@@ -89,6 +89,8 @@
           @open="openWithDefaultIde"
           @contextmenu="onContextMenu"
           @toggle-pin="togglePin"
+          @open-git="openGitUrl"
+          @open-pkg="openPackageFolder"
         />
       </div>
     </div>
@@ -99,6 +101,7 @@
       :x="ctxX"
       :y="ctxY"
       :items="ctxItems"
+      :footnote="ctxTarget?.name || ''"
       @close="ctxVisible = false"
       @select="onMenuSelect"
     />
@@ -157,13 +160,6 @@ watch(keyword, (val) => {
   }, SEARCH_DEBOUNCE_MS)
 })
 
-/** 取路径末尾的文件夹名，作为匹配项之一 */
-function basenameOf(p) {
-  if (!p) return ''
-  const m = String(p).match(/[^\\/]+$/)
-  return m ? m[0] : ''
-}
-
 /** 过滤后的项目列表（基于防抖后的关键字） */
 const filteredProjects = computed(() => {
   const kw = debouncedKeyword.value.trim().toLowerCase()
@@ -171,8 +167,8 @@ const filteredProjects = computed(() => {
   return projects.value.filter((p) => {
     const name = (p.name || '').toLowerCase()
     const desc = (p.description || '').toLowerCase()
-    const folder = basenameOf(p.path).toLowerCase()
-    return name.includes(kw) || desc.includes(kw) || folder.includes(kw)
+    const fullPath = (p.path || '').toLowerCase()
+    return name.includes(kw) || desc.includes(kw) || fullPath.includes(kw)
   })
 })
 
@@ -233,6 +229,24 @@ async function openWithDefaultIde(project) {
   const r = await window.api.openInIde(first.id, project.path)
   if (!r?.ok) {
     toastRef.value?.show(`无法启动 ${first.label.replace(' 打开', '')}：${r?.message || '未知错误'}`, 'error')
+  }
+}
+
+/** 状态图标：GitHub 图标点击，外部浏览器打开仓库地址 */
+async function openGitUrl(project) {
+  if (!project?.gitUrl) return
+  const r = await window.api.openExternal(project.gitUrl)
+  if (!r?.ok) {
+    toastRef.value?.show(`打开仓库失败：${r?.message || '未知错误'}`, 'error')
+  }
+}
+
+/** 状态图标：Node.js 图标点击，打开项目文件夹 */
+async function openPackageFolder(project) {
+  if (!project?.path) return
+  const r = await window.api.openFolder(project.path)
+  if (!r?.ok) {
+    toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
   }
 }
 

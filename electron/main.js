@@ -303,6 +303,19 @@ ipcMain.handle('shell:show-in-folder', async (_e, targetPath) => {
   return { ok: true }
 })
 
+/** 用系统默认浏览器打开外部 url；仅放行 http(s) 协议，避免被恶意路径攻击 */
+ipcMain.handle('shell:open-external', async (_e, url) => {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    return { ok: false, message: '仅支持 http/https 链接' }
+  }
+  try {
+    await shell.openExternal(url)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, message: err.message }
+  }
+})
+
 /**
  * 已支持的 IDE 列表：
  * - id：渲染层用来标识/定位的 key
@@ -497,38 +510,86 @@ async function readReadmeFirstLine(readmePath) {
 }
 
 /**
+ * 把 git remote url 标准化为可在浏览器打开的 https 形式：
+ * - https://github.com/u/r.git           -> https://github.com/u/r
+ * - git@github.com:u/r.git               -> https://github.com/u/r
+ * - ssh://git@github.com/u/r.git         -> https://github.com/u/r
+ * - github:u/r（package.json 简写）       -> https://github.com/u/r
+ * 非 GitHub host 也按通用规则转换（gitlab 等同样适用）。
+ */
+function normalizeGitUrl(raw) {
+  if (!raw || typeof raw !== 'string') return ''
+  let s = raw.trim()
+  if (!s) return ''
+  // package.json 简写："github:user/repo" / "user/repo"
+  const shorthand = s.match(/^(?:github:)?([\w.-]+\/[\w.-]+)$/i)
+  if (shorthand) return `https://github.com/${shorthand[1].replace(/\.git$/, '')}`
+  // git@host:user/repo(.git)
+  const ssh = s.match(/^git@([^:]+):(.+?)(?:\.git)?$/i)
+  if (ssh) return `https://${ssh[1]}/${ssh[2]}`
+  // ssh://git@host/user/repo(.git)
+  s = s.replace(/^ssh:\/\/git@/i, 'https://')
+  s = s.replace(/^git\+/i, '')
+  s = s.replace(/\.git$/i, '')
+  if (!/^https?:\/\//i.test(s)) return ''
+  return s
+}
+
+/** 从 .git/config 读取 origin 的 url；找不到返回空 */
+async function readGitConfigUrl(dir) {
+  try {
+    const text = await fsp.readFile(path.join(dir, '.git', 'config'), 'utf-8')
+    // 简易解析：找到 [remote "origin"] 段内的 url 行
+    const m = text.match(/\[remote "origin"\][^[]*?url\s*=\s*(\S+)/i)
+    return m ? m[1] : ''
+  } catch {
+    return ''
+  }
+}
+
+/**
  * 读取项目的展示信息：
  * - name：package.json 的 name 字段（非空） > 文件夹名
  * - description：package.json.description（非空） > readme.md 第一行（大小写兼容） > 空串
- *   即 description 来源相互独立：只要 package.json 没给出有效 description，就继续尝试 README，
- *   不会因为有 package.json 就把描述锁成空。
+ *   description 来源相互独立：只要 package.json 没给出有效 description，就继续尝试 README。
+ * - gitUrl：.git/config origin > package.json.repository（含简写），归一为 https 链接
+ * - hasPackageJson：是否存在 package.json（用于卡片展示 Node.js 状态图标）
  */
 async function readProjectMeta(dir) {
   const folderName = path.basename(dir)
   const pkgPath = path.join(dir, 'package.json')
 
-  // 先尝试读取 package.json，拿 name 与 description（任一字段缺失/为空都允许后续回退）
   let pkgName = ''
   let pkgDesc = ''
+  let pkgRepoUrl = ''
+  let hasPackageJson = false
   try {
     const text = await fsp.readFile(pkgPath, 'utf-8')
     const pkg = JSON.parse(text)
+    hasPackageJson = true
     if (typeof pkg.name === 'string' && pkg.name.trim()) pkgName = pkg.name.trim()
     if (typeof pkg.description === 'string' && pkg.description.trim()) {
       pkgDesc = pkg.description.trim()
     }
+    // repository 可能是 string 或 { url: '...' }
+    const repo = pkg.repository
+    if (typeof repo === 'string') pkgRepoUrl = repo
+    else if (repo && typeof repo.url === 'string') pkgRepoUrl = repo.url
   } catch {
-    // 无 package.json 或解析失败：name/desc 维持空，统一走下面的回退逻辑
+    // 无 package.json 或解析失败：相关字段维持空，统一走下面的回退逻辑
   }
 
-  // description 缺失时回退 README 首行；package.json 存在与否不影响是否读 README
   let description = pkgDesc
   if (!description) {
     const readmePath = await findReadmeFile(dir)
     if (readmePath) description = await readReadmeFirstLine(readmePath)
   }
 
-  return { name: pkgName || folderName, description }
+  // gitUrl：.git/config 优先（更准；本地未推送也能拿到实际 origin），其次 package.json.repository
+  const rawGit = (await readGitConfigUrl(dir)) || pkgRepoUrl
+  const gitUrl = normalizeGitUrl(rawGit)
+
+  return { name: pkgName || folderName, description, gitUrl, hasPackageJson }
 }
 
 /** 路径标准化用于 exclude 匹配 */
@@ -563,16 +624,16 @@ async function scanProjects(roots, depth, excludes) {
     const key = normalize(dir)
     if (visited.has(key)) continue
     visited.add(key)
+    // 命中 exclude 是唯一会跳过当前路径的情况（不收录、不下钻）
     if (excludeSet.has(key)) continue
 
-    // 当前层判定是否项目；若是项目则不再下钻
+    // 当前层若是项目则收录，但不影响下钻：monorepo 场景外层项目里可能还有子项目
     if (await isProject(dir)) {
       const meta = await readProjectMeta(dir)
-      projects.push({ path: dir, name: meta.name, description: meta.description })
-      continue
+      projects.push({ path: dir, ...meta })
     }
 
-    // 未到深度边界，继续下钻
+    // 未到深度边界则继续下钻
     if (level < depth) {
       let entries = []
       try {
@@ -582,7 +643,7 @@ async function scanProjects(roots, depth, excludes) {
       }
       for (const ent of entries) {
         if (!ent.isDirectory()) continue
-        // 跳过隐藏目录与常见噪音目录，避免无意义扫描
+        // 跳过隐藏目录与 node_modules：内含成百上千伪项目，扫描成本与噪音都不可接受
         if (ent.name.startsWith('.')) continue
         if (ent.name === 'node_modules') continue
         queue.push({ dir: path.join(dir, ent.name), level: level + 1 })

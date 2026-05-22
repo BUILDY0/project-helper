@@ -1,7 +1,10 @@
 <template>
   <section class="page">
     <div class="page-header">
-      <div class="page-title">配置</div>
+      <div class="page-title">
+        配置
+        <span v-if="appVersion" class="version">v{{ appVersion }}</span>
+      </div>
       <button class="primary-btn" :disabled="saving" @click="onSave">
         {{ saving ? '保存中...' : '保存' }}
       </button>
@@ -139,6 +142,9 @@ import Toast from '../components/Toast.vue'
 const props = defineProps({
   active: Boolean
 })
+
+// 应用版本号（来自主进程 app.getVersion()），仅作标题旁的展示用
+const appVersion = ref('')
 
 const config = ref({
   config_path: '',
@@ -376,6 +382,8 @@ async function onSave() {
 
 onMounted(() => {
   loadConfig()
+  // 应用版本号：从主进程读取一次，用于在标题旁展示
+  window.api.getAppVersion?.().then((v) => { appVersion.value = v || '' }).catch(() => {})
 })
 // 切回该 tab 时同步最新值；若存在未保存修改则保留当前编辑状态，避免覆盖
 watch(
@@ -411,6 +419,14 @@ defineExpose({
 .page-title {
   font-size: 16px;
   font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.page-title .version {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
 }
 .primary-btn {
   height: 32px;

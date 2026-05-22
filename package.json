@@ -13,8 +13,9 @@
     "dev:renderer": "vite",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
     "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "build:icon": "npx -y png-to-ico build/icon.png > build/icon.ico",
     "build:renderer": "vite build",
-    "build": "npm run build:renderer && electron-builder",
+    "build": "npm run build:icon && build:renderer && electron-builder",
     "release": "npm run build:renderer && electron-builder --publish always",
     "start": "electron ."
   },

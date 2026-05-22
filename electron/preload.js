@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('api', {
   // shell
   openFolder: (p) => ipcRenderer.invoke('shell:open-folder', p),
   showInFolder: (p) => ipcRenderer.invoke('shell:show-in-folder', p),
+  /** 系统默认浏览器打开外部 http(s) 链接 */
+  openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   /** 用指定 IDE 打开路径，id 取自 detectIdes 返回项 */
   openInIde: (id, p) => ipcRenderer.invoke('shell:open-in-ide', { id, targetPath: p }),
   /** 读取启动期探测缓存的 IDE 列表（含 available 字段），不会触发新探测 */
