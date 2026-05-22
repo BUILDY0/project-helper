@@ -24,10 +24,17 @@ contextBridge.exposeInMainWorld('api', {
   // shell
   openFolder: (p) => ipcRenderer.invoke('shell:open-folder', p),
   showInFolder: (p) => ipcRenderer.invoke('shell:show-in-folder', p),
-  openInVscode: (p) => ipcRenderer.invoke('shell:open-in-vscode', p),
+  /** 用指定 IDE 打开路径，id 取自 detectIdes 返回项 */
+  openInIde: (id, p) => ipcRenderer.invoke('shell:open-in-ide', { id, targetPath: p }),
+  /** 读取启动期探测缓存的 IDE 列表（含 available 字段），不会触发新探测 */
+  getAvailableIdes: () => ipcRenderer.invoke('ide:get-available'),
+  /** 强制重新探测受支持 IDE 的可用性，并刷新主进程缓存 */
+  detectIdes: () => ipcRenderer.invoke('ide:detect'),
   deleteFolder: (p) => ipcRenderer.invoke('shell:delete-folder', p),
-  // 调起系统属性对话框（Windows/macOS 支持）
+  /** 调起系统原生「文件夹属性」对话框 */
   showProperties: (p) => ipcRenderer.invoke('shell:show-properties', p),
+  /** 写入系统剪贴板 */
+  copyText: (text) => ipcRenderer.invoke('clipboard:write-text', text),
 
   // 项目扫描
   scanProjects: () => ipcRenderer.invoke('projects:scan'),

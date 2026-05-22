@@ -1,8 +1,8 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, clipboard } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const fsp = require('node:fs/promises')
-const { exec } = require('node:child_process')
+const { exec, spawn } = require('node:child_process')
 const os = require('node:os')
 // electron-updater：从 GitHub Release 拉取版本信息并自动下载更新
 const { autoUpdater } = require('electron-updater')
@@ -16,7 +16,7 @@ let mainWindow = null
 
 /** 创建主窗口：无边框，使用自定义顶部 banner */
 function createWindow() {
-  // 任务栏 / 窗口图标：仅构建 Windows 版本，使用 build/icon.ico
+  // 任务栏 / 窗口图标
   const iconPath = path.join(__dirname, '..', 'build', 'icon.ico')
   const winOptions = {
     width: 1180,
@@ -71,16 +71,18 @@ app.whenReady().then(async () => {
   }
   mainWindow = createWindow()
 
+  // 启动期一次性探测可用 IDE（异步，不阻塞窗口）。结果缓存在 detectedIdes，
+  // 渲染层通过 ide:get-available 直接读取，整个生命周期内不再重复 exec。
+  detectIdesOnce().catch((err) => {
+    console.error('[ide] 启动期探测失败:', err.message)
+  })
+
   // 启动后台自动更新检查（仅打包后生效，dev 下 electron-updater 不会执行实际请求）
   setupAutoUpdater()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow()
-  })
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })
 
 // ==================== 窗口控制 ====================
@@ -301,20 +303,83 @@ ipcMain.handle('shell:show-in-folder', async (_e, targetPath) => {
   return { ok: true }
 })
 
-/** 用 vscode 打开指定路径，本质执行 `code <path>` */
-ipcMain.handle('shell:open-in-vscode', (_e, targetPath) => {
+/**
+ * 已支持的 IDE 列表：
+ * - id：渲染层用来标识/定位的 key
+ * - label：菜单展示名
+ * - cli：CLI 命令名，依赖系统 PATH 解析（Windows 下通常是 .cmd 包装脚本）
+ *
+ * 探测：`where <cli>`，能解析到即可用。
+ * 打开：`<cli> "<path>"`，路径双引号包裹规避空格。
+ *
+ * 数组顺序即菜单展示顺序：VS Code → CodeBuddy → JetBrains 系 → 其它 VSCode fork。
+ * JetBrains（WebStorm / IDEA）的 CLI 默认不会自动加入 PATH，需用户在 IDE 内
+ * `Tools → Create Command-line Launcher` 手动创建，否则探测失败属于预期。
+ */
+const SUPPORTED_IDES = [
+  { id: 'vscode', label: 'VS Code 打开', cli: 'code' },
+  { id: 'codebuddy', label: 'CodeBuddy 打开', cli: 'buddycn' },
+  { id: 'webstorm', label: 'WebStorm 打开', cli: 'webstorm' },
+  { id: 'idea', label: 'IntelliJ IDEA 打开', cli: 'idea' },
+  { id: 'cursor', label: 'Cursor 打开', cli: 'cursor' },
+  { id: 'trae', label: 'Trae 打开', cli: 'trae' }
+]
+
+/** 探测 CLI 是否可用：执行 `where <cli>`，PATH 能解析到即视为可用 */
+function probeIdeCli(cli) {
   return new Promise((resolve) => {
-    if (!targetPath) return resolve({ ok: false, message: '路径为空' })
-    // windows 下 code 实际是 code.cmd，使用 shell:true 让其能找到
-    const cmd = process.platform === 'win32' ? `code "${targetPath}"` : `code "${targetPath}"`
-    exec(cmd, { shell: true }, (err, stdout, stderr) => {
-      if (err) {
-        resolve({ ok: false, message: stderr || err.message })
-      } else {
-        resolve({ ok: true })
-      }
+    exec(`where ${cli}`, { shell: true, timeout: 3000, windowsHide: true }, (err, stdout) => {
+      resolve({ ok: !err && !!stdout && stdout.trim().length > 0 })
     })
   })
+}
+
+/** 启动期一次性探测的结果缓存，渲染层通过 ide:get-available 读取 */
+let detectedIdes = []
+
+/** 探测所有受支持的 IDE 可用性，并行执行 */
+async function detectIdesOnce() {
+  detectedIdes = await Promise.all(
+    SUPPORTED_IDES.map(async (ide) => {
+      const r = await probeIdeCli(ide.cli)
+      return { id: ide.id, label: ide.label, cli: ide.cli, available: r.ok }
+    })
+  )
+  return detectedIdes
+}
+
+/** 直接读取启动期缓存；尚未探测完时返回空数组，渲染层可显式调 ide:detect 等待结果 */
+ipcMain.handle('ide:get-available', () => detectedIdes)
+
+/** 强制重新探测（例如用户主动点"刷新 IDE"），并更新缓存 */
+ipcMain.handle('ide:detect', async () => {
+  return await detectIdesOnce()
+})
+
+/** 用指定 IDE 打开路径，CLI 名以白名单约束，避免渲染层注入任意命令 */
+ipcMain.handle('shell:open-in-ide', (_e, { id, targetPath } = {}) => {
+  return new Promise((resolve) => {
+    if (!targetPath) return resolve({ ok: false, message: '路径为空' })
+    const ide = SUPPORTED_IDES.find((x) => x.id === id)
+    if (!ide) return resolve({ ok: false, message: `未知 IDE：${id}` })
+    // 用双引号包裹路径，规避路径中空格；CLI 名来自白名单，无注入风险
+    const cmd = `${ide.cli} "${targetPath}"`
+    exec(cmd, { shell: true, windowsHide: true }, (err, _stdout, stderr) => {
+      if (err) resolve({ ok: false, message: stderr || err.message })
+      else resolve({ ok: true })
+    })
+  })
+})
+
+/** 写入系统剪贴板：仅 string，避免渲染层传非预期类型 */
+ipcMain.handle('clipboard:write-text', (_e, text) => {
+  if (typeof text !== 'string') return { ok: false, message: '内容非字符串' }
+  try {
+    clipboard.writeText(text)
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, message: err.message }
+  }
 })
 
 /** 删除项目文件夹（递归） */
@@ -328,14 +393,7 @@ ipcMain.handle('shell:delete-folder', async (_e, targetPath) => {
   }
 })
 
-/**
- * 调起系统原生「属性」对话框
- * - Windows：把 PowerShell 脚本写到临时文件后执行，避免 cmd 引号转义丢失；
- *   通过 Shell.Application 的 InvokeVerb('Properties') 弹出对话框；
- *   在脚本末尾 Start-Sleep 让 COM 实例存活，对话框关闭后再退出。
- * - macOS：通过 osascript 让 Finder 打开 "信息" 窗口
- * - Linux：无统一 API，返回不支持
- */
+/** 调起系统原生「文件夹属性」对话框（Windows） */
 ipcMain.handle('shell:show-properties', async (_e, targetPath) => {
   if (!targetPath) return { ok: false, message: '路径为空' }
   try {
@@ -344,57 +402,39 @@ ipcMain.handle('shell:show-properties', async (_e, targetPath) => {
     return { ok: false, message: '文件或文件夹不存在' }
   }
 
-  if (process.platform === 'win32') {
-    // 写一个临时 ps1 脚本来彻底规避 cmd → powershell 的引号转义问题
-    const safe = String(targetPath).replace(/'/g, "''")
-    const ps = [
-      "$ErrorActionPreference = 'Stop'",
-      "$sh = New-Object -ComObject Shell.Application",
-      `$folder = $sh.Namespace((Split-Path -Parent '${safe}'))`,
-      `$item = $folder.ParseName((Split-Path -Leaf '${safe}'))`,
-      "if ($item) { $item.InvokeVerb('Properties') }",
-      // 让属性对话框有足够时间显示并被用户关闭，期间保持 COM 引用
-      "Start-Sleep -Seconds 60"
-    ].join('\r\n')
+  // PS 脚本：P/Invoke 调 shell32!SHObjectProperties 弹属性框，自跑 60s 消息泵维持对话框
+  const safe = String(targetPath).replace(/'/g, "''")
+  const ps = `
+$target = '${safe}'
+Add-Type -Namespace Win32 -Name Shell32 -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+public static extern bool SHObjectProperties(System.IntPtr hwnd, uint shopObjectType, string pszObjectName, string pszPropertyPage);
+'@
+Add-Type -AssemblyName System.Windows.Forms
+Write-Host 'BEFORE_INVOKE'
+[Win32.Shell32]::SHObjectProperties([System.IntPtr]::Zero, 2, $target, '') | Out-Null
+$end = (Get-Date).AddSeconds(60)
+while ((Get-Date) -lt $end) { [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 50 }
+`.trim()
 
-    const tmpFile = path.join(
-      os.tmpdir(),
-      `project-helper-props-${Date.now()}.ps1`
+  // 写临时 .ps1（UTF-8 BOM 让 PS 5.1 正确解析中文路径），跑完用 BEFORE_INVOKE 确认对话框已弹出
+  const tmpFile = path.join(os.tmpdir(), `project-helper-props-${Date.now()}.ps1`)
+  try {
+    await fsp.writeFile(tmpFile, '\uFEFF' + ps, 'utf-8')
+  } catch (err) {
+    return { ok: false, message: '写入临时脚本失败: ' + err.message }
+  }
+
+  return new Promise((resolve) => {
+    const done = (r) => { fsp.unlink(tmpFile).catch(() => {}); resolve(r) }
+    const child = spawn('cmd.exe',
+      ['/c', 'powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-File', tmpFile],
+      { windowsHide: true }
     )
-    try {
-      await fsp.writeFile(tmpFile, ps, 'utf-8')
-    } catch (err) {
-      return { ok: false, message: err.message }
-    }
-
-    return new Promise((resolve) => {
-      // detached 让 PS 独立运行，主进程不阻塞；脚本退出后清理临时文件
-      exec(
-        `powershell -NoProfile -ExecutionPolicy Bypass -File "${tmpFile}"`,
-        { windowsHide: true },
-        (err) => {
-          fsp.unlink(tmpFile).catch(() => {})
-          if (err) resolve({ ok: false, message: err.message })
-          else resolve({ ok: true })
-        }
-      )
-      // 不等待 60 秒：写完脚本后立刻返回成功，让用户继续操作 UI
-      resolve({ ok: true })
-    })
-  }
-
-  if (process.platform === 'darwin') {
-    const safe = String(targetPath).replace(/"/g, '\\"')
-    const script = `tell application "Finder" to open information window of (POSIX file "${safe}" as alias)`
-    return new Promise((resolve) => {
-      exec(`osascript -e '${script}'`, (err) => {
-        if (err) resolve({ ok: false, message: err.message })
-        else resolve({ ok: true })
-      })
-    })
-  }
-
-  return { ok: false, message: '当前系统不支持查看属性' }
+    child.stdout?.on('data', (c) => c.toString('utf-8').includes('BEFORE_INVOKE') && done({ ok: true }))
+    child.on('error', (err) => done({ ok: false, message: err.message }))
+    child.on('exit', (code) => done({ ok: false, message: `PowerShell 异常退出 (code=${code})` }))
+  })
 })
 
 // ==================== 项目扫描 ====================
@@ -416,22 +456,79 @@ async function isProject(dir) {
 }
 
 /**
- * 读取项目的展示信息：优先取 package.json 的 name/description
- * 若无 package.json，则名称用文件夹名，简介为空
+ * 在目录下查找 README 文件（大小写不敏感），返回首个匹配的绝对路径；找不到返回 null
+ * 仅匹配文件名为 readme.md 的项，避免把 README.txt / README 之类纳入
+ */
+async function findReadmeFile(dir) {
+  let entries = []
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true })
+  } catch {
+    return null
+  }
+  for (const ent of entries) {
+    if (!ent.isFile()) continue
+    if (ent.name.toLowerCase() === 'readme.md') {
+      return path.join(dir, ent.name)
+    }
+  }
+  return null
+}
+
+/**
+ * 读取 README 文件第一行作为描述：去除 markdown 标题前缀（# / ## ...）和首尾空白
+ * 读取失败或为空返回空串
+ */
+async function readReadmeFirstLine(readmePath) {
+  try {
+    const text = await fsp.readFile(readmePath, 'utf-8')
+    // 跳过开头的空行，取首个非空行
+    const lines = text.split(/\r?\n/)
+    for (const raw of lines) {
+      const line = raw.replace(/^\uFEFF/, '').trim()
+      if (!line) continue
+      // 去掉 markdown 标题前缀（# 号及其后空白），保留纯文本
+      return line.replace(/^#+\s*/, '').trim()
+    }
+    return ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 读取项目的展示信息：
+ * - name：package.json 的 name 字段（非空） > 文件夹名
+ * - description：package.json.description（非空） > readme.md 第一行（大小写兼容） > 空串
+ *   即 description 来源相互独立：只要 package.json 没给出有效 description，就继续尝试 README，
+ *   不会因为有 package.json 就把描述锁成空。
  */
 async function readProjectMeta(dir) {
   const folderName = path.basename(dir)
   const pkgPath = path.join(dir, 'package.json')
+
+  // 先尝试读取 package.json，拿 name 与 description（任一字段缺失/为空都允许后续回退）
+  let pkgName = ''
+  let pkgDesc = ''
   try {
     const text = await fsp.readFile(pkgPath, 'utf-8')
     const pkg = JSON.parse(text)
-    return {
-      name: typeof pkg.name === 'string' && pkg.name.trim() ? pkg.name : folderName,
-      description: typeof pkg.description === 'string' ? pkg.description : ''
+    if (typeof pkg.name === 'string' && pkg.name.trim()) pkgName = pkg.name.trim()
+    if (typeof pkg.description === 'string' && pkg.description.trim()) {
+      pkgDesc = pkg.description.trim()
     }
   } catch {
-    return { name: folderName, description: '' }
+    // 无 package.json 或解析失败：name/desc 维持空，统一走下面的回退逻辑
   }
+
+  // description 缺失时回退 README 首行；package.json 存在与否不影响是否读 README
+  let description = pkgDesc
+  if (!description) {
+    const readmePath = await findReadmeFile(dir)
+    if (readmePath) description = await readReadmeFirstLine(readmePath)
+  }
+
+  return { name: pkgName || folderName, description }
 }
 
 /** 路径标准化用于 exclude 匹配 */

@@ -86,7 +86,7 @@
           v-for="p in filteredProjects"
           :key="p.path"
           :project="p"
-          @open="openInVscode"
+          @open="openWithDefaultIde"
           @contextmenu="onContextMenu"
           @toggle-pin="togglePin"
         />
@@ -124,6 +124,7 @@ import ProjectCard from '../components/ProjectCard.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import Toast from '../components/Toast.vue'
+import { useIdes } from '../composables/useIdes'
 
 const props = defineProps({
   active: Boolean
@@ -218,28 +219,47 @@ async function loadProjects() {
   }
 }
 
-/** 双击：vscode 打开 */
-async function openInVscode(project) {
-  const r = await window.api.openInVscode(project.path)
+// 可用 IDE 列表来自全局 composable：app 启动时主进程探测一次，渲染层缓存为模块级单例
+// 这里只读，不做任何探测；用户切换页面 / 频繁打开右键菜单都不会再次触发 exec
+const { availableIdes } = useIdes()
+
+/** 双击：用首个可用 IDE 打开（VS Code 优先，其次 CodeBuddy ...） */
+async function openWithDefaultIde(project) {
+  const first = availableIdes.value[0]
+  if (!first) {
+    toastRef.value?.show('未检测到可用 IDE，请先安装并将 CLI 加入 PATH', 'error')
+    return
+  }
+  const r = await window.api.openInIde(first.id, project.path)
   if (!r?.ok) {
-    toastRef.value?.show(`无法启动 VSCode：${r?.message || '未知错误'}`, 'error')
+    toastRef.value?.show(`无法启动 ${first.label.replace(' 打开', '')}：${r?.message || '未知错误'}`, 'error')
   }
 }
 
-/** 右键弹出菜单 */
+/** 右键弹出菜单：根据 IDE 可用性动态拼装菜单项 */
 function onContextMenu(ev, project) {
   ctxTarget.value = project
   ctxX.value = ev.clientX
   ctxY.value = ev.clientY
-  ctxItems.value = [
-    { label: 'vscode 打开', action: 'vscode' },
-    { label: '打开项目文件夹', action: 'open-folder' },
-    { label: '查看属性', action: 'show-properties' },
-    { divider: true },
-    { label: project.pinned ? '取消置顶' : '置顶', action: 'toggle-pin' },
-    { divider: true },
-    { label: '删除项目', action: 'delete', danger: true }
-  ]
+
+  const items = []
+  // IDE 打开项：按主进程返回顺序展示（VS Code → CodeBuddy → WebStorm → IDEA → Cursor → Trae）
+  // 后面紧跟一个分割符，便于在 IDE 项较多时与其它操作视觉上区分
+  for (const ide of availableIdes.value) {
+    items.push({ label: ide.label, action: `open-ide:${ide.id}` })
+  }
+  if (availableIdes.value.length > 0) {
+    items.push({ divider: true })
+  }
+  items.push({ label: '打开项目文件夹', action: 'open-folder' })
+  items.push({ label: '复制项目路径', action: 'copy-path' })
+  items.push({ label: '查看项目属性', action: 'show-properties' })
+  items.push({ divider: true })
+  items.push({ label: project.pinned ? '取消置顶' : '置顶', action: 'toggle-pin' })
+  items.push({ divider: true })
+  items.push({ label: '删除项目', action: 'delete', danger: true })
+
+  ctxItems.value = items
   ctxVisible.value = true
 }
 
@@ -247,12 +267,26 @@ function onContextMenu(ev, project) {
 async function onMenuSelect(item) {
   const p = ctxTarget.value
   if (!p) return
-  if (item.action === 'vscode') {
-    await openInVscode(p)
-  } else if (item.action === 'open-folder') {
+  // IDE 打开：action 形如 `open-ide:vscode`
+  if (typeof item.action === 'string' && item.action.startsWith('open-ide:')) {
+    const id = item.action.slice('open-ide:'.length)
+    const r = await window.api.openInIde(id, p.path)
+    if (!r?.ok) {
+      toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+    }
+    return
+  }
+  if (item.action === 'open-folder') {
     const r = await window.api.openFolder(p.path)
     if (!r?.ok) {
       toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+    }
+  } else if (item.action === 'copy-path') {
+    const r = await window.api.copyText(p.path)
+    if (r?.ok) {
+      toastRef.value?.show('已复制项目路径', 'success', 1200)
+    } else {
+      toastRef.value?.show(`复制失败：${r?.message || '未知错误'}`, 'error')
     }
   } else if (item.action === 'show-properties') {
     const r = await window.api.showProperties(p.path)

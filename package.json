@@ -1,6 +1,6 @@
 {
   "name": "project-helper",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "开发项目管理器：扫描本地项目并用 VSCode 快速打开",
   "main": "electron/main.js",
   "author": "BUILDY0",
