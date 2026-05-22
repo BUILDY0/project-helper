@@ -325,17 +325,13 @@ ipcMain.handle('shell:open-external', async (_e, url) => {
  * 探测：`where <cli>`，能解析到即可用。
  * 打开：`<cli> "<path>"`，路径双引号包裹规避空格。
  *
- * 数组顺序即菜单展示顺序：VS Code → CodeBuddy → JetBrains 系 → 其它 VSCode fork。
- * JetBrains（WebStorm / IDEA）的 CLI 默认不会自动加入 PATH，需用户在 IDE 内
- * `Tools → Create Command-line Launcher` 手动创建，否则探测失败属于预期。
+ * 数组顺序即菜单展示顺序：VS Code → CodeBuddy → 其它 VSCode fork。
  */
 const SUPPORTED_IDES = [
   { id: 'vscode', label: 'VS Code 打开', cli: 'code' },
   { id: 'codebuddy', label: 'CodeBuddy 打开', cli: 'buddycn' },
-  { id: 'webstorm', label: 'WebStorm 打开', cli: 'webstorm' },
-  { id: 'idea', label: 'IntelliJ IDEA 打开', cli: 'idea' },
   { id: 'cursor', label: 'Cursor 打开', cli: 'cursor' },
-  { id: 'trae', label: 'Trae 打开', cli: 'trae' }
+  { id: 'trae', label: 'Trae 打开', cli: 'trae-cn' }
 ]
 
 /** 探测 CLI 是否可用：执行 `where <cli>`，PATH 能解析到即视为可用 */
