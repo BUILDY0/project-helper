@@ -58,6 +58,23 @@
             />
           </svg>
         </button>
+        <button
+          v-if="project.readmePath"
+          class="status-btn"
+          title="打开 README"
+          @click.stop="$emit('open-readme', project)"
+        >
+          <svg viewBox="0 0 208 128" width="14" height="14" fill="none" aria-hidden="true">
+            <g fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M15 10c-2.7614 0-5 2.2386-5 5v98c0 2.761 2.2386 5 5 5h178c2.761 0 5-2.239 5-5v-98c0-2.7614-2.239-5-5-5zm-15 5c0-8.28427 6.71573-15 15-15h178c8.284 0 15 6.71573 15 15v98c0 8.284-6.716 15-15 15h-178c-8.28427 0-15-6.716-15-15z"
+              />
+              <path d="M30 98v-68h20l20 25 20-25h20v68h-20v-39l-20 25-20-25v39zm125 0-30-33h20v-35h20v35h20z" />
+            </g>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -79,7 +96,7 @@
 defineProps({
   project: { type: Object, required: true }
 })
-defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg'])
+defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-readme'])
 </script>
 
 <style scoped>

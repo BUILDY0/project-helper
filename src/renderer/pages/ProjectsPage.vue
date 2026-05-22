@@ -91,6 +91,7 @@
           @toggle-pin="togglePin"
           @open-git="openGitUrl"
           @open-pkg="openPackageFolder"
+          @open-readme="openReadme"
         />
       </div>
     </div>
@@ -247,6 +248,15 @@ async function openPackageFolder(project) {
   const r = await window.api.openFolder(project.path)
   if (!r?.ok) {
     toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+  }
+}
+
+/** 状态图标：Markdown 图标点击，用系统默认应用打开 readme.md */
+async function openReadme(project) {
+  if (!project?.readmePath) return
+  const r = await window.api.openFolder(project.readmePath)
+  if (!r?.ok) {
+    toastRef.value?.show(`打开 README 失败：${r?.message || '未知错误'}`, 'error')
   }
 }
 

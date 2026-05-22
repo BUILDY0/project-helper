@@ -579,17 +579,24 @@ async function readProjectMeta(dir) {
     // 无 package.json 或解析失败：相关字段维持空，统一走下面的回退逻辑
   }
 
+  // 查 readme.md（大小写不敏感）：用作 description 的回退来源，也作为卡片"是否有 README"状态
+  const readmePath = await findReadmeFile(dir)
   let description = pkgDesc
-  if (!description) {
-    const readmePath = await findReadmeFile(dir)
-    if (readmePath) description = await readReadmeFirstLine(readmePath)
+  if (!description && readmePath) {
+    description = await readReadmeFirstLine(readmePath)
   }
 
   // gitUrl：.git/config 优先（更准；本地未推送也能拿到实际 origin），其次 package.json.repository
   const rawGit = (await readGitConfigUrl(dir)) || pkgRepoUrl
   const gitUrl = normalizeGitUrl(rawGit)
 
-  return { name: pkgName || folderName, description, gitUrl, hasPackageJson }
+  return {
+    name: pkgName || folderName,
+    description,
+    gitUrl,
+    hasPackageJson,
+    readmePath: readmePath || ''
+  }
 }
 
 /** 路径标准化用于 exclude 匹配 */
