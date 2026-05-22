@@ -12,10 +12,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        # v5 起内部运行时为 Node 24，符合 GitHub 2026 起的强制要求
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        # v5 起内部运行时为 Node 24；构建用的 Node 版本仍由 node-version 指定
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
