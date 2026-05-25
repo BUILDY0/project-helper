@@ -146,16 +146,17 @@ async function ensureConfigFile() {
 
   // 写入默认模板
   try {
-    await fsp.writeFile(
-      CONFIG_PATH,
-      JSON.stringify(DEFAULT_CONFIG, null, 2),
-      'utf-8'
-    )
+    await writeConfig(DEFAULT_CONFIG)
     console.log('[config] 已创建默认配置文件:', CONFIG_PATH)
   } catch (err) {
     console.error('[config] 创建默认配置失败:', err.message)
     throw err
   }
+}
+
+/** 序列化并落盘配置文件，统一序列化格式 */
+async function writeConfig(data) {
+  await fsp.writeFile(CONFIG_PATH, JSON.stringify(data, null, 2), 'utf-8')
 }
 
 /** 读取配置文件，缺省返回默认值 */
@@ -209,7 +210,7 @@ ipcMain.handle('config:save', async (_e, payload) => {
     exclude_paths: Array.isArray(payload?.exclude_paths) ? payload.exclude_paths : [],
     pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned
   }
-  await fsp.writeFile(CONFIG_PATH, JSON.stringify(data, null, 2), 'utf-8')
+  await writeConfig(data)
   return true
 })
 
@@ -240,7 +241,7 @@ async function writePinned(pinned) {
     exclude_paths: prev.exclude_paths,
     pinned: Array.isArray(pinned) ? pinned : []
   }
-  await fsp.writeFile(CONFIG_PATH, JSON.stringify(data, null, 2), 'utf-8')
+  await writeConfig(data)
 }
 
 /** 切换某个项目的 pin 状态，返回最新 pinned 数组 */
@@ -555,35 +556,48 @@ async function readProjectMeta(dir) {
   const folderName = path.basename(dir)
   const pkgPath = path.join(dir, 'package.json')
 
+  // 三处 IO 互不依赖，并行执行：
+  // - 读 package.json 文本
+  // - 查找 readme.md（大小写不敏感）
+  // - 读 .git/config 的 origin url
+  const [pkgRead, readmePath, gitConfigUrl] = await Promise.all([
+    fsp.readFile(pkgPath, 'utf-8').then(
+      (text) => ({ ok: true, text }),
+      () => ({ ok: false, text: '' })
+    ),
+    findReadmeFile(dir),
+    readGitConfigUrl(dir)
+  ])
+
   let pkgName = ''
   let pkgDesc = ''
   let pkgRepoUrl = ''
   let hasPackageJson = false
-  try {
-    const text = await fsp.readFile(pkgPath, 'utf-8')
-    const pkg = JSON.parse(text)
-    hasPackageJson = true
-    if (typeof pkg.name === 'string' && pkg.name.trim()) pkgName = pkg.name.trim()
-    if (typeof pkg.description === 'string' && pkg.description.trim()) {
-      pkgDesc = pkg.description.trim()
+  if (pkgRead.ok) {
+    try {
+      const pkg = JSON.parse(pkgRead.text)
+      hasPackageJson = true
+      if (typeof pkg.name === 'string' && pkg.name.trim()) pkgName = pkg.name.trim()
+      if (typeof pkg.description === 'string' && pkg.description.trim()) {
+        pkgDesc = pkg.description.trim()
+      }
+      // repository 可能是 string 或 { url: '...' }
+      const repo = pkg.repository
+      if (typeof repo === 'string') pkgRepoUrl = repo
+      else if (repo && typeof repo.url === 'string') pkgRepoUrl = repo.url
+    } catch {
+      // package.json 解析失败：相关字段维持空，统一走下面的回退逻辑
     }
-    // repository 可能是 string 或 { url: '...' }
-    const repo = pkg.repository
-    if (typeof repo === 'string') pkgRepoUrl = repo
-    else if (repo && typeof repo.url === 'string') pkgRepoUrl = repo.url
-  } catch {
-    // 无 package.json 或解析失败：相关字段维持空，统一走下面的回退逻辑
   }
 
-  // 查 readme.md（大小写不敏感）：用作 description 的回退来源，也作为卡片"是否有 README"状态
-  const readmePath = await findReadmeFile(dir)
+  // readme.md 既作为 description 的回退来源，也作为卡片"是否有 README"状态
   let description = pkgDesc
   if (!description && readmePath) {
     description = await readReadmeFirstLine(readmePath)
   }
 
   // gitUrl：.git/config 优先（更准；本地未推送也能拿到实际 origin），其次 package.json.repository
-  const rawGit = (await readGitConfigUrl(dir)) || pkgRepoUrl
+  const rawGit = gitConfigUrl || pkgRepoUrl
   const gitUrl = normalizeGitUrl(rawGit)
 
   return {
@@ -604,31 +618,36 @@ function normalize(p) {
  * 广度优先扫描：从 roots 出发，depth 为搜索边界，命中 exclude 则跳过
  * depth 语义：paths=["a"], depth=1 => 扫描 a/、a/aa/、a/bb/，不进入 a/aa/aaa
  * 即从 root 出发最多向下走 depth 层
+ *
+ * 实现：按层并行（同层节点的 IO 用 Promise.all 并行处理），
+ * 总耗时由 O(节点数) 降为 O(层数 × 单层最慢分支)。
  */
 async function scanProjects(roots, depth, excludes) {
   const excludeSet = new Set((excludes || []).map(normalize))
   const visited = new Set()
   const projects = []
 
-  // 队列元素：{ dir, level } level 表示相对 root 已下钻的层数
-  const queue = []
+  // 收集本层有效起点：去重 + 校验为目录
+  let frontier = []
   for (const r of roots || []) {
     if (!r) continue
     try {
       const stat = await fsp.stat(r)
-      if (stat.isDirectory()) queue.push({ dir: path.resolve(r), level: 0 })
+      if (stat.isDirectory()) frontier.push({ dir: path.resolve(r), level: 0 })
     } catch {
       // 路径不存在，跳过
     }
   }
 
-  while (queue.length > 0) {
-    const { dir, level } = queue.shift()
+  /**
+   * 处理单个节点：判定是否项目（命中则收录），并返回下钻后的子节点列表
+   * 命中 visited / exclude 时不收录、不下钻
+   */
+  async function processNode({ dir, level }) {
     const key = normalize(dir)
-    if (visited.has(key)) continue
+    if (visited.has(key)) return []
     visited.add(key)
-    // 命中 exclude 是唯一会跳过当前路径的情况（不收录、不下钻）
-    if (excludeSet.has(key)) continue
+    if (excludeSet.has(key)) return []
 
     // 当前层若是项目则收录，但不影响下钻：monorepo 场景外层项目里可能还有子项目
     if (await isProject(dir)) {
@@ -636,22 +655,30 @@ async function scanProjects(roots, depth, excludes) {
       projects.push({ path: dir, ...meta })
     }
 
-    // 未到深度边界则继续下钻
-    if (level < depth) {
-      let entries = []
-      try {
-        entries = await fsp.readdir(dir, { withFileTypes: true })
-      } catch {
-        continue
-      }
-      for (const ent of entries) {
-        if (!ent.isDirectory()) continue
-        // 跳过隐藏目录与 node_modules：内含成百上千伪项目，扫描成本与噪音都不可接受
-        if (ent.name.startsWith('.')) continue
-        if (ent.name === 'node_modules') continue
-        queue.push({ dir: path.join(dir, ent.name), level: level + 1 })
-      }
+    // 已到深度边界，无需下钻
+    if (level >= depth) return []
+
+    let entries = []
+    try {
+      entries = await fsp.readdir(dir, { withFileTypes: true })
+    } catch {
+      return []
     }
+    const next = []
+    for (const ent of entries) {
+      if (!ent.isDirectory()) continue
+      // 跳过隐藏目录与 node_modules：内含成百上千伪项目，扫描成本与噪音都不可接受
+      if (ent.name.startsWith('.')) continue
+      if (ent.name === 'node_modules') continue
+      next.push({ dir: path.join(dir, ent.name), level: level + 1 })
+    }
+    return next
+  }
+
+  // 按层迭代：同层节点并行处理，所有节点完成后再进入下一层
+  while (frontier.length > 0) {
+    const childrenLists = await Promise.all(frontier.map(processNode))
+    frontier = childrenLists.flat()
   }
 
   return projects
