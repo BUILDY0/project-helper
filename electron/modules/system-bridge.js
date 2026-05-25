@@ -109,6 +109,20 @@ function registerSystemBridge() {
     BrowserWindow.fromWebContents(e.sender)?.close()
   })
 
+  // ==================== 开发模式辅助 ====================
+  /** 渲染层用来判断是否处于开发环境，决定是否显示 dev-only 入口（如 console 按钮） */
+  ipcMain.handle('app:is-dev', () => process.env.NODE_ENV === 'development')
+
+  /** 切换 DevTools 显示：仅 dev 模式生效，避免打包后用户误打开 */
+  ipcMain.handle('devtools:toggle', (e) => {
+    if (process.env.NODE_ENV !== 'development') return false
+    const win = BrowserWindow.fromWebContents(e.sender)
+    if (!win) return false
+    if (win.webContents.isDevToolsOpened()) win.webContents.closeDevTools()
+    else win.webContents.openDevTools({ mode: 'detach' })
+    return win.webContents.isDevToolsOpened()
+  })
+
   // ==================== 选择目录/文件 ====================
   ipcMain.handle('dialog:select-directory', async (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)

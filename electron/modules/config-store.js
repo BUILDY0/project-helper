@@ -38,19 +38,6 @@ async function ensureConfigFile() {
     throw err
   }
 
-  // 兼容旧版本：如果旧路径存在 ~/config.json，则迁移到新路径，保留用户配置
-  const LEGACY_CONFIG = path.join(os.homedir(), 'config.json')
-  try {
-    const legacyStat = await fsp.stat(LEGACY_CONFIG)
-    if (legacyStat.isFile()) {
-      await fsp.rename(LEGACY_CONFIG, CONFIG_PATH)
-      console.log('[config] 已迁移旧配置到:', CONFIG_PATH)
-      return
-    }
-  } catch {
-    // 旧文件不存在或无法访问，忽略
-  }
-
   // 写入默认模板
   try {
     await writeConfig(DEFAULT_CONFIG)

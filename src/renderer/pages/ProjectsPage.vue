@@ -386,7 +386,7 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 18px 22px 0;
+  padding: 18px 22px;
 }
 .page-header {
   display: flex;
@@ -538,7 +538,9 @@ watch(
 .page-body {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 18px;
+  /* 顶部留白：卡片 hover 时 transform: translateY(-1px) 上抬，并伴随阴影外溢，
+     若顶部紧贴容器边缘会被 overflow 裁切；这里给一点缓冲空间避免溢出截断 */
+  padding-top: 4px;
 }
 .grid {
   display: grid;

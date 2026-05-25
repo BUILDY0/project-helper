@@ -407,7 +407,7 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 18px 22px 0;
+  padding: 18px 22px;
 }
 .page-header {
   display: flex;
@@ -449,7 +449,6 @@ defineExpose({
 .page-body {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 18px;
   display: flex;
   flex-direction: column;
   gap: 22px;

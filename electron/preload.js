@@ -12,6 +12,12 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('window:maximize-change', listener)
   },
 
+  // 开发模式辅助
+  /** 当前是否处于开发环境，仅 dev 下显示 console 等辅助入口 */
+  isDev: () => ipcRenderer.invoke('app:is-dev'),
+  /** 切换 DevTools 显示（仅 dev 模式有效） */
+  toggleDevTools: () => ipcRenderer.invoke('devtools:toggle'),
+
   // 配置
   getConfigPath: () => ipcRenderer.invoke('config:get-path'),
   readConfig: () => ipcRenderer.invoke('config:read'),
