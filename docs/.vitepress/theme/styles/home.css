@@ -1,0 +1,107 @@
+/**
+ * 首页（home 布局）：参考 Vue 官网（cn.vuejs.org）水平居中排版
+ *
+ * 视觉层级（从上到下）：
+ *   1) name     —— 渐变色小标题
+ *   2) text     —— 主标题（76px，对应 Vue 官网"JavaScript 框架"）
+ *   3) tagline  —— 灰色描述
+ *   4) actions  —— 按钮一排
+ *   5) features —— 4 卡片功能介绍
+ *   6) banner / 快速链接（自定义 Vue 组件）
+ *
+ * VitePress 默认 hero 是「左文右图」两栏栅格，需要切换为单列居中。
+ */
+.VPHome .VPHero {
+  /* 上下留白：收紧一档，便于首屏看到下方 banner */
+  padding: clamp(48px, 8vh, 72px) 24px 0;
+}
+.VPHome .VPHero .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.VPHome .VPHero .main {
+  /* 解除默认 max-width / order，避免大字号被挤换行 */
+  max-width: none;
+  width: 100%;
+  order: 2;
+  text-align: center;
+}
+.VPHome .VPHero .image {
+  /* 居中布局下不再使用右侧装饰图位 */
+  display: none;
+}
+
+/* —— name：上方渐变副标题 —— */
+.VPHome .VPHero .name {
+  display: block;
+  font-size: 76px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.VPHome .VPHero .name .clip {
+  background: var(--vp-home-hero-name-background);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* —— text：主标题，使用主文字色（非渐变）—— */
+.VPHome .VPHero .text {
+  display: block;
+  font-size: 56px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--vp-c-text-1);
+  margin: 0;
+}
+
+/* 小屏兜底：超窄屏取消 nowrap，避免横向溢出 */
+@media (max-width: 720px) {
+  .VPHome .VPHero .name {
+    font-size: clamp(44px, 9vw, 64px);
+  }
+  .VPHome .VPHero .text {
+    font-size: clamp(32px, 7vw, 48px);
+    white-space: normal;
+  }
+}
+
+.VPHome .VPHero .heading {
+  align-items: center;
+}
+
+/* —— tagline：灰色描述 —— */
+.VPHome .VPHero .tagline {
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+  max-width: 720px;
+  /* 上方 12px 紧跟主标题；下方 12px 与 actions 拉近 */
+  margin: 12px auto 0;
+}
+
+/* —— actions：按钮居中、文字加大 —— */
+.VPHome .VPHero .actions {
+  justify-content: center;
+  gap: 12px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.VPHome .VPHero .actions .VPButton {
+  font-size: 16px;
+  padding: 0 22px;
+  line-height: 44px;
+}
+.VPHome .VPHero .actions .VPButton.medium {
+  height: 44px;
+}
+
+/* features 已迁移到自定义 <HomeFeatures> 组件，VitePress 内置 features 不再使用 */

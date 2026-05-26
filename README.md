@@ -2,6 +2,8 @@
 
 一个基于 **Vue 3 + Electron + Vite** 的本地开发项目管理器。
 
+> 📖 在线文档：<https://buildy0.github.io/project-helper/>
+
 ---
 
 ## 配置文件

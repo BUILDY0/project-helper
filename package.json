@@ -5,6 +5,7 @@
   "main": "electron/main.js",
   "author": "BUILDY0",
   "license": "MIT",
+  "homepage": "https://buildy0.github.io/project-helper/",
   "repository": {
     "type": "git",
     "url": "https://github.com/BUILDY0/project-helper.git"
@@ -15,9 +16,12 @@
     "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
     "build:icon": "npx -y png-to-ico build/icon.png > build/icon.ico",
     "build:renderer": "vite build",
-    "build": "npm run build:icon && npm run build:renderer && electron-builder",
-    "release": "npm run build:renderer && electron-builder --publish always",
+    "build": "npm run build:icon && npm run build:renderer && npm run docs:build && electron-builder",
+    "release": "npm run build:icon && npm run build:renderer && npm run docs:build && electron-builder --publish always",
     "start": "electron .",
+    "docs:dev": "vitepress dev docs --port 6600",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "version:patch": "npm version patch -m \"chore: release v%s\"",
     "version:minor": "npm version minor -m \"chore: release v%s\"",
     "version:major": "npm version major -m \"chore: release v%s\"",
@@ -34,6 +38,7 @@
     "vite": "^5.0.12",
     "@vitejs/plugin-vue": "^5.0.3",
     "vue": "^3.4.15",
+    "vitepress": "^1.6.3",
     "wait-on": "^7.2.0"
   },
   "build": {

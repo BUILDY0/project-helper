@@ -1,0 +1,81 @@
+/**
+ * 主题颜色变量：黄色（琥珀金）主色调
+ *
+ * 设计取色：
+ *   #f0c14b 亮黄（按钮/高亮填充）
+ *   #e5c98a 浅米黄（弱化背景 / soft 填充）
+ *   #d97706 amber-600（浅色模式下用于文字/链接，保证对比度）
+ *   #b45309 amber-700（hover 加深）
+ */
+
+:root {
+  /* 主色：浅色模式下用 amber-600/700，保证白底文字/链接可读 */
+  --vp-c-brand-1: #d97706;
+  --vp-c-brand-2: #b45309;
+  --vp-c-brand-3: #f0c14b;
+  --vp-c-brand-soft: rgba(240, 193, 75, 0.18);
+
+  /**
+   * 全站分割线：与首页 Header 底部分割线对齐为极淡色（约 4% 黑）。
+   * 覆盖 VitePress 内置的 #e2e2e3 系列，统一所有内容页/侧栏/代码块边线。
+   */
+  --vp-c-divider: rgba(0, 0, 0, 0.04);
+  --vp-c-gutter: rgba(0, 0, 0, 0.04);
+
+  /* 主按钮（首页 hero 的 brand 按钮等）：用亮黄做底，深棕做文字保证对比度 */
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #1f1300;
+  --vp-button-brand-bg: #f0c14b;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #1f1300;
+  --vp-button-brand-hover-bg: #e5c98a;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #1f1300;
+  --vp-button-brand-active-bg: #d4ad42;
+
+  /* 首页 hero 标题渐变（亮黄 → 米黄）—— 仅作用于 .name 渐变副标题 */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(
+    120deg,
+    #f0c14b 30%,
+    #e5c98a
+  );
+  --vp-home-hero-image-background-image: linear-gradient(
+    -45deg,
+    #f0c14b 50%,
+    #e5c98a 50%
+  );
+  --vp-home-hero-image-filter: blur(44px);
+
+  /* 自定义提示块（::: tip）等的强调色 */
+  --vp-custom-block-tip-border: transparent;
+  --vp-custom-block-tip-text: var(--vp-c-brand-1);
+  --vp-custom-block-tip-bg: var(--vp-c-brand-soft);
+  --vp-custom-block-tip-code-bg: var(--vp-c-brand-soft);
+}
+
+/* 深色模式：调整为更鲜亮的黄色，避免在深背景下显灰 */
+.dark {
+  --vp-c-brand-1: #fbbf24;       /* amber-400，更亮 */
+  --vp-c-brand-2: #f59e0b;       /* amber-500 */
+  --vp-c-brand-3: #d97706;       /* amber-600 */
+  --vp-c-brand-soft: rgba(251, 191, 36, 0.18);
+
+  /* 深色模式下分割线：与 Header 同步使用 6% 白 */
+  --vp-c-divider: rgba(255, 255, 255, 0.06);
+  --vp-c-gutter: rgba(255, 255, 255, 0.06);
+
+  /* 暗色模式 hero 渐变：用更鲜艳的色阶，避免发灰 */
+  --vp-home-hero-name-background: -webkit-linear-gradient(
+    120deg,
+    #fbbf24 30%,
+    #fde68a
+  );
+
+  --vp-button-brand-text: #1f1300;
+  --vp-button-brand-bg: #fbbf24;
+  --vp-button-brand-hover-text: #1f1300;
+  --vp-button-brand-hover-bg: #fcd34d;
+  --vp-button-brand-active-text: #1f1300;
+  --vp-button-brand-active-bg: #f59e0b;
+}

@@ -1,0 +1,32 @@
+/**
+ * 内容页（配置 / 更新日志）：参考 Vue 官网（cn.vuejs.org）排版
+ *
+ * 设计要点：
+ *  - 主区限宽与 Vue 官网相近（约 720–800px），居中阅读
+ *  - h2 章节分隔使用「与 Header 同色」的极淡分割线，避免突兀的灰条
+ *  - 正文 16 / 1.75 行高，贴近 Vue 官网阅读节奏
+ */
+
+/* 内容页主区：限宽接近 Vue 官网（默认 752px 左右），居中阅读 */
+.VPDoc .content-container {
+  max-width: 768px;
+}
+
+/* h2 章节分隔：使用全局 --vp-c-divider（已统一为极淡色） */
+.vp-doc h2 {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--vp-c-divider);
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.vp-doc h3 {
+  margin-top: 32px;
+  font-size: 20px;
+}
+.vp-doc p,
+.vp-doc li {
+  font-size: 16px;
+  line-height: 1.75;
+}

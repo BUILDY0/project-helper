@@ -1,0 +1,18 @@
+/**
+ * Header（顶部导航栏）：logo 24px / 标题 16px
+ *
+ * 分割线策略（与 VitePress 默认行为一致 + 全局变量统一）：
+ *  - 首页 (.home.top)：默认无线，靠 hero padding 自然分隔
+ *  - 内容页 / 非顶部：使用 --vp-c-gutter，已在 vars.css 统一为极淡色
+ * 所以这里不再覆写 .divider-line 的 background-color，由变量驱动。
+ */
+
+:root {
+  /* logo 渲染高度：默认 22px，调到 24px */
+  --vp-nav-logo-height: 24px;
+}
+
+.VPNavBarTitle .title {
+  font-size: 16px;
+  line-height: 1.4;
+}
