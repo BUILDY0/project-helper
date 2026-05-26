@@ -33,38 +33,54 @@
 ```
 project-helper/
 ├─ src/
-│  ├─ main/                        # 主进程（Node 环境）
-│  │  ├─ index.js                  # 入口：app 生命周期 + 模块装配
-│  │  └─ modules/                  # 主进程领域模块
-│  │      ├─ config-store.js       # 配置读写、pinned 管理、config:* / pin:toggle
-│  │      ├─ system-bridge.js      # 窗口、对话框、shell、IDE 探测、剪贴板、属性框
-│  │      ├─ project-scanner.js    # 项目识别 / meta 读取 / BFS 扫描 + projects:scan
-│  │      └─ updater.js            # 自动更新 + updater:* / app:get-version
-│  ├─ preload/                     # 预加载脚本（contextBridge 暴露 window.api）
+│  ├─ main/                           # 主进程（Node 环境）
+│  │  ├─ index.js                     # 入口：app 生命周期 + 模块装配
+│  │  └─ modules/                     # 主进程领域模块
+│  │      ├─ config-store.js          # 配置读写、pinned 管理、config:* / pin:toggle
+│  │      ├─ system-bridge.js         # 窗口、对话框、shell、IDE 探测、剪贴板、属性框
+│  │      ├─ project-scanner.js       # 项目识别 / meta 读取 / BFS 扫描 + projects:scan
+│  │      └─ updater.js               # 自动更新 + updater:* / app:get-version
+│  ├─ preload/                        # 预加载脚本（contextBridge 暴露 window.api）
 │  │  └─ index.js
-│  └─ renderer/                    # 渲染进程（Vue + Vite）
-│     ├─ App.vue                   # 根组件，含 tab 切换拦截
+│  └─ renderer/                       # 渲染进程（Vue + Vite，'@' 别名指向此目录）
+│     ├─ App.vue                      # 根组件，含 tab 切换拦截
 │     ├─ main.js
 │     ├─ index.html
-│     ├─ assets/                   # 静态资源（应用 logo 等）
-│     ├─ styles/global.css         # 全局样式 / CSS 变量
+│     ├─ assets/                      # 静态资源（应用 logo / 图标等）
+│     │   └─ folder.png
+│     ├─ styles/global.css            # 全局样式 / CSS 变量
+│     ├─ composables/                 # 组合式 API（跨组件复用逻辑）
+│     │   └─ useIdes.js
 │     ├─ components/
 │     │   ├─ TopBanner.vue
 │     │   ├─ ProjectCard.vue
 │     │   ├─ ContextMenu.vue
-│     │   ├─ ConfirmDialog.vue     # 两按钮通用确认弹窗
-│     │   ├─ UnsavedDialog.vue     # 三按钮未保存提示
-│     │   ├─ UpdateBanner.vue      # 右下角自动更新提示
+│     │   ├─ ConfirmDialog.vue        # 两按钮通用确认弹窗
+│     │   ├─ UnsavedDialog.vue        # 三按钮未保存提示
+│     │   ├─ UpdateBanner.vue         # 右下角自动更新提示
 │     │   ├─ NumberInput.vue
 │     │   └─ Toast.vue
 │     └─ pages/
 │         ├─ ProjectsPage.vue
 │         └─ SettingsPage.vue
-├─ docs/                           # VitePress 站点（GitHub Pages）
-├─ build/                          # 应用打包图标资源（icon.ico）
-├─ .github/workflows/release.yml   # 推送 v* tag 自动发布到 GitHub Release
+├─ docs/                              # VitePress 站点（GitHub Pages）
+│  ├─ index.md                        # 首页
+│  ├─ guide/                          # 使用指南
+│  ├─ changelog/                      # 更新日志
+│  ├─ public/                         # 站点静态资源（logo / banner 等）
+│  └─ .vitepress/                     # 站点配置 / 主题 / 自定义组件
+├─ build/                             # 应用打包图标资源（icon.ico）
+├─ .husky/pre-commit                  # commit 前自动 prettier 格式化（lint-staged）
+├─ .github/workflows/
+│  ├─ release.yml                     # 推送 v* tag 自动构建并发布 GitHub Release
+│  └─ deploy-docs.yml                 # 推送 v* tag 自动部署文档到 GitHub Pages
+├─ feat.md                            # 开发功能规划清单
+├─ jsconfig.json                      # 让 IDE 识别 '@' 别名
 ├─ vite.config.js
 ├─ package.json
+├─ .prettierrc.json                   # Prettier 格式化规则
+├─ .prettierignore
+├─ .editorconfig
 └─ README.md
 ```
 
