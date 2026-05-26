@@ -48,9 +48,15 @@ project-helper/
 │     ├─ index.html
 │     ├─ assets/                      # 静态资源（应用 logo / 图标等）
 │     │   └─ folder.png
-│     ├─ styles/global.css            # 全局样式 / CSS 变量
-│     ├─ composables/                 # 组合式 API（跨组件复用逻辑）
-│     │   └─ useIdes.js
+│     ├─ styles/
+│     │   ├─ global.css                # 全局样式 / 公共 CSS 变量
+│     │   ├─ themes.css                # 浅色 / 深色主题色定义
+│     │   └─ tooltip.css               # 自定义 tooltip 指令样式
+│     ├─ composables/                  # 组合式 API（跨组件复用逻辑）
+│     │   ├─ useIdes.js
+│     │   └─ useTheme.js               # 主题切换（浅色/深色/跟随系统）
+│     ├─ directives/
+│     │   └─ tooltip.js                # v-tooltip 自定义指令（替代原生 title）
 │     ├─ components/
 │     │   ├─ TopBanner.vue
 │     │   ├─ ProjectCard.vue
@@ -58,6 +64,7 @@ project-helper/
 │     │   ├─ ConfirmDialog.vue        # 两按钮通用确认弹窗
 │     │   ├─ UnsavedDialog.vue        # 三按钮未保存提示
 │     │   ├─ UpdateBanner.vue         # 右下角自动更新提示
+│     │   ├─ ThemeSwitch.vue          # 主题切换开关
 │     │   ├─ NumberInput.vue
 │     │   └─ Toast.vue
 │     └─ pages/
