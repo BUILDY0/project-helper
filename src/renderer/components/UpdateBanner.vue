@@ -13,6 +13,7 @@
           <button v-if="status === 'downloaded'" class="btn primary" @click="onInstall">
             重启安装
           </button>
+          <button v-if="showChangelog" class="btn link" @click="onViewChangelog">新改动！</button>
           <button class="btn" @click="visible = false">关闭</button>
         </div>
       </div>
@@ -21,13 +22,18 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 
 // 当前更新状态：available / downloading / downloaded / error
 const status = ref('')
 const message = ref('')
 const percent = ref(0)
 const visible = ref(false)
+
+// 仅在有"新版本"语境时展示更新日志入口（error / 空状态不展示）
+const showChangelog = computed(() =>
+  ['available', 'downloading', 'downloaded'].includes(status.value)
+)
 
 let unsubscribe = null
 
@@ -72,6 +78,11 @@ async function onDownload() {
 
 async function onInstall() {
   await window.api.quitAndInstall()
+}
+
+// 打开更新日志页面
+async function onViewChangelog() {
+  await window.api.openExternal('https://buildy0.github.io/project-helper/changelog')
 }
 
 onMounted(() => {
@@ -142,6 +153,15 @@ onBeforeUnmount(() => {
 }
 .btn.primary:hover {
   background: var(--color-primary-hover);
+}
+.btn.link {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-primary);
+  padding: 0 8px;
+}
+.btn.link:hover {
+  background: var(--color-hover);
 }
 
 .slide-enter-active,
