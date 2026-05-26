@@ -25,11 +25,13 @@
             type="text"
             placeholder="搜索项目（路径 / 项目名 / 描述）"
           />
-          <button v-if="keyword" class="search-clear" title="清空" @click="keyword = ''">×</button>
+          <button v-if="keyword" class="search-clear" v-tooltip="'清空'" @click="keyword = ''">
+            ×
+          </button>
         </div>
       </div>
       <div class="header-actions">
-        <button class="icon-action" title="回到顶部" :disabled="atTop" @click="scrollToTop">
+        <button class="icon-action" v-tooltip="'回到顶部'" :disabled="atTop" @click="scrollToTop">
           <svg width="14" height="14" viewBox="0 0 16 16">
             <path d="M8 3l5 5h-3v5H6V8H3l5-5z" fill="currentColor" />
           </svg>

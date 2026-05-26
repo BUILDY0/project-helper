@@ -37,8 +37,8 @@
         </div>
         <ul v-if="config.paths.length" class="list">
           <li v-for="(p, i) in config.paths" :key="`path-${i}`" class="list-item">
-            <span class="path-text" :title="p">{{ p }}</span>
-            <button class="icon-btn" title="移除" @click="removePath(i)">×</button>
+            <span class="path-text" v-tooltip.overflow="p">{{ p }}</span>
+            <button class="icon-btn" v-tooltip="'移除'" @click="removePath(i)">×</button>
           </li>
         </ul>
         <div v-else class="empty-tip">暂未配置扫描目录</div>
@@ -79,8 +79,8 @@
         </div>
         <ul v-if="config.exclude_paths.length" class="list">
           <li v-for="(p, i) in config.exclude_paths" :key="`ex-${i}`" class="list-item">
-            <span class="path-text" :title="p">{{ p }}</span>
-            <button class="icon-btn" title="移除" @click="removeExclude(i)">×</button>
+            <span class="path-text" v-tooltip.overflow="p">{{ p }}</span>
+            <button class="icon-btn" v-tooltip="'移除'" @click="removeExclude(i)">×</button>
           </li>
         </ul>
         <div v-else class="empty-tip">暂未配置排除项</div>
@@ -99,8 +99,8 @@
         <ul v-if="config.pinned.length" class="list">
           <li v-for="(p, i) in config.pinned" :key="`pin-${i}`" class="list-item">
             <span class="pin-icon">★</span>
-            <span class="path-text" :title="p">{{ p }}</span>
-            <button class="icon-btn" title="移除" @click="removePinned(i)">×</button>
+            <span class="path-text" v-tooltip.overflow="p">{{ p }}</span>
+            <button class="icon-btn" v-tooltip="'移除'" @click="removePinned(i)">×</button>
           </li>
         </ul>
         <div v-else class="empty-tip">暂未置顶任何项目</div>

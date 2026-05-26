@@ -9,7 +9,7 @@
     <button
       class="pin-btn"
       :class="{ active: project.pinned }"
-      :title="project.pinned ? '取消置顶' : '置顶'"
+      v-tooltip="project.pinned ? '取消置顶' : '置顶'"
       @click.stop="$emit('toggle-pin', project)"
       @dblclick.stop
     >
@@ -23,7 +23,7 @@
         <button
           v-if="project.gitUrl"
           class="status-btn"
-          title="在浏览器打开仓库"
+          v-tooltip="'在浏览器打开仓库'"
           @click.stop="$emit('open-git', project)"
         >
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -44,7 +44,7 @@
         <button
           v-if="project.hasPackageJson"
           class="status-btn"
-          title="打开项目文件夹"
+          v-tooltip="'打开项目文件夹'"
           @click.stop="$emit('open-pkg', project)"
         >
           <svg viewBox="4 4 24 26" width="14" height="14" aria-hidden="true">
@@ -61,7 +61,7 @@
         <button
           v-if="project.readmePath"
           class="status-btn"
-          title="打开 README"
+          v-tooltip="'打开 README'"
           @click.stop="$emit('open-readme', project)"
         >
           <svg viewBox="0 0 208 128" width="14" height="14" fill="none" aria-hidden="true">
@@ -81,12 +81,16 @@
     </div>
 
     <div class="card-info">
-      <div class="card-name" :title="project.name">{{ project.name }}</div>
-      <div v-if="project.description" class="card-desc" :title="project.description">
+      <div class="card-name" v-tooltip.overflow="project.name">{{ project.name }}</div>
+      <div
+        v-if="project.description"
+        class="card-desc"
+        v-tooltip:bottom.overflow="project.description"
+      >
         {{ project.description }}
       </div>
     </div>
-    <div class="card-path" :title="project.path">{{ project.path }}</div>
+    <div class="card-path" v-tooltip:bottom.overflow="project.path">{{ project.path }}</div>
   </div>
 </template>
 

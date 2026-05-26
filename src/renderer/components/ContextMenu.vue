@@ -28,7 +28,8 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, reactive } from 'vue'
+import { ref, watch, nextTick, reactive, onBeforeUnmount } from 'vue'
+import { setDisabled as setTooltipDisabled } from '@/directives/tooltip.js'
 
 const props = defineProps({
   visible: Boolean,
@@ -88,6 +89,31 @@ watch(
   },
   { immediate: true }
 )
+
+// 菜单显示期间压制 tooltip：避免菜单弹出后 hover 元素时 tooltip 浮在菜单之上遮挡
+// 单独 watch visible 而非合并到上面的 [visible, x, y, items]，
+// 因为后者还会在 props.x/y/items 变化时触发，导致 disabledCount 累加错乱
+let tipSuppressed = false
+watch(
+  () => props.visible,
+  (vis) => {
+    if (vis && !tipSuppressed) {
+      setTooltipDisabled(true)
+      tipSuppressed = true
+    } else if (!vis && tipSuppressed) {
+      setTooltipDisabled(false)
+      tipSuppressed = false
+    }
+  },
+  { immediate: true }
+)
+// 组件卸载时若仍处于压制状态，必须释放，否则 disabledCount 永远 > 0
+onBeforeUnmount(() => {
+  if (tipSuppressed) {
+    setTooltipDisabled(false)
+    tipSuppressed = false
+  }
+})
 
 const onClose = () => emit('close')
 const onItemClick = (item) => {

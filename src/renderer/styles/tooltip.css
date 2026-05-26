@@ -1,0 +1,93 @@
+/* ===== Tooltip 样式：单例节点 .app-tooltip + 箭头 .app-tooltip__arrow =====
+ * 颜色全部走 CSS 变量，未来 dark 主题只需在主题选择器下覆盖这几个变量
+ */
+:root {
+  --tooltip-bg: #2c2c2e;
+  --tooltip-fg: #f5f5f7;
+  --tooltip-border: rgba(255, 255, 255, 0.06);
+  --tooltip-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+.app-tooltip {
+  /* fixed 定位由 JS 通过 left/top 设置；初始 -9999 防止首次出现位置闪烁 */
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  z-index: 9999;
+  pointer-events: none; /* 不可交互，避免遮挡触发元素的事件 */
+  max-width: 280px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  border: 1px solid var(--tooltip-border);
+  box-shadow: var(--tooltip-shadow);
+  font-size: 12px;
+  line-height: 1.5;
+  /* 长文本：自动换行 */
+  white-space: normal;
+  word-break: break-word;
+  /* 默认隐藏 + 渐显 */
+  opacity: 0;
+  transform: translateY(2px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.app-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 测量阶段：节点已渲染但保持完全透明，让 JS 拿到真实尺寸再定位 */
+.app-tooltip.is-measuring {
+  opacity: 0;
+  transition: none;
+}
+
+.app-tooltip__content {
+  user-select: none;
+}
+
+/* 箭头：6px 等边小方块旋转 45°；位置由 JS 设置 left 或 top，方向由 dataset.placement 决定贴哪条边 */
+.app-tooltip__arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--tooltip-bg);
+  border: 1px solid var(--tooltip-border);
+  transform: rotate(45deg);
+  /* 默认中心位置；JS 会按 placement 覆盖具体偏移 */
+  pointer-events: none;
+}
+
+/* 顶部展示：箭头贴底边并下移一半 */
+.app-tooltip[data-placement='top'] .app-tooltip__arrow {
+  bottom: -5px;
+  margin-left: -4px;
+  /* 仅显示底部右边的两条边（旋转后视觉上是底部）*/
+  border-top: none;
+  border-left: none;
+}
+
+.app-tooltip[data-placement='bottom'] .app-tooltip__arrow {
+  top: -5px;
+  margin-left: -4px;
+  border-bottom: none;
+  border-right: none;
+}
+
+.app-tooltip[data-placement='left'] .app-tooltip__arrow {
+  right: -5px;
+  margin-top: -4px;
+  border-bottom: none;
+  border-left: none;
+}
+
+.app-tooltip[data-placement='right'] .app-tooltip__arrow {
+  left: -5px;
+  margin-top: -4px;
+  border-top: none;
+  border-right: none;
+}

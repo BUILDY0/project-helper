@@ -27,7 +27,7 @@
       <button
         v-if="isDev"
         class="win-btn no-drag"
-        title="打开/关闭控制台 (DevTools)"
+        v-tooltip:bottom="'打开/关闭控制台 (DevTools)'"
         @click="onToggleDevTools"
       >
         <!-- terminal：来自 VSCode codicons - terminal (CC BY 4.0) -->
@@ -37,7 +37,7 @@
           />
         </svg>
       </button>
-      <button class="win-btn no-drag" title="最小化" @click="onMinimize">
+      <button class="win-btn no-drag" v-tooltip:bottom="'最小化'" @click="onMinimize">
         <!-- chrome-minimize：圆角端点的细横线 -->
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <path
@@ -45,7 +45,7 @@
           />
         </svg>
       </button>
-      <button class="win-btn no-drag" title="最大化" @click="onToggleMax">
+      <button class="win-btn no-drag" v-tooltip:bottom="'最大化'" @click="onToggleMax">
         <!-- chrome-maximize：圆角空心方框 -->
         <svg v-if="!isMax" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <path
@@ -63,7 +63,7 @@
           />
         </svg>
       </button>
-      <button class="win-btn close no-drag" title="关闭" @click="onClose">
+      <button class="win-btn close no-drag" v-tooltip:bottom="'关闭'" @click="onClose">
         <!-- chrome-close：圆角端点的 X -->
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <path
