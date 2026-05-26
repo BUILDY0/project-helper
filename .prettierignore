@@ -1,0 +1,21 @@
+# 不格式化的文件 / 目录
+node_modules
+dist
+release
+package-lock.json
+
+# VitePress 构建产物
+docs/.vitepress/dist
+docs/.vitepress/cache
+
+# 二进制 / 资源
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.webp
+
+# 由工具生成的描述
+*.min.js
+*.min.css

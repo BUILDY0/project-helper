@@ -14,11 +14,7 @@
         :target="isExternal(item.link) ? '_blank' : '_self'"
         :rel="isExternal(item.link) ? 'noopener noreferrer' : undefined"
       >
-        <span
-          v-if="item.svg || item.icon"
-          class="home-link-icon"
-          aria-hidden="true"
-        >
+        <span v-if="item.svg || item.icon" class="home-link-icon" aria-hidden="true">
           <span v-if="item.svg" v-html="item.svg" class="home-link-icon-svg" />
           <template v-else>{{ item.icon }}</template>
         </span>
@@ -77,7 +73,10 @@ function isExternal(url) {
   border-radius: 12px;
   background: var(--vp-c-bg-soft);
   color: var(--vp-c-text-1);
-  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s,
+    background 0.2s;
 }
 .home-link-card:hover {
   border-color: var(--vp-c-brand-1);

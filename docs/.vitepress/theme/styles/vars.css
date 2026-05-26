@@ -35,16 +35,8 @@
 
   /* 首页 hero 标题渐变（亮黄 → 米黄）—— 仅作用于 .name 渐变副标题 */
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(
-    120deg,
-    #f0c14b 30%,
-    #e5c98a
-  );
-  --vp-home-hero-image-background-image: linear-gradient(
-    -45deg,
-    #f0c14b 50%,
-    #e5c98a 50%
-  );
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #f0c14b 30%, #e5c98a);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #f0c14b 50%, #e5c98a 50%);
   --vp-home-hero-image-filter: blur(44px);
 
   /* 自定义提示块（::: tip）等的强调色 */
@@ -56,9 +48,9 @@
 
 /* 深色模式：调整为更鲜亮的黄色，避免在深背景下显灰 */
 .dark {
-  --vp-c-brand-1: #fbbf24;       /* amber-400，更亮 */
-  --vp-c-brand-2: #f59e0b;       /* amber-500 */
-  --vp-c-brand-3: #d97706;       /* amber-600 */
+  --vp-c-brand-1: #fbbf24; /* amber-400，更亮 */
+  --vp-c-brand-2: #f59e0b; /* amber-500 */
+  --vp-c-brand-3: #d97706; /* amber-600 */
   --vp-c-brand-soft: rgba(251, 191, 36, 0.18);
 
   /* 深色模式下分割线：与 Header 同步使用 6% 白 */
@@ -66,11 +58,7 @@
   --vp-c-gutter: rgba(255, 255, 255, 0.06);
 
   /* 暗色模式 hero 渐变：用更鲜艳的色阶，避免发灰 */
-  --vp-home-hero-name-background: -webkit-linear-gradient(
-    120deg,
-    #fbbf24 30%,
-    #fde68a
-  );
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #fbbf24 30%, #fde68a);
 
   --vp-button-brand-text: #1f1300;
   --vp-button-brand-bg: #fbbf24;

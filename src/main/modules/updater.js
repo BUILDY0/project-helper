@@ -32,9 +32,7 @@ function setupAutoUpdater(getMainWindow) {
   autoUpdater.on('checking-for-update', () => send('checking'))
   autoUpdater.on('update-available', (info) => send('available', info))
   autoUpdater.on('update-not-available', (info) => send('not-available', info))
-  autoUpdater.on('error', (err) =>
-    send('error', { message: err?.message || String(err) })
-  )
+  autoUpdater.on('error', (err) => send('error', { message: err?.message || String(err) }))
   autoUpdater.on('download-progress', (p) =>
     send('downloading', { percent: p.percent, transferred: p.transferred, total: p.total })
   )
@@ -48,9 +46,12 @@ function setupAutoUpdater(getMainWindow) {
   }, 5000)
 
   // 长开应用每小时再检查一次
-  setInterval(() => {
-    autoUpdater.checkForUpdates().catch(() => {})
-  }, 60 * 60 * 1000)
+  setInterval(
+    () => {
+      autoUpdater.checkForUpdates().catch(() => {})
+    },
+    60 * 60 * 1000
+  )
 }
 
 /** 注册自动更新与版本号相关的 IPC */

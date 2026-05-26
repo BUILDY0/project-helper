@@ -21,8 +21,8 @@
 }
 ```
 
-| 字段              | 类型     | 说明                                     |
-| ----------------- | -------- | ---------------------------------------- |
+| 字段            | 类型     | 说明                                     |
+| --------------- | -------- | ---------------------------------------- |
 | `paths`         | string[] | 扫描根目录列表                           |
 | `depth`         | number   | 扫描深度，0 - 5，默认 1                  |
 | `exclude_paths` | string[] | 排除目录列表，命中即跳过整棵子树         |
@@ -32,40 +32,41 @@
 
 ```
 project-helper/
-├─ electron/
-│  ├─ main.js           # 入口：app 生命周期 + 模块装配
-│  ├─ preload.js        # 暴露给渲染层的安全 API
-│  └─ modules/          # 主进程领域模块
-│      ├─ config-store.js     # 配置读写、pinned 管理、config:* / pin:toggle
-│      ├─ system-bridge.js    # 窗口、对话框、shell、IDE 探测、剪贴板、属性框
-│      ├─ project-scanner.js  # 项目识别 / meta 读取 / BFS 扫描 + projects:scan
-│      └─ updater.js          # 自动更新 + updater:* / app:get-version
-├─ src/renderer/
-│  ├─ App.vue           # 根组件，含 tab 切换拦截
-│  ├─ main.js
-│  ├─ index.html
-│  ├─ assets/           # 静态资源（应用 logo 等）
-│  ├─ styles/global.css # 全局样式 / CSS 变量
-│  ├─ components/
-│  │   ├─ TopBanner.vue
-│  │   ├─ ProjectCard.vue
-│  │   ├─ ContextMenu.vue
-│  │   ├─ ConfirmDialog.vue   # 两按钮通用确认弹窗
-│  │   ├─ UnsavedDialog.vue   # 三按钮未保存提示
-│  │   ├─ UpdateBanner.vue    # 右下角自动更新提示
-│  │   ├─ NumberInput.vue
-│  │   └─ Toast.vue
-│  └─ pages/
-│      ├─ ProjectsPage.vue
-│      └─ SettingsPage.vue
-├─ build/                       # 应用打包图标资源（icon.ico）
-├─ .github/workflows/release.yml # 推送 v* tag 自动发布到 GitHub Release
+├─ src/
+│  ├─ main/                        # 主进程（Node 环境）
+│  │  ├─ index.js                  # 入口：app 生命周期 + 模块装配
+│  │  └─ modules/                  # 主进程领域模块
+│  │      ├─ config-store.js       # 配置读写、pinned 管理、config:* / pin:toggle
+│  │      ├─ system-bridge.js      # 窗口、对话框、shell、IDE 探测、剪贴板、属性框
+│  │      ├─ project-scanner.js    # 项目识别 / meta 读取 / BFS 扫描 + projects:scan
+│  │      └─ updater.js            # 自动更新 + updater:* / app:get-version
+│  ├─ preload/                     # 预加载脚本（contextBridge 暴露 window.api）
+│  │  └─ index.js
+│  └─ renderer/                    # 渲染进程（Vue + Vite）
+│     ├─ App.vue                   # 根组件，含 tab 切换拦截
+│     ├─ main.js
+│     ├─ index.html
+│     ├─ assets/                   # 静态资源（应用 logo 等）
+│     ├─ styles/global.css         # 全局样式 / CSS 变量
+│     ├─ components/
+│     │   ├─ TopBanner.vue
+│     │   ├─ ProjectCard.vue
+│     │   ├─ ContextMenu.vue
+│     │   ├─ ConfirmDialog.vue     # 两按钮通用确认弹窗
+│     │   ├─ UnsavedDialog.vue     # 三按钮未保存提示
+│     │   ├─ UpdateBanner.vue      # 右下角自动更新提示
+│     │   ├─ NumberInput.vue
+│     │   └─ Toast.vue
+│     └─ pages/
+│         ├─ ProjectsPage.vue
+│         └─ SettingsPage.vue
+├─ docs/                           # VitePress 站点（GitHub Pages）
+├─ build/                          # 应用打包图标资源（icon.ico）
+├─ .github/workflows/release.yml   # 推送 v* tag 自动发布到 GitHub Release
 ├─ vite.config.js
 ├─ package.json
 └─ README.md
 ```
-
-
 
 ---
 

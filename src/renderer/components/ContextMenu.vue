@@ -1,25 +1,19 @@
 <template>
   <Teleport to="body">
-    <div
-      v-if="visible"
-      class="ctx-mask"
-      @click="onClose"
-      @contextmenu.prevent="onClose"
-    >
+    <div v-if="visible" class="ctx-mask" @click="onClose" @contextmenu.prevent="onClose">
       <div
         ref="menuRef"
         class="ctx-menu"
-        :style="{ left: pos.left + 'px', top: pos.top + 'px', visibility: pos.measured ? 'visible' : 'hidden' }"
+        :style="{
+          left: pos.left + 'px',
+          top: pos.top + 'px',
+          visibility: pos.measured ? 'visible' : 'hidden'
+        }"
         @click.stop
       >
         <template v-for="(item, idx) in items" :key="idx">
           <div v-if="item.divider" class="ctx-divider" />
-          <div
-            v-else
-            class="ctx-item"
-            :class="{ danger: item.danger }"
-            @click="onItemClick(item)"
-          >
+          <div v-else class="ctx-item" :class="{ danger: item.danger }" @click="onItemClick(item)">
             {{ item.label }}
           </div>
         </template>
@@ -68,8 +62,8 @@ function computePosition() {
 
   let left = props.x
   let top = props.y
-  if (left + w + PADDING > vw) left = props.x - w  // 翻向左
-  if (top + h + PADDING > vh) top = props.y - h    // 翻向上
+  if (left + w + PADDING > vw) left = props.x - w // 翻向左
+  if (top + h + PADDING > vh) top = props.y - h // 翻向上
   left = Math.max(PADDING, Math.min(left, vw - w - PADDING))
   top = Math.max(PADDING, Math.min(top, vh - h - PADDING))
 

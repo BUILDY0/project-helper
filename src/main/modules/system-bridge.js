@@ -7,8 +7,8 @@ const os = require('node:os')
 
 /** 创建主窗口：无边框，使用自定义顶部 banner */
 function createWindow() {
-  // 任务栏 / 窗口图标（__dirname 指向 electron/modules，需回退两层到工程根）
-  const iconPath = path.join(__dirname, '..', '..', 'build', 'icon.ico')
+  // 任务栏 / 窗口图标（__dirname 指向 src/main/modules，需回退三层到工程根）
+  const iconPath = path.join(__dirname, '..', '..', '..', 'build', 'icon.ico')
   const winOptions = {
     width: 1180,
     height: 760,
@@ -17,8 +17,8 @@ function createWindow() {
     frame: false,
     backgroundColor: '#f5f5f7',
     webPreferences: {
-      // preload.js 与 main.js 同级（electron/preload.js）
-      preload: path.join(__dirname, '..', 'preload.js'),
+      // preload 入口：src/preload/index.js
+      preload: path.join(__dirname, '..', '..', 'preload', 'index.js'),
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -33,7 +33,8 @@ function createWindow() {
   if (process.env.NODE_ENV === 'development') {
     win.loadURL('http://localhost:5173')
   } else {
-    win.loadFile(path.join(__dirname, '..', '..', 'dist', 'index.html'))
+    // 渲染产物在工程根的 dist/，从 src/main/modules 回退三层
+    win.loadFile(path.join(__dirname, '..', '..', '..', 'dist', 'index.html'))
   }
 
   // 窗口最大化状态变化通知渲染进程，便于切换图标
@@ -264,12 +265,19 @@ while ((Get-Date) -lt $end) { [System.Windows.Forms.Application]::DoEvents(); St
     }
 
     return new Promise((resolve) => {
-      const done = (r) => { fsp.unlink(tmpFile).catch(() => {}); resolve(r) }
-      const child = spawn('cmd.exe',
+      const done = (r) => {
+        fsp.unlink(tmpFile).catch(() => {})
+        resolve(r)
+      }
+      const child = spawn(
+        'cmd.exe',
         ['/c', 'powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-File', tmpFile],
         { windowsHide: true }
       )
-      child.stdout?.on('data', (c) => c.toString('utf-8').includes('BEFORE_INVOKE') && done({ ok: true }))
+      child.stdout?.on(
+        'data',
+        (c) => c.toString('utf-8').includes('BEFORE_INVOKE') && done({ ok: true })
+      )
       child.on('error', (err) => done({ ok: false, message: err.message }))
       child.on('exit', (code) => done({ ok: false, message: `PowerShell 异常退出 (code=${code})` }))
     })

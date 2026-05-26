@@ -71,7 +71,9 @@
                 clip-rule="evenodd"
                 d="M15 10c-2.7614 0-5 2.2386-5 5v98c0 2.761 2.2386 5 5 5h178c2.761 0 5-2.239 5-5v-98c0-2.7614-2.239-5-5-5zm-15 5c0-8.28427 6.71573-15 15-15h178c8.284 0 15 6.71573 15 15v98c0 8.284-6.716 15-15 15h-178c-8.28427 0-15-6.716-15-15z"
               />
-              <path d="M30 98v-68h20l20 25 20-25h20v68h-20v-39l-20 25-20-25v39zm125 0-30-33h20v-35h20v35h20z" />
+              <path
+                d="M30 98v-68h20l20 25 20-25h20v68h-20v-39l-20 25-20-25v39zm125 0-30-33h20v-35h20v35h20z"
+              />
             </g>
           </svg>
         </button>
@@ -80,11 +82,7 @@
 
     <div class="card-info">
       <div class="card-name" :title="project.name">{{ project.name }}</div>
-      <div
-        v-if="project.description"
-        class="card-desc"
-        :title="project.description"
-      >
+      <div v-if="project.description" class="card-desc" :title="project.description">
         {{ project.description }}
       </div>
     </div>
@@ -110,7 +108,10 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   flex-direction: column;
   gap: 8px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
   min-height: 110px;
   box-shadow: var(--shadow-sm);
 }
@@ -122,7 +123,9 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
 /* pinned 状态时左侧加一条强调色 */
 .card.pinned {
   border-color: #e5c98a;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), inset 3px 0 0 #f0c14b;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    inset 3px 0 0 #f0c14b;
 }
 
 .card-icon {
@@ -154,7 +157,9 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .status-btn:hover {
   background: var(--color-hover);
@@ -207,7 +212,11 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   color: var(--color-text-tertiary);
   /* 默认未 pin 时半透明，hover 卡片再淡入 */
   opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s,
+    transform 0.15s;
 }
 .card:hover .pin-btn {
   opacity: 1;

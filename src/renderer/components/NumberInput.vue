@@ -1,13 +1,7 @@
 <template>
   <div class="num-input">
     <button class="step" :disabled="disabledMinus" @click="onMinus">−</button>
-    <input
-      class="num-field"
-      type="text"
-      :value="modelValue"
-      @input="onInput"
-      @blur="onBlur"
-    />
+    <input class="num-field" type="text" :value="modelValue" @input="onInput" @blur="onBlur" />
     <button class="step" :disabled="disabledPlus" @click="onPlus">+</button>
   </div>
 </template>

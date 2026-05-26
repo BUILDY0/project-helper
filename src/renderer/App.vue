@@ -1,10 +1,7 @@
 <template>
   <div class="app">
     <!-- 顶部 banner：通过 :active-tab + @update 拦截切换，必要时弹出未保存提示 -->
-    <TopBanner
-      :active-tab="activeTab"
-      @update:active-tab="onRequestTab"
-    />
+    <TopBanner :active-tab="activeTab" @update:active-tab="onRequestTab" />
 
     <!-- 主内容区根据 tab 切换 -->
     <main class="app-main">

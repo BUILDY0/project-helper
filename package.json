@@ -2,7 +2,7 @@
   "name": "project-helper",
   "version": "1.1.4",
   "description": "开发项目本地管理器",
-  "main": "electron/main.js",
+  "main": "src/main/index.js",
   "author": "BUILDY0",
   "license": "MIT",
   "homepage": "https://buildy0.github.io/project-helper/",
@@ -25,7 +25,9 @@
     "version:patch": "npm version patch -m \"chore: release v%s\"",
     "version:minor": "npm version minor -m \"chore: release v%s\"",
     "version:major": "npm version major -m \"chore: release v%s\"",
-    "version:set": "npm version --no-git-tag-version"
+    "version:set": "npm version --no-git-tag-version",
+    "format": "prettier --write \"**/*.{js,vue,json,md,yml,yaml,css}\"",
+    "format:check": "prettier --check \"**/*.{js,vue,json,md,yml,yaml,css}\""
   },
   "dependencies": {
     "electron-updater": "^6.1.7"
@@ -39,13 +41,15 @@
     "@vitejs/plugin-vue": "^5.0.3",
     "vue": "^3.4.15",
     "vitepress": "^1.6.3",
+    "prettier": "^3.3.3",
     "wait-on": "^7.2.0"
   },
   "build": {
     "appId": "com.jackraylei.projecthelper",
     "productName": "ProjectHelper",
     "files": [
-      "electron/**/*",
+      "src/main/**/*",
+      "src/preload/**/*",
       "dist/**/*"
     ],
     "directories": {

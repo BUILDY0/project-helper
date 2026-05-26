@@ -7,18 +7,10 @@
           <div class="bar" :style="{ width: percent + '%' }"></div>
         </div>
         <div class="actions">
-          <button
-            v-if="status === 'available'"
-            class="btn primary"
-            @click="onDownload"
-          >
+          <button v-if="status === 'available'" class="btn primary" @click="onDownload">
             下载
           </button>
-          <button
-            v-if="status === 'downloaded'"
-            class="btn primary"
-            @click="onInstall"
-          >
+          <button v-if="status === 'downloaded'" class="btn primary" @click="onInstall">
             重启安装
           </button>
           <button class="btn" @click="visible = false">关闭</button>
@@ -154,7 +146,9 @@ onBeforeUnmount(() => {
 
 .slide-enter-active,
 .slide-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .slide-enter-from,
 .slide-leave-to {

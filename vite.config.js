@@ -7,6 +7,12 @@ export default defineConfig({
   plugins: [vue()],
   base: './',
   root: path.resolve(__dirname, 'src/renderer'),
+  resolve: {
+    alias: {
+      // '@' 指向 src/renderer，统一从根定位组件 / 资源 / composables
+      '@': path.resolve(__dirname, 'src/renderer')
+    }
+  },
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true

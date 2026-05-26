@@ -7,7 +7,8 @@
         <!-- 用定宽容器包裹 count，避免筛选时数字位数变化导致后面元素位移 -->
         <div class="count-wrap">
           <span class="count">
-            <template v-if="debouncedKeyword">{{ filteredProjects.length }} / </template>{{ projects.length }}
+            <template v-if="debouncedKeyword">{{ filteredProjects.length }} /</template>
+            {{ projects.length }}
           </span>
         </div>
         <!-- 搜索框：紧挨项目数，留一点间距 -->
@@ -24,35 +25,17 @@
             type="text"
             placeholder="搜索项目（路径 / 项目名 / 描述）"
           />
-          <button
-            v-if="keyword"
-            class="search-clear"
-            title="清空"
-            @click="keyword = ''"
-          >×</button>
+          <button v-if="keyword" class="search-clear" title="清空" @click="keyword = ''">×</button>
         </div>
       </div>
       <div class="header-actions">
-        <button
-          class="icon-action"
-          title="回到顶部"
-          :disabled="atTop"
-          @click="scrollToTop"
-        >
+        <button class="icon-action" title="回到顶部" :disabled="atTop" @click="scrollToTop">
           <svg width="14" height="14" viewBox="0 0 16 16">
-            <path
-              d="M8 3l5 5h-3v5H6V8H3l5-5z"
-              fill="currentColor"
-            />
+            <path d="M8 3l5 5h-3v5H6V8H3l5-5z" fill="currentColor" />
           </svg>
         </button>
         <button class="refresh-btn" :disabled="loading" @click="loadProjects">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            :class="{ spin: loading }"
-          >
+          <svg width="14" height="14" viewBox="0 0 16 16" :class="{ spin: loading }">
             <!-- 顺时针刷新：箭头位于右上、开口朝右上，配合 CSS 360deg 顺时针动画 -->
             <path
               d="M8 3a5 5 0 1 0 4.546 2.914l1.378-.638A6.5 6.5 0 1 1 8 1.5V0l3 2.5L8 5V3z"
@@ -66,18 +49,13 @@
 
     <!-- 项目网格 / 空态 / 加载 -->
     <div ref="bodyRef" class="page-body" @scroll="onBodyScroll">
-      <div v-if="loading && projects.length === 0" class="placeholder">
-        正在扫描项目...
-      </div>
+      <div v-if="loading && projects.length === 0" class="placeholder">正在扫描项目...</div>
       <div v-else-if="projects.length === 0" class="placeholder">
         <div class="ph-emoji">📂</div>
         <div class="ph-title">暂无项目</div>
         <div class="ph-tip">请到「配置」页设置扫描路径，然后点击刷新</div>
       </div>
-      <div
-        v-else-if="debouncedKeyword && filteredProjects.length === 0"
-        class="placeholder"
-      >
+      <div v-else-if="debouncedKeyword && filteredProjects.length === 0" class="placeholder">
         <div class="ph-emoji">🔍</div>
         <div class="ph-title">没有匹配的项目</div>
         <div class="ph-tip">尝试调整搜索关键字或清空搜索</div>
@@ -125,11 +103,11 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import ProjectCard from '../components/ProjectCard.vue'
-import ContextMenu from '../components/ContextMenu.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Toast from '../components/Toast.vue'
-import { useIdes } from '../composables/useIdes'
+import ProjectCard from '@/components/ProjectCard.vue'
+import ContextMenu from '@/components/ContextMenu.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import Toast from '@/components/Toast.vue'
+import { useIdes } from '@/composables/useIdes'
 
 const props = defineProps({
   active: Boolean
@@ -230,7 +208,10 @@ async function openWithDefaultIde(project) {
   }
   const r = await window.api.openInIde(first.id, project.path)
   if (!r?.ok) {
-    toastRef.value?.show(`无法启动 ${first.label.replace(' 打开', '')}：${r?.message || '未知错误'}`, 'error')
+    toastRef.value?.show(
+      `无法启动 ${first.label.replace(' 打开', '')}：${r?.message || '未知错误'}`,
+      'error'
+    )
   }
 }
 
@@ -343,11 +324,7 @@ async function togglePin(project) {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
       return a.name.localeCompare(b.name)
     })
-    toastRef.value?.show(
-      project.pinned ? '已置顶' : '已取消置顶',
-      'success',
-      1200
-    )
+    toastRef.value?.show(project.pinned ? '已置顶' : '已取消置顶', 'success', 1200)
   } catch (err) {
     toastRef.value?.show(`操作失败：${err.message}`, 'error')
   }
@@ -419,7 +396,9 @@ watch(
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .search-box:focus-within {
   border-color: var(--color-primary);
@@ -454,7 +433,9 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .search-clear:hover {
   background: var(--color-hover);
@@ -496,7 +477,10 @@ watch(
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
   color: var(--color-text);
-  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    opacity 0.15s;
 }
 .icon-action:hover:not(:disabled) {
   background: var(--color-hover);

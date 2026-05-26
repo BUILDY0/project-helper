@@ -4,11 +4,7 @@
        支持把 features 自由放在 markdown body 任意位置（如 banner 后） -->
   <section class="home-features">
     <div class="home-features-grid">
-      <article
-        v-for="(item, i) in items"
-        :key="i"
-        class="home-feature"
-      >
+      <article v-for="(item, i) in items" :key="i" class="home-feature">
         <div v-if="item.icon" class="home-feature-icon">{{ item.icon }}</div>
         <h2 class="home-feature-title">{{ item.title }}</h2>
         <p class="home-feature-details">{{ item.details }}</p>
@@ -39,7 +35,10 @@ defineProps({
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
   background: var(--vp-c-bg-soft);
-  transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    transform 0.2s;
 }
 .home-feature:hover {
   border-color: var(--vp-c-brand-1);

@@ -29,11 +29,7 @@
         <div class="label">
           <span>扫描目录</span>
           <div class="label-actions">
-            <button
-              class="link-btn"
-              :disabled="!config.paths.length"
-              @click="askClearPaths"
-            >
+            <button class="link-btn" :disabled="!config.paths.length" @click="askClearPaths">
               清空
             </button>
             <button class="link-btn" @click="addPath">+ 新增</button>
@@ -82,11 +78,7 @@
           </div>
         </div>
         <ul v-if="config.exclude_paths.length" class="list">
-          <li
-            v-for="(p, i) in config.exclude_paths"
-            :key="`ex-${i}`"
-            class="list-item"
-          >
+          <li v-for="(p, i) in config.exclude_paths" :key="`ex-${i}`" class="list-item">
             <span class="path-text" :title="p">{{ p }}</span>
             <button class="icon-btn" title="移除" @click="removeExclude(i)">×</button>
           </li>
@@ -99,11 +91,7 @@
         <div class="label">
           <span>置顶项目</span>
           <div class="label-actions">
-            <button
-              class="link-btn"
-              :disabled="!config.pinned.length"
-              @click="askClearPinned"
-            >
+            <button class="link-btn" :disabled="!config.pinned.length" @click="askClearPinned">
               清空
             </button>
           </div>
@@ -135,9 +123,9 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
-import NumberInput from '../components/NumberInput.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
-import Toast from '../components/Toast.vue'
+import NumberInput from '@/components/NumberInput.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import Toast from '@/components/Toast.vue'
 
 const props = defineProps({
   active: Boolean
@@ -383,7 +371,12 @@ async function onSave() {
 onMounted(() => {
   loadConfig()
   // 应用版本号：从主进程读取一次，用于在标题旁展示
-  window.api.getAppVersion?.().then((v) => { appVersion.value = v || '' }).catch(() => {})
+  window.api
+    .getAppVersion?.()
+    .then((v) => {
+      appVersion.value = v || ''
+    })
+    .catch(() => {})
 })
 // 切回该 tab 时同步最新值；若存在未保存修改则保留当前编辑状态，避免覆盖
 watch(
@@ -517,7 +510,9 @@ defineExpose({
   font-size: 12px;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .link-btn:hover:not(:disabled) {
   color: var(--color-text);
@@ -574,7 +569,9 @@ defineExpose({
   border-radius: var(--radius-sm);
   font-size: 16px;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .icon-btn:hover {
   background: var(--color-hover);
