@@ -1,12 +1,7 @@
 /* ===== Tooltip 样式：单例节点 .app-tooltip + 箭头 .app-tooltip__arrow =====
- * 颜色全部走 CSS 变量，未来 dark 主题只需在主题选择器下覆盖这几个变量
+ * tooltip 的颜色变量（--tooltip-bg / --tooltip-fg / --tooltip-border / --tooltip-shadow）
+ * 统一在 themes.css 中按主题维护，本文件只关注布局与动效。
  */
-:root {
-  --tooltip-bg: #2c2c2e;
-  --tooltip-fg: #f5f5f7;
-  --tooltip-border: rgba(255, 255, 255, 0.06);
-  --tooltip-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-}
 
 .app-tooltip {
   /* fixed 定位由 JS 通过 left/top 设置；初始 -9999 防止首次出现位置闪烁 */

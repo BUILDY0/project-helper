@@ -38,7 +38,7 @@ const onCancel = () => emit('cancel')
 .dlg-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--color-mask);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,7 +84,7 @@ const onCancel = () => emit('cancel')
 .btn.primary {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-on-primary);
 }
 .btn.primary:hover {
   background: var(--color-primary-hover);

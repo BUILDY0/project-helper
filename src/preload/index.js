@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('api', {
   getConfigPath: () => ipcRenderer.invoke('config:get-path'),
   readConfig: () => ipcRenderer.invoke('config:read'),
   saveConfig: (payload) => ipcRenderer.invoke('config:save', payload),
+  /** 仅保存主题，change 时即时写入，避免与配置页未保存逻辑冲突 */
+  saveTheme: (theme) => ipcRenderer.invoke('config:save-theme', theme),
 
   // 选择对话框
   selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),

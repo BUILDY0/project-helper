@@ -11,6 +11,34 @@
     </div>
 
     <div class="page-body">
+      <!-- 主题风格：仅写入草稿（config.theme），点击"保存"才落盘并 applyTheme 生效 -->
+      <div class="field">
+        <div class="label">
+          <span>主题风格</span>
+        </div>
+        <div class="row">
+          <div class="theme-row">
+            <button
+              type="button"
+              class="theme-btn"
+              :class="{ active: config.theme === 'light' }"
+              @click="setThemeDraft('light')"
+            >
+              浅色
+            </button>
+            <ThemeSwitch :value="config.theme" @change="setThemeDraft" />
+            <button
+              type="button"
+              class="theme-btn"
+              :class="{ active: config.theme === 'dark' }"
+              @click="setThemeDraft('dark')"
+            >
+              深色
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- 配置文件路径：只读 input + 两个操作按钮 -->
       <div class="field">
         <div class="label">配置文件路径</div>
@@ -126,10 +154,15 @@ import { ref, reactive, watch, onMounted } from 'vue'
 import NumberInput from '@/components/NumberInput.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Toast from '@/components/Toast.vue'
+import ThemeSwitch from '@/components/ThemeSwitch.vue'
+import { useTheme } from '@/composables/useTheme.js'
 
 const props = defineProps({
   active: Boolean
 })
+
+// 主题：草稿存于 config.theme，与其它配置一起经"保存"落盘后再调用 applyTheme 生效
+const { currentTheme, applyTheme } = useTheme()
 
 // 应用版本号（来自主进程 app.getVersion()），仅作标题旁的展示用
 const appVersion = ref('')
@@ -141,6 +174,8 @@ const config = ref({
   exclude_paths: [],
   // 置顶项目路径列表
   pinned: [],
+  // 主题草稿：light / dark；保存后才会调用 applyTheme 真正切换
+  theme: 'light',
   // 配置文件最后修改时间（ms 时间戳），0 表示未知
   mtime: 0
 })
@@ -156,13 +191,20 @@ function snapshot(c) {
     paths: [...(c.paths || [])],
     depth: Number(c.depth) || 0,
     exclude_paths: [...(c.exclude_paths || [])],
-    pinned: [...(c.pinned || [])]
+    pinned: [...(c.pinned || [])],
+    theme: c.theme || 'light'
   })
 }
 
 /** 是否有未保存的修改：与基线快照对比 */
 function hasChanges() {
   return snapshot(config.value) !== originalSnapshot
+}
+
+/** 设置主题草稿：文字 label 与 ThemeSwitch 共用同一入口 */
+function setThemeDraft(target) {
+  const t = target === 'dark' ? 'dark' : 'light'
+  if (config.value.theme !== t) config.value.theme = t
 }
 
 /**
@@ -187,7 +229,12 @@ async function loadConfig() {
     depth: typeof cfg.depth === 'number' ? cfg.depth : 1,
     exclude_paths: Array.isArray(cfg.exclude_paths) ? cfg.exclude_paths : [],
     pinned: Array.isArray(cfg.pinned) ? cfg.pinned : [],
+    theme: cfg.theme === 'dark' ? 'dark' : 'light',
     mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
+  }
+  // 放弃修改时如果用户改过主题草稿但没保存，需要强制把全局主题回滚到磁盘真值
+  if (currentTheme.value !== config.value.theme) {
+    applyTheme(config.value.theme)
   }
   // 更新基线快照
   originalSnapshot = snapshot(config.value)
@@ -352,11 +399,13 @@ async function onSave() {
         paths: config.value.paths,
         depth: Number(config.value.depth) || 0,
         exclude_paths: config.value.exclude_paths,
-        pinned: config.value.pinned
+        pinned: config.value.pinned,
+        theme: config.value.theme === 'dark' ? 'dark' : 'light'
       })
     )
     await window.api.saveConfig(payload)
-    // 保存成功后重新拉取以刷新最后修改时间
+    // 落盘成功后把主题刷到全局（不再触发持久化），并重新拉取以刷新最后修改时间
+    applyTheme(payload.theme)
     await loadConfig()
     toastRef.value?.show('配置已保存', 'success')
   } catch (err) {
@@ -426,7 +475,7 @@ defineExpose({
   padding: 0 18px;
   border-radius: var(--radius-md);
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-on-primary);
   border: none;
   font-size: 13px;
   transition: background 0.15s;
@@ -489,6 +538,34 @@ defineExpose({
   outline: none;
   user-select: text;
 }
+
+/* ===== 主题切换行：文字按钮 + ThemeSwitch + 文字按钮 ===== */
+.theme-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+/* 文字按钮：无背景无边框，仅以文字颜色区分状态 */
+.theme-btn {
+  height: 30px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.theme-btn:hover:not(.active) {
+  color: var(--color-text);
+}
+/* 当前生效的按钮：主文本色高亮 + 加粗，与未激活的 secondary 形成明度对比 */
+.theme-btn.active {
+  color: var(--color-text);
+  font-weight: 600;
+}
 .btn {
   height: 32px;
   padding: 0 14px;
@@ -547,7 +624,7 @@ defineExpose({
   font-size: 13px;
 }
 .pin-icon {
-  color: #f0c14b;
+  color: var(--color-accent);
   margin-right: 6px;
   font-size: 13px;
   line-height: 1;

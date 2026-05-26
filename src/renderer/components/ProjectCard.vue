@@ -126,10 +126,10 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
 }
 /* pinned 状态时左侧加一条强调色 */
 .card.pinned {
-  border-color: #e5c98a;
+  border-color: var(--color-accent-border);
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 3px 0 0 #f0c14b;
+    var(--shadow-sm),
+    inset 3px 0 0 var(--color-accent);
 }
 
 .card-icon {
@@ -227,15 +227,15 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
 }
 .pin-btn:hover {
   background: var(--color-hover);
-  color: #d9a526;
+  color: var(--color-accent-hover);
 }
 .pin-btn.active {
   /* pinned 状态常显并点亮 */
   opacity: 1;
-  color: #f0c14b;
+  color: var(--color-accent);
 }
 .pin-btn.active:hover {
-  color: #d9a526;
+  color: var(--color-accent-hover);
   transform: scale(1.06);
 }
 </style>

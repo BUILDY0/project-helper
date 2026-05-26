@@ -1,0 +1,102 @@
+/* ===== 主题变量集中管理 =====
+ * 颜色相关变量统一在此声明；非颜色变量（圆角/阴影尺寸等）保持在 global.css。
+ * 通过 <html data-theme="light|dark"> 切换；未设置时默认走浅色。
+ */
+
+/* —— 浅色主题（默认） —— */
+:root,
+:root[data-theme='light'] {
+  /* 表层背景 */
+  --color-bg: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #fafafa;
+
+  /* 边框 */
+  --color-border: #e5e5ea;
+  --color-border-strong: #d2d2d7;
+
+  /* 文本层级 */
+  --color-text: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-tertiary: #8e8e93;
+  --color-text-on-primary: #ffffff;
+
+  /* 主色与状态色 */
+  --color-primary: #3a3a3c;
+  --color-primary-hover: #2c2c2e;
+  --color-danger: #d93b3b;
+  --color-danger-hover: #b82e2e;
+  --color-danger-bg-soft: rgba(217, 59, 59, 0.08);
+  --color-success: #2c7a4b;
+
+  /* 交互态 */
+  --color-hover: #f0f0f2;
+
+  /* 强调色（pin / star / 主题图标等） */
+  --color-accent: #f0c14b;
+  --color-accent-hover: #d9a526;
+  --color-accent-border: #e5c98a;
+
+  /* 阴影（颜色相关） */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.08);
+
+  /* 遮罩 */
+  --color-mask: rgba(0, 0, 0, 0.32);
+
+  /* Toast：与表层区分，使用反相色块 */
+  --color-toast-bg: rgba(40, 40, 40, 0.92);
+  --color-toast-fg: #ffffff;
+
+  /* Tooltip */
+  --tooltip-bg: #2c2c2e;
+  --tooltip-fg: #f5f5f7;
+  --tooltip-border: rgba(255, 255, 255, 0.06);
+  --tooltip-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+/* —— 深色主题 —— */
+:root[data-theme='dark'] {
+  --color-bg: #1c1c1e;
+  --color-surface: #2c2c2e;
+  --color-surface-2: #242426;
+
+  --color-border: #3a3a3c;
+  --color-border-strong: #48484a;
+
+  --color-text: #f5f5f7;
+  --color-text-secondary: #aeaeb2;
+  --color-text-tertiary: #8e8e93;
+  /* 主色按钮文字：黄色背景 + 深色文字，对比度更佳 */
+  --color-text-on-primary: #1d1d1f;
+
+  /* 深色下主色用偏亮的中性色，按钮文本走 --color-text-on-primary */
+  --color-primary: #e5e5ea;
+  --color-primary-hover: #ffffff;
+  --color-danger: #ff5b5b;
+  --color-danger-hover: #ff7a7a;
+  --color-danger-bg-soft: rgba(255, 91, 91, 0.14);
+  --color-success: #34c47a;
+
+  --color-hover: #3a3a3c;
+
+  /* 强调色与主色保持同一暖黄色系，仅明度上做区分 */
+  --color-accent: #fbbf24;
+  --color-accent-hover: #fcd34d;
+  --color-accent-border: #6e5a25;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.6);
+
+  --color-mask: rgba(0, 0, 0, 0.55);
+
+  --color-toast-bg: rgba(245, 245, 247, 0.92);
+  --color-toast-fg: #1d1d1f;
+
+  --tooltip-bg: #f5f5f7;
+  --tooltip-fg: #1d1d1f;
+  --tooltip-border: rgba(0, 0, 0, 0.08);
+  --tooltip-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}

@@ -35,7 +35,7 @@ const onCancel = () => emit('cancel')
 .dlg-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.32);
+  background: var(--color-mask);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,7 +85,7 @@ const onCancel = () => emit('cancel')
   color: #fff;
 }
 .btn.danger:hover {
-  background: #b82e2e;
+  background: var(--color-danger-hover);
 }
 
 .fade-enter-active,

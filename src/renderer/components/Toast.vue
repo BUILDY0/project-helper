@@ -39,18 +39,20 @@ defineExpose({ show })
   pointer-events: none;
 }
 .toast {
-  background: rgba(40, 40, 40, 0.92);
-  color: #fff;
+  background: var(--color-toast-bg);
+  color: var(--color-toast-fg);
   padding: 8px 16px;
   border-radius: var(--radius-md);
   font-size: 13px;
   box-shadow: var(--shadow-md);
 }
 .toast.success {
-  background: #2c7a4b;
+  background: var(--color-success);
+  color: #fff;
 }
 .toast.error {
   background: var(--color-danger);
+  color: #fff;
 }
 
 .toast-enter-active,

@@ -8,7 +8,21 @@ const APP_HOME = path.join(os.homedir(), '.project-helper')
 const CONFIG_PATH = path.join(APP_HOME, 'config.json')
 
 // ==================== 配置读写 ====================
-const DEFAULT_CONFIG = { paths: [], depth: 1, exclude_paths: [], pinned: [] }
+// 支持的主题枚举；非法或缺省值会回落到 light
+const THEME_VALUES = ['light', 'dark']
+const DEFAULT_THEME = 'light'
+const DEFAULT_CONFIG = {
+  paths: [],
+  depth: 1,
+  exclude_paths: [],
+  pinned: [],
+  theme: DEFAULT_THEME
+}
+
+/** 把任意输入夹紧到合法的主题枚举 */
+function normalizeTheme(v) {
+  return THEME_VALUES.includes(v) ? v : DEFAULT_THEME
+}
 
 /**
  * 确保配置文件存在；不存在则写入默认模板。
@@ -78,6 +92,7 @@ async function readConfig() {
       depth: typeof json.depth === 'number' ? json.depth : 1,
       exclude_paths: Array.isArray(json.exclude_paths) ? json.exclude_paths : [],
       pinned: Array.isArray(json.pinned) ? json.pinned : [],
+      theme: normalizeTheme(json.theme),
       mtime
     }
   } catch (err) {
@@ -111,7 +126,21 @@ async function writePinned(pinned) {
     paths: prev.paths,
     depth: prev.depth,
     exclude_paths: prev.exclude_paths,
-    pinned: Array.isArray(pinned) ? pinned : []
+    pinned: Array.isArray(pinned) ? pinned : [],
+    theme: normalizeTheme(prev.theme)
+  }
+  await writeConfig(data)
+}
+
+/** 写入 theme 字段，复用其它字段不变 */
+async function writeTheme(theme) {
+  const prev = await readConfig()
+  const data = {
+    paths: prev.paths,
+    depth: prev.depth,
+    exclude_paths: prev.exclude_paths,
+    pinned: prev.pinned,
+    theme: normalizeTheme(theme)
   }
   await writeConfig(data)
 }
@@ -125,7 +154,7 @@ function registerConfigIpc() {
   })
 
   ipcMain.handle('config:save', async (_e, payload) => {
-    // 持久化 paths/depth/exclude_paths/pinned 字段；pinned 未传则保留原值
+    // 持久化 paths/depth/exclude_paths/pinned/theme 字段；pinned/theme 未传则保留原值
     const prev = await readConfig()
     // 兼容字符串/数字两种深度入参，并在 [0, 5] 区间夹紧
     const rawDepth = Number(payload?.depth)
@@ -134,9 +163,17 @@ function registerConfigIpc() {
       paths: Array.isArray(payload?.paths) ? payload.paths : [],
       depth,
       exclude_paths: Array.isArray(payload?.exclude_paths) ? payload.exclude_paths : [],
-      pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned
+      pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned,
+      theme:
+        payload?.theme !== undefined ? normalizeTheme(payload.theme) : normalizeTheme(prev.theme)
     }
     await writeConfig(data)
+    return true
+  })
+
+  /** 仅保存主题，不影响其他字段 —— 用于切换主题时立即写盘 */
+  ipcMain.handle('config:save-theme', async (_e, theme) => {
+    await writeTheme(theme)
     return true
   })
 
@@ -161,6 +198,7 @@ module.exports = {
   ensureConfigFile,
   readConfig,
   writePinned,
+  writeTheme,
   filterValidPaths,
   registerConfigIpc
 }

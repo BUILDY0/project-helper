@@ -152,7 +152,7 @@ const onItemClick = (item) => {
   color: var(--color-danger);
 }
 .ctx-item.danger:hover {
-  background: rgba(217, 59, 59, 0.08);
+  background: var(--color-danger-bg-soft);
 }
 .ctx-divider {
   height: 1px;

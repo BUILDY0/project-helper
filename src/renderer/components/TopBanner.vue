@@ -23,6 +23,14 @@
     <!-- 右侧窗口控制：按钮 no-drag。
          图标统一使用 VSCode codicons (CC BY 4.0) 的 chrome-* 系列，圆角 Fluent 风格 -->
     <div class="banner-right">
+      <!-- 主题切换：复用公共 ThemeSwitch 组件，change 时立即写盘 -->
+      <ThemeSwitch
+        :value="currentTheme"
+        button-class="no-drag"
+        v-tooltip:bottom="isDark ? '切换到浅色主题' : '切换到深色主题'"
+        @change="setTheme"
+      />
+
       <!-- 仅开发环境显示：打开 / 关闭 DevTools -->
       <button
         v-if="isDev"
@@ -76,8 +84,10 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import folderIcon from '@/assets/folder.png'
+import { useTheme } from '@/composables/useTheme.js'
+import ThemeSwitch from './ThemeSwitch.vue'
 
 defineProps({
   activeTab: { type: String, required: true }
@@ -88,6 +98,10 @@ const tabs = [
   { key: 'projects', label: '项目' },
   { key: 'settings', label: '配置' }
 ]
+
+// 主题：currentTheme 与全局单例同步；setTheme 在 ThemeSwitch change 时直接写盘
+const { currentTheme, setTheme } = useTheme()
+const isDark = computed(() => currentTheme.value === 'dark')
 
 const isMax = ref(false)
 // 是否处于开发环境：决定是否渲染 console 按钮；初始 false，挂载后异步取主进程值
@@ -187,14 +201,19 @@ const onToggleDevTools = () => window.api.toggleDevTools?.()
 }
 .tab-btn.active {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-on-primary);
 }
 
 .banner-right {
   display: flex;
   align-items: center;
   height: 100%;
+  /* 左侧主题 switch 与窗口控制按钮拉开间距 */
+  gap: 8px;
+  /* 右端不要额外 padding，由 win-btn 自身宽度决定贴边效果 */
+  padding-left: 8px;
 }
+
 .win-btn {
   width: 44px;
   height: 100%;

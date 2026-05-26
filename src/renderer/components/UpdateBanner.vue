@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
 .btn.primary {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-text-on-primary);
 }
 .btn.primary:hover {
   background: var(--color-primary-hover);
