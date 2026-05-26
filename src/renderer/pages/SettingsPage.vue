@@ -11,6 +11,19 @@
     </div>
 
     <div class="page-body">
+      <!-- 配置文件路径：只读 input + 两个操作按钮 -->
+      <div class="field">
+        <div class="label">配置文件路径</div>
+        <div class="row">
+          <input class="input" :value="config.config_path" readonly />
+          <button class="btn" @click="onOpenConfigFile">打开文件</button>
+          <button class="btn" @click="onOpenConfigFolder">打开文件夹</button>
+        </div>
+        <div class="hint">
+          <span>最后修改：{{ formatTime(config.mtime) }}</span>
+        </div>
+      </div>
+
       <!-- 主题风格：仅写入草稿（config.theme），点击"保存"才落盘并 applyTheme 生效 -->
       <div class="field">
         <div class="label">
@@ -36,19 +49,6 @@
               深色
             </button>
           </div>
-        </div>
-      </div>
-
-      <!-- 配置文件路径：只读 input + 两个操作按钮 -->
-      <div class="field">
-        <div class="label">配置文件路径</div>
-        <div class="row">
-          <input class="input" :value="config.config_path" readonly />
-          <button class="btn" @click="onOpenConfigFile">打开文件</button>
-          <button class="btn" @click="onOpenConfigFolder">打开文件夹</button>
-        </div>
-        <div class="hint">
-          <span>最后修改：{{ formatTime(config.mtime) }}</span>
         </div>
       </div>
 
