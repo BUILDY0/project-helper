@@ -1,6 +1,6 @@
 # 更新日志
 
-按时间倒序排列，最新版本在最上方。所有版本对应的安装包可在 [GitHub Releases](https://github.com/BUILDY0/project-helper/releases) 下载。
+所有版本对应的安装包可在 [GitHub Releases](https://github.com/BUILDY0/project-helper/releases) 下载。
 
 ## v1.1.4
 
