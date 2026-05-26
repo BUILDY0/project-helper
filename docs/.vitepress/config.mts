@@ -6,7 +6,7 @@ import { defineConfig } from 'vitepress'
 // 使用 .mts 后缀以强制 ESM 解析，避免 vitepress（纯 ESM）被当作 CJS 加载
 export default defineConfig({
   title: 'Project Helper',
-  description: '本地开发项目管理器：扫描本地项目并用 VSCode 一键打开',
+  description: '开发项目本地管理器',
   lang: 'zh-CN',
   base: '/project-helper/',
 
@@ -39,7 +39,7 @@ export default defineConfig({
     ['meta', { property: 'og:title', content: 'Project Helper' }],
     ['meta', {
       property: 'og:description',
-      content: '本地开发项目管理器：扫描本地项目并用 VSCode 一键打开'
+      content: '开发项目本地管理器'
     }],
     ['meta', {
       property: 'og:image',

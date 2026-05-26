@@ -1,6 +1,6 @@
 # Project Helper
 
-一个基于 **Vue 3 + Electron + Vite** 的本地开发项目管理器。
+一个基于 **Vue 3 + Electron + Vite** 的开发项目本地管理器。
 
 > 📖 在线文档：<https://buildy0.github.io/project-helper/>
 

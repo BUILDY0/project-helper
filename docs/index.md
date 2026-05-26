@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: Project Helper
-  text: 本地开发项目管理器
+  text: 开发项目本地管理器
   tagline: 一个基于 Vue 3 + Electron + Vite 的 Windows 桌面应用
   actions:
     - theme: brand
