@@ -85,7 +85,7 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
-import folderIcon from '@/assets/folder.png'
+import folderIcon from '@resources/icon.png'
 import { useTheme } from '@/composables/useTheme.js'
 import ThemeSwitch from './ThemeSwitch.vue'
 

@@ -46,8 +46,7 @@ project-helper/
 │     ├─ App.vue                      # 根组件，含 tab 切换拦截
 │     ├─ main.js
 │     ├─ index.html
-│     ├─ assets/                      # 静态资源（应用 logo / 图标等）
-│     │   └─ folder.png
+│     ├─ assets/                      # 渲染层静态资源说明（应用 logo 统一从 build/icon.png 引用）
 │     ├─ styles/
 │     │   ├─ global.css                # 全局样式 / 公共 CSS 变量
 │     │   ├─ themes.css                # 浅色 / 深色主题色定义
@@ -74,9 +73,11 @@ project-helper/
 │  ├─ index.md                        # 首页
 │  ├─ guide/                          # 使用指南
 │  ├─ changelog/                      # 更新日志
-│  ├─ public/                         # 站点静态资源（logo / banner 等）
+│  ├─ public/                         # 站点静态资源（logo 由 npm run prepare:assets 同步生成）
 │  └─ .vitepress/                     # 站点配置 / 主题 / 自定义组件
-├─ build/                             # 应用打包图标资源（icon.ico）
+├─ build/                             # 应用图标源资源：icon.png + 生成的 icon.ico
+├─ scripts/                           # 构建辅助脚本
+│  └─ prepare-assets.js               # 同步统一图标资源到文档站并清理旧副本
 ├─ .husky/pre-commit                  # commit 前自动 prettier 格式化（lint-staged）
 ├─ .github/workflows/
 │  ├─ release.yml                     # 推送 v* tag 自动构建并发布 GitHub Release
@@ -116,7 +117,7 @@ npm run build
 ```
 
 生成 `release/` 目录，含 NSIS 安装包与可执行文件。
-打包前请确保 `build/icon.png` 图标资源已就位（详见 `build/README.md`）。
+应用 PNG 源图统一维护在 `build/icon.png`；构建时会自动生成 `build/icon.ico`，并同步文档站所需的 `docs/public/logo.png`。
 
 ## 发布与自动更新
 

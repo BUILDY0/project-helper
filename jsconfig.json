@@ -7,7 +7,8 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/renderer/*"]
+      "@/*": ["src/renderer/*"],
+      "@resources/*": ["build/*"]
     }
   },
   "include": ["src/renderer/**/*", "vite.config.js"],

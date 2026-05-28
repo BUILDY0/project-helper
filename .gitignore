@@ -7,6 +7,9 @@ release
 docs/.vitepress/dist
 docs/.vitepress/cache
 
+# 同步生成的图片资源副本
+docs/public/logo.png
+
 # 系统文件
 .DS_Store
 Thumbs.db

@@ -10,7 +10,9 @@ export default defineConfig({
   resolve: {
     alias: {
       // '@' 指向 src/renderer，统一从根定位组件 / 资源 / composables
-      '@': path.resolve(__dirname, 'src/renderer')
+      '@': path.resolve(__dirname, 'src/renderer'),
+      // '@resources' 指向唯一维护的应用图标源资源目录
+      '@resources': path.resolve(__dirname, 'build')
     }
   },
   build: {

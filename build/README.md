@@ -1,19 +1,22 @@
-# 应用打包图标
+# 应用图标资源
 
-仅构建 Windows 版本，把图标放在本目录下，`electron-builder` 会在打包时自动使用：
+`build/icon.png` 是项目唯一维护的 PNG 图标源图，会被复用于：
 
-| 平台    | 文件名     | 推荐规格                                      |
-| ------- | ---------- | --------------------------------------------- |
-| Windows | `icon.ico` | 多尺寸 ICO，至少包含 256 / 128 / 64 / 32 / 16 |
+| 用途                          | 资源                                                               |
+| ----------------------------- | ------------------------------------------------------------------ |
+| 渲染层顶部 banner logo        | `@resources/icon.png`                                              |
+| VitePress favicon / 导航 logo | `docs/public/logo.png`，由 `npm run prepare:assets` 同步生成       |
+| Windows 安装包 / 窗口图标     | `build/icon.ico`，由 `npm run build:icon` 从 `build/icon.png` 生成 |
 
-## 一键生成
+## 更新图标
 
-把原图另存为 1024×1024 透明背景的 `icon.png` 后任选其一：
+替换 `build/icon.png` 即可。建议使用 1024×1024 透明背景 PNG。
 
-1. 在线工具：https://icoconvert.com / https://cloudconvert.com/png-to-ico
-2. CLI（需 Node 环境）：
-   ```bash
-   npx png-to-ico icon.png > icon.ico
-   ```
+执行以下命令同步派生资源：
 
-放好后执行 `npm run build` 即可生成带自定义图标的 .exe 安装包。
+```bash
+npm run prepare:assets
+npm run build:icon
+```
+
+日常执行 `npm run build` 或 `npm run release` 时会自动完成同步和 ICO 生成。
