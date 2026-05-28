@@ -10,14 +10,11 @@ import './styles/doc.css'
 
 import HomeBanner from './components/HomeBanner.vue'
 import HomeFeatures from './components/HomeFeatures.vue'
-import HomeLinkGrid from './components/HomeLinkGrid.vue'
-
 export default {
   ...DefaultTheme,
   enhanceApp({ app }) {
     // 全局注册首页用到的 Vue 组件，可在任意 .md 中直接以标签形式使用
     app.component('HomeBanner', HomeBanner)
     app.component('HomeFeatures', HomeFeatures)
-    app.component('HomeLinkGrid', HomeLinkGrid)
   }
 }

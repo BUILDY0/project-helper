@@ -7,7 +7,7 @@
  *   3) tagline  —— 灰色描述
  *   4) actions  —— 按钮一排
  *   5) features —— 4 卡片功能介绍
- *   6) banner / 快速链接（自定义 Vue 组件）
+ *   6) banner   —— 应用截图展示
  *
  * VitePress 默认 hero 是「左文右图」两栏栅格，需要切换为单列居中。
  */
@@ -96,9 +96,27 @@
   margin-bottom: 0;
 }
 .VPHome .VPHero .actions .VPButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 128px;
   font-size: 16px;
-  padding: 0 22px;
+  padding: 0 18px;
   line-height: 44px;
+}
+.VPHome .VPHero .actions .VPButton::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  background-color: currentColor;
+  opacity: 0.86;
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 17 17 7M9 7h8v8' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 17 17 7M9 7h8v8' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
 }
 .VPHome .VPHero .actions .VPButton.medium {
   height: 44px;
