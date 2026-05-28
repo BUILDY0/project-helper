@@ -220,11 +220,18 @@ function registerSystemBridge() {
   })
 
   // ==================== 删除文件夹 ====================
-  /** 删除项目文件夹（递归） */
-  ipcMain.handle('shell:delete-folder', async (_e, targetPath) => {
+  /** 删除项目文件夹：默认移入回收站，force=true 时递归永久删除 */
+  ipcMain.handle('shell:delete-folder', async (_e, payload) => {
+    const targetPath = typeof payload === 'string' ? payload : payload?.targetPath
+    const forceDelete = typeof payload === 'object' && !!payload?.force
     if (!targetPath) return { ok: false, message: '路径为空' }
     try {
-      await fsp.rm(targetPath, { recursive: true, force: true })
+      await fsp.access(targetPath, fs.constants.F_OK)
+      if (forceDelete) {
+        await fsp.rm(targetPath, { recursive: true, force: true })
+      } else {
+        await shell.trashItem(targetPath)
+      }
       return { ok: true }
     } catch (err) {
       return { ok: false, message: err.message }

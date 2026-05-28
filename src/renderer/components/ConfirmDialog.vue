@@ -3,12 +3,21 @@
     <transition name="fade">
       <div v-if="visible" class="dlg-mask" @click.self="onCancel">
         <div class="dlg">
+          <button
+            v-if="closeIcon"
+            class="dlg-close"
+            type="button"
+            aria-label="关闭"
+            @click="onCancel"
+          >
+            ×
+          </button>
           <div class="dlg-title">{{ title }}</div>
           <div class="dlg-body">
             <slot>{{ message }}</slot>
           </div>
           <div class="dlg-actions">
-            <button class="btn" @click="onCancel">{{ cancelText }}</button>
+            <button v-if="!closeIcon" class="btn" @click="onCancel">{{ cancelText }}</button>
             <button class="btn danger" @click="onConfirm">{{ confirmText }}</button>
           </div>
         </div>
@@ -23,7 +32,8 @@ defineProps({
   title: { type: String, default: '提示' },
   message: { type: String, default: '' },
   confirmText: { type: String, default: '确认' },
-  cancelText: { type: String, default: '取消' }
+  cancelText: { type: String, default: '取消' },
+  closeIcon: { type: Boolean, default: false }
 })
 const emit = defineEmits(['confirm', 'cancel'])
 
@@ -47,6 +57,30 @@ const onCancel = () => emit('cancel')
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 22px 22px 16px;
+  position: relative;
+}
+.dlg-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.dlg-close:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
 }
 .dlg-title {
   font-size: 15px;

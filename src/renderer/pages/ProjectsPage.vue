@@ -92,11 +92,35 @@
     <ConfirmDialog
       :visible="confirmVisible"
       title="删除项目"
-      :message="`确认删除该项目文件夹吗？此操作将从磁盘永久删除：\n${pendingProject?.path || ''}`"
-      confirm-text="删除"
-      @cancel="confirmVisible = false"
+      close-icon
+      :confirm-text="permanentDelete ? '永久删除' : '移入回收站'"
+      @cancel="onCancelDelete"
       @confirm="onConfirmDelete"
-    />
+    >
+      <div class="delete-confirm">
+        <div class="delete-path">{{ pendingProject?.path || '' }}</div>
+        <label class="permanent-delete-option">
+          <span
+            class="delete-help-icon"
+            v-tooltip:bottom="'开启后将直接从磁盘移除，无法从回收站恢复。'"
+          >
+            i
+          </span>
+          <span class="permanent-delete-copy">永久删除</span>
+          <span class="delete-switch" :class="{ checked: permanentDelete }">
+            <input
+              v-model="permanentDelete"
+              class="delete-switch-input"
+              type="checkbox"
+              aria-label="永久删除"
+            />
+            <span class="delete-switch-track">
+              <span class="delete-switch-thumb"></span>
+            </span>
+          </span>
+        </label>
+      </div>
+    </ConfirmDialog>
 
     <!-- toast -->
     <Toast ref="toastRef" />
@@ -174,6 +198,7 @@ const ctxTarget = ref(null)
 // 删除确认状态
 const confirmVisible = ref(false)
 const pendingProject = ref(null)
+const permanentDelete = ref(false)
 
 // 最短 loading 展示时间（毫秒），避免动作过快出现"跳变"
 const MIN_LOADING_MS = 1000
@@ -305,6 +330,7 @@ async function onMenuSelect(item) {
     await togglePin(p)
   } else if (item.action === 'delete') {
     pendingProject.value = p
+    permanentDelete.value = false
     confirmVisible.value = true
   }
 }
@@ -332,18 +358,31 @@ async function togglePin(project) {
   }
 }
 
+/** 删除二次确认取消 */
+function onCancelDelete() {
+  confirmVisible.value = false
+  permanentDelete.value = false
+  pendingProject.value = null
+}
+
 /** 删除二次确认通过 */
 async function onConfirmDelete() {
   const p = pendingProject.value
+  const shouldPermanentDelete = permanentDelete.value
   confirmVisible.value = false
-  if (!p) return
-  const r = await window.api.deleteFolder(p.path)
+  permanentDelete.value = false
+  if (!p) {
+    pendingProject.value = null
+    return
+  }
+  const r = await window.api.deleteFolder(p.path, { force: shouldPermanentDelete })
   if (r?.ok) {
-    toastRef.value?.show('已删除项目文件夹', 'success')
+    toastRef.value?.show(shouldPermanentDelete ? '已永久删除项目文件夹' : '已移入回收站', 'success')
     // 从列表中移除并刷新
     projects.value = projects.value.filter((x) => x.path !== p.path)
   } else {
-    toastRef.value?.show(`删除失败：${r?.message || '未知错误'}`, 'error')
+    const actionText = shouldPermanentDelete ? '永久删除' : '移入回收站'
+    toastRef.value?.show(`${actionText}失败：${r?.message || '未知错误'}`, 'error')
   }
   pendingProject.value = null
 }
@@ -554,5 +593,89 @@ watch(
 .ph-tip {
   font-size: 12px;
   color: var(--color-text-tertiary);
+}
+.delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.delete-path {
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--color-hover);
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+  user-select: text;
+}
+.permanent-delete-option {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+}
+.permanent-delete-copy {
+  font-size: 13px;
+}
+.delete-help-icon {
+  width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-hover);
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+.delete-switch {
+  position: relative;
+  display: inline-flex;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.delete-switch-input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.delete-switch-track {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.delete-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s;
+}
+.delete-switch.checked .delete-switch-track {
+  background: var(--color-danger);
+}
+.delete-switch.checked .delete-switch-thumb {
+  transform: translateX(16px);
+}
+.delete-switch-input:focus-visible + .delete-switch-track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 24%, transparent);
 }
 </style>

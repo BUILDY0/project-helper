@@ -40,7 +40,8 @@ contextBridge.exposeInMainWorld('api', {
   getAvailableIdes: () => ipcRenderer.invoke('ide:get-available'),
   /** 强制重新探测受支持 IDE 的可用性，并刷新主进程缓存 */
   detectIdes: () => ipcRenderer.invoke('ide:detect'),
-  deleteFolder: (p) => ipcRenderer.invoke('shell:delete-folder', p),
+  deleteFolder: (p, options = {}) =>
+    ipcRenderer.invoke('shell:delete-folder', { targetPath: p, force: !!options.force }),
   /** 调起系统原生「文件夹属性」对话框 */
   showProperties: (p) => ipcRenderer.invoke('shell:show-properties', p),
   /** 写入系统剪贴板 */
