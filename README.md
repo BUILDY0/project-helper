@@ -2,31 +2,13 @@
 
 一个基于 **Vue 3 + Electron + Vite** 的开发项目本地管理器。
 
-> 📖 在线文档：<https://buildy0.github.io/project-helper/>
+> 📖 在线文档：[https://buildy0.github.io/project-helper/](https://buildy0.github.io/project-helper/)
 
 ---
 
 ## 配置文件
 
 **位置**：用户主目录下应用工作目录 `%USERPROFILE%\.project-helper\config.json`
-
-**字段**：
-
-```json
-{
-  "paths": ["D:/work"],
-  "depth": 1,
-  "exclude_paths": ["D:/work/legacy"],
-  "pinned": ["D:/work/my-favorite-project"]
-}
-```
-
-| 字段            | 类型     | 说明                                     |
-| --------------- | -------- | ---------------------------------------- |
-| `paths`         | string[] | 扫描根目录列表                           |
-| `depth`         | number   | 扫描深度，0 - 5，默认 1                  |
-| `exclude_paths` | string[] | 排除目录列表，命中即跳过整棵子树         |
-| `pinned`        | string[] | 置顶项目绝对路径，扫描时会自动清理失效项 |
 
 ## 目录结构
 
