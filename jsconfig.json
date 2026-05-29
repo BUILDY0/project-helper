@@ -12,6 +12,13 @@
       "@resources/*": ["build/*"]
     }
   },
-  "include": ["src/renderer/**/*", "src/shared/**/*", "vite.config.js"],
+  "include": [
+    "src/renderer/**/*",
+    "src/shared/**/*",
+    "src/main/**/*",
+    "src/preload/**/*",
+    "scripts/**/*",
+    "vite.config.mjs"
+  ],
   "exclude": ["node_modules", "dist", "release", "docs"]
 }
