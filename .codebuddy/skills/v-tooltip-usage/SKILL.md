@@ -1,5 +1,5 @@
 ---
-name: v-tooltip-usage-guide
+name: v-tooltip-usage
 description: 本技能为 AI 提供 Vue 3 自定义 tooltip 指令的全面使用指南，包含基础用法、文本溢出检测、动态内容、UI 组件集成和性能优化等各类场景的代码模板。基于项目实际实现的 `v-tooltip` 指令，帮助 AI 快速生成符合最佳实践的 tooltip 代码。
 ---
 
