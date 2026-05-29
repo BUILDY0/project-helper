@@ -72,7 +72,9 @@ export default defineConfig({
 
     outline: {
       label: '本页目录',
-      level: [2, 3]
+      // 取到 H4：配置文档把每个配置项展开为 H3，子字段（如 paths[].path）为 H4，
+      // 需要 outline 一并显示成树形导航
+      level: [2, 4]
     },
 
     // 'left' 让 outline 显示在左侧；true/false 控制是否显示

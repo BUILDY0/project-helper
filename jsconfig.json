@@ -8,9 +8,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/renderer/*"],
+      "@shared/*": ["src/shared/*"],
       "@resources/*": ["build/*"]
     }
   },
-  "include": ["src/renderer/**/*", "vite.config.js"],
+  "include": ["src/renderer/**/*", "src/shared/**/*", "vite.config.js"],
   "exclude": ["node_modules", "dist", "release", "docs"]
 }

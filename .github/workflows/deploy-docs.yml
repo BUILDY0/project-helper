@@ -33,7 +33,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          # 与 release.yml 对齐 Node 22；VitePress 1.6+ 完全兼容
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies

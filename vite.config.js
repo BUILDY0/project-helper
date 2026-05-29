@@ -11,6 +11,8 @@ export default defineConfig({
     alias: {
       // '@' 指向 src/renderer，统一从根定位组件 / 资源 / composables
       '@': path.resolve(__dirname, 'src/renderer'),
+      // '@shared' 指向主进程 / 渲染进程共享的纯 JS 模块（类型 / 常量 / 工具函数）
+      '@shared': path.resolve(__dirname, 'src/shared'),
       // '@resources' 指向唯一维护的应用图标源资源目录
       '@resources': path.resolve(__dirname, 'build')
     }

@@ -37,7 +37,7 @@
         </div>
         <ul v-if="config.paths.length" class="list">
           <li v-for="(p, i) in config.paths" :key="`path-${i}`" class="list-item">
-            <span class="path-text" v-tooltip.overflow="p">{{ p }}</span>
+            <span class="path-text" v-tooltip.overflow="getPathText(p)">{{ getPathText(p) }}</span>
             <button class="icon-btn" v-tooltip="'移除'" @click="removePath(i)">×</button>
           </li>
         </ul>
@@ -138,6 +138,8 @@ import NumberInput from '@/components/NumberInput.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Toast from '@/components/Toast.vue'
 import HelpCircleLink from '@/components/HelpCircleLink.vue'
+// 路径类型与 SystemPath 构造统一来自 src/shared，避免与主进程重复声明
+import { SystemPath } from '@shared/path-types.js'
 
 const props = defineProps({
   active: Boolean
@@ -171,6 +173,15 @@ const helpItems = [
     url: 'https://github.com/BUILDY0/project-helper'
   }
 ]
+
+function getPathText(item) {
+  if (typeof item === 'string') return item
+  return typeof item?.path === 'string' ? item.path : ''
+}
+
+function getPathKey(item) {
+  return getPathText(item).trim().toLowerCase()
+}
 
 // 加载/保存成功时记录基线，用于判断是否存在未保存的修改
 let originalSnapshot = ''
@@ -222,11 +233,12 @@ async function loadConfig() {
 async function addPath() {
   const dir = await window.api.selectDirectory()
   if (!dir) return
-  if (config.value.paths.includes(dir)) {
+  const key = getPathKey(dir)
+  if (config.value.paths.some((item) => getPathKey(item) === key)) {
     toastRef.value?.show('该目录已存在', 'info')
     return
   }
-  config.value.paths.push(dir)
+  config.value.paths.push(new SystemPath({ path: dir }))
 }
 function removePath(i) {
   config.value.paths.splice(i, 1)

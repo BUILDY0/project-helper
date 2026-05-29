@@ -17,9 +17,10 @@ jobs:
 
       - name: Setup Node.js
         # v5 起内部运行时为 Node 24；构建用的 Node 版本仍由 node-version 指定
+        # 与 Electron 34 内嵌 Node 对齐；shared 模块依赖 Node 22+ 的 require(ESM) 能力
         uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies

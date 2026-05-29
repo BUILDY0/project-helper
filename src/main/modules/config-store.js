@@ -3,25 +3,21 @@ const path = require('node:path')
 const fsp = require('node:fs/promises')
 const os = require('node:os')
 
+const { normalizePaths } = require('../../shared/path-types.js')
+const { DEFAULT_THEME, normalizeTheme } = require('../../shared/theme.js')
+
 // 应用工作目录与配置文件：放在用户主目录下的独立目录，避免污染 home
 const APP_HOME = path.join(os.homedir(), '.project-helper')
 const CONFIG_PATH = path.join(APP_HOME, 'config.json')
 
 // ==================== 配置读写 ====================
-// 支持的主题枚举；非法或缺省值会回落到 light
-const THEME_VALUES = ['light', 'dark']
-const DEFAULT_THEME = 'light'
+
 const DEFAULT_CONFIG = {
   paths: [],
   depth: 1,
   exclude_paths: [],
   pinned: [],
   theme: DEFAULT_THEME
-}
-
-/** 把任意输入夹紧到合法的主题枚举 */
-function normalizeTheme(v) {
-  return THEME_VALUES.includes(v) ? v : DEFAULT_THEME
 }
 
 /**
@@ -88,7 +84,7 @@ async function readConfig() {
     } catch {}
     return {
       config_path: CONFIG_PATH,
-      paths: Array.isArray(json.paths) ? json.paths : [],
+      paths: normalizePaths(json.paths),
       depth: typeof json.depth === 'number' ? json.depth : 1,
       exclude_paths: Array.isArray(json.exclude_paths) ? json.exclude_paths : [],
       pinned: Array.isArray(json.pinned) ? json.pinned : [],
@@ -122,27 +118,26 @@ async function filterValidPaths(list) {
 /** 写入 pinned 字段，复用其它字段不变 */
 async function writePinned(pinned) {
   const prev = await readConfig()
-  const data = {
+  // prev.* 字段都已经过 readConfig 内的归一化，这里直接复用即可
+  await writeConfig({
     paths: prev.paths,
     depth: prev.depth,
     exclude_paths: prev.exclude_paths,
     pinned: Array.isArray(pinned) ? pinned : [],
-    theme: normalizeTheme(prev.theme)
-  }
-  await writeConfig(data)
+    theme: prev.theme
+  })
 }
 
 /** 写入 theme 字段，复用其它字段不变 */
 async function writeTheme(theme) {
   const prev = await readConfig()
-  const data = {
+  await writeConfig({
     paths: prev.paths,
     depth: prev.depth,
     exclude_paths: prev.exclude_paths,
     pinned: prev.pinned,
     theme: normalizeTheme(theme)
-  }
-  await writeConfig(data)
+  })
 }
 
 /** 注册配置类 IPC：config:* 与 pin:toggle */
@@ -159,15 +154,13 @@ function registerConfigIpc() {
     // 兼容字符串/数字两种深度入参，并在 [0, 5] 区间夹紧
     const rawDepth = Number(payload?.depth)
     const depth = Number.isFinite(rawDepth) ? Math.max(0, Math.min(5, rawDepth)) : 1
-    const data = {
-      paths: Array.isArray(payload?.paths) ? payload.paths : [],
+    await writeConfig({
+      paths: normalizePaths(payload?.paths),
       depth,
       exclude_paths: Array.isArray(payload?.exclude_paths) ? payload.exclude_paths : [],
       pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned,
-      theme:
-        payload?.theme !== undefined ? normalizeTheme(payload.theme) : normalizeTheme(prev.theme)
-    }
-    await writeConfig(data)
+      theme: normalizeTheme(payload?.theme ?? prev.theme)
+    })
     return true
   })
 

@@ -10,6 +10,26 @@
 
 **位置**：用户主目录下应用工作目录 `%USERPROFILE%\.project-helper\config.json`
 
+`paths` 以对象数组保存扫描根目录；旧版 `string[]` 配置会在读取/保存时自动归一化为对象格式：
+
+```json
+{
+  "paths": [
+    {
+      "path": "D:/work",
+      "type": "SYSTEM",
+      "cfg": {
+        "forced": false
+      }
+    }
+  ]
+}
+```
+
+其中 `cfg.forced` 为 `true` 时，即使目录本身不包含 `.git` 或 `package.json`，扫描时也会强制作为项目命中。
+
+> 完整字段说明见 [配置文档](https://buildy0.github.io/project-helper/guide/config.html)。
+
 ## 目录结构
 
 ```
@@ -24,6 +44,10 @@ project-helper/
 │  │      └─ updater.js               # 自动更新 + updater:* / app:get-version
 │  ├─ preload/                        # 预加载脚本（contextBridge 暴露 window.api）
 │  │  └─ index.js
+│  ├─ shared/                         # 主进程 / 渲染进程共享的纯 JS（'@shared' 别名指向此目录）
+│  │  ├─ README.md                    # 编写约束 / 加载约定（require(ESM)）
+│  │  ├─ path-types.js                # PathType 枚举 + BasePath/SystemPath 等路径类
+│  │  └─ theme.js                     # 主题枚举与归一化函数
 │  └─ renderer/                       # 渲染进程（Vue + Vite，'@' 别名指向此目录）
 │     ├─ App.vue                      # 根组件，含 tab 切换拦截
 │     ├─ main.js
@@ -81,7 +105,7 @@ project-helper/
 - Windows 10 / 11（仅构建 Windows 版本）。
 - 已安装 [VSCode](https://code.visualstudio.com/) 且 `code` 命令在 PATH 中
   （安装时勾选「添加到 PATH」即可）。
-- 开发需要 Node.js ≥ 18。
+- 开发需要 Node.js ≥ 22（与 Electron 34 内嵌 Node 对齐；shared 模块依赖 `require(ESM)` 能力）。
 
 ## 开发
 

@@ -173,7 +173,7 @@ function normalize(p) {
 
 /**
  * 广度优先扫描：从 roots 出发，depth 为搜索边界，命中 exclude 则跳过
- * depth 语义：paths=["a"], depth=1 => 扫描 a/、a/aa/、a/bb/，不进入 a/aa/aaa
+ * depth 语义：paths=[{ path: "a" }], depth=1 => 扫描 a/、a/aa/、a/bb/，不进入 a/aa/aaa
  * 即从 root 出发最多向下走 depth 层
  *
  * 实现：按层并行（同层节点的 IO 用 Promise.all 并行处理），
@@ -187,10 +187,17 @@ async function scanProjects(roots, depth, excludes) {
   // 收集本层有效起点：去重 + 校验为目录
   let frontier = []
   for (const r of roots || []) {
-    if (!r) continue
+    const rootPath = typeof r === 'string' ? r : r?.path
+    if (!rootPath) continue
     try {
-      const stat = await fsp.stat(r)
-      if (stat.isDirectory()) frontier.push({ dir: path.resolve(r), level: 0 })
+      const stat = await fsp.stat(rootPath)
+      if (stat.isDirectory()) {
+        frontier.push({
+          dir: path.resolve(rootPath),
+          level: 0,
+          forced: r?.cfg?.forced === true
+        })
+      }
     } catch {
       // 路径不存在，跳过
     }
@@ -200,14 +207,14 @@ async function scanProjects(roots, depth, excludes) {
    * 处理单个节点：判定是否项目（命中则收录），并返回下钻后的子节点列表
    * 命中 visited / exclude 时不收录、不下钻
    */
-  async function processNode({ dir, level }) {
+  async function processNode({ dir, level, forced = false }) {
     const key = normalize(dir)
     if (visited.has(key)) return []
     visited.add(key)
     if (excludeSet.has(key)) return []
 
     // 当前层若是项目则收录，但不影响下钻：monorepo 场景外层项目里可能还有子项目
-    if (await isProject(dir)) {
+    if (forced || (await isProject(dir))) {
       const meta = await readProjectMeta(dir)
       projects.push({ path: dir, ...meta })
     }
@@ -227,7 +234,7 @@ async function scanProjects(roots, depth, excludes) {
       // 跳过隐藏目录与 node_modules：内含成百上千伪项目，扫描成本与噪音都不可接受
       if (ent.name.startsWith('.')) continue
       if (ent.name === 'node_modules') continue
-      next.push({ dir: path.join(dir, ent.name), level: level + 1 })
+      next.push({ dir: path.join(dir, ent.name), level: level + 1, forced: false })
     }
     return next
   }
