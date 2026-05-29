@@ -74,6 +74,15 @@
         <ul v-if="config.paths.length" class="list">
           <li v-for="(p, i) in config.paths" :key="`path-${i}`" class="list-item">
             <span class="path-text" v-tooltip.overflow="getPathText(p)">{{ getPathText(p) }}</span>
+            <span class="forced-toggle" v-tooltip="forcedTip">
+              <SwitchInput
+                :model-value="isForced(p)"
+                size="sm"
+                aria-label="强制命中"
+                @update:model-value="(v) => setForced(i, v)"
+              />
+              <span class="forced-toggle__label" @click="toggleForced(i)">强制命中</span>
+            </span>
             <button class="icon-btn" v-tooltip="'移除'" @click="removePath(i)">×</button>
           </li>
         </ul>
@@ -198,12 +207,12 @@ const config = ref({
 })
 const saving = ref(false)
 const toastRef = ref(null)
-// 手动检查更新按钮：点击后 3 秒内置灰
 const checkingUpdate = ref(false)
 
 const autoRunTip = '开启后，开机时会自动启动 ProjectHelper。修改后需点击"保存"才会生效。'
 const autoCheckUpdateTip =
   '开启后，应用启动 5 秒后会检查一次新版本，运行期间每隔 1 小时再检查一次。修改后需点击"保存"才会生效。'
+const forcedTip = '开启后，扫描时强制命中当前目录。修改后需点击"保存"才会生效。'
 
 const helpItems = [
   {
@@ -309,6 +318,34 @@ function removePath(i) {
   config.value.paths.splice(i, 1)
 }
 
+/** 读取某个扫描目录项的"强制命中"开关值 */
+function isForced(item) {
+  return !!(item && typeof item === 'object' && item.cfg && item.cfg.forced === true)
+}
+
+/**
+ * 设置某个扫描目录项的"强制命中"开关值
+ * - 仅修改内存中的 item.cfg.forced，待用户点击"保存"才落盘
+ * - 兼容旧版字符串路径：自动升级为 SystemPath 对象
+ */
+function setForced(i, val) {
+  const cur = config.value.paths[i]
+  const next = !!val
+  if (typeof cur === 'string') {
+    config.value.paths[i] = new SystemPath({ path: cur, cfg: { forced: next } })
+    return
+  }
+  if (cur && typeof cur === 'object') {
+    if (!cur.cfg || typeof cur.cfg !== 'object') cur.cfg = {}
+    cur.cfg.forced = next
+  }
+}
+
+/** 点击文字标签时，与开关同步切换 */
+function toggleForced(i) {
+  setForced(i, !isForced(config.value.paths[i]))
+}
+
 /** 新增排除目录（支持多选） */
 async function addExclude() {
   const dirs = await window.api.selectDirectory({ multi: true })
@@ -373,7 +410,7 @@ function askClearPaths() {
   if (!config.value.paths.length) return
   openConfirm({
     title: '清空扫描目录',
-    message: `确认清空全部 ${config.value.paths.length} 个扫描目录？此操作仅在点击保存后生效。`,
+    message: `确认清空全部 ${config.value.paths.length} 个扫描目录？保存后生效~`,
     confirmText: '清空',
     action: 'clear-paths'
   })
@@ -383,7 +420,7 @@ function askClearExcludes() {
   if (!config.value.exclude_paths.length) return
   openConfirm({
     title: '清空排除文件夹',
-    message: `确认清空全部 ${config.value.exclude_paths.length} 个排除项？此操作仅在点击保存后生效。`,
+    message: `确认清空全部 ${config.value.exclude_paths.length} 个排除项？保存后生效~`,
     confirmText: '清空',
     action: 'clear-excludes'
   })
@@ -393,7 +430,7 @@ function askClearPinned() {
   if (!config.value.pinned.length) return
   openConfirm({
     title: '清空置顶项目',
-    message: `确认清空全部 ${config.value.pinned.length} 个置顶项？此操作仅在点击保存后生效。`,
+    message: `确认清空全部 ${config.value.pinned.length} 个置顶项？保存后生效~`,
     confirmText: '清空',
     action: 'clear-pinned'
   })
@@ -469,12 +506,12 @@ function toggleAutoCheckUpdate() {
 /**
  * 手动触发一次检查更新
  * - 不依赖 auto_check_update 配置（用户显式点击即检查）
- * - 点击后按钮置灰 3 秒，避免短时间内重复请求 GitHub Release
  * - 若发现新版本，由 UpdateBanner 通过 onUpdaterStatus 弹出下载提示
  */
 async function onManualCheckUpdate() {
   if (checkingUpdate.value) return
   checkingUpdate.value = true
+  // 置灰 3 秒，避免短时间内重复请求 GitHub Release
   setTimeout(() => {
     checkingUpdate.value = false
   }, 3000)
@@ -624,8 +661,8 @@ defineExpose({
   color: var(--color-text-secondary);
   border-radius: var(--radius-sm);
   padding: 0;
-  /* 用负的上下 margin 不撑开行盒；左侧抵消 .inline-toggle 的 gap，紧贴文字 */
-  margin: -2px -2px -2px -2px;
+  /* 用负 margin 不撑开行盒；左侧抵消 .inline-toggle 的 gap，紧贴文字 */
+  margin: -2px;
   cursor: pointer;
   line-height: 1;
   transition:
@@ -811,6 +848,25 @@ defineExpose({
 .icon-btn:hover {
   background: var(--color-hover);
   color: var(--color-danger);
+}
+
+/* 扫描目录项右侧"强制命中"开关：放在关闭按钮左边，二者保持适当距离 */
+.forced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  margin-right: 20px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.forced-toggle__label {
+  cursor: pointer;
+  user-select: none;
+}
+.forced-toggle__label:hover {
+  color: var(--color-text);
 }
 
 .empty-tip {
