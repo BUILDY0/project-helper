@@ -18,7 +18,8 @@ const DEFAULT_CONFIG = {
   exclude_paths: [],
   pinned: [],
   theme: DEFAULT_THEME,
-  auto_run_startup: false
+  auto_run_startup: false,
+  auto_check_update: true
 }
 
 /** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
@@ -29,7 +30,9 @@ function normalizeConfig(json) {
     exclude_paths: Array.isArray(json?.exclude_paths) ? json.exclude_paths : [],
     pinned: Array.isArray(json?.pinned) ? json.pinned : [],
     theme: normalizeTheme(json?.theme),
-    auto_run_startup: !!json?.auto_run_startup
+    auto_run_startup: !!json?.auto_run_startup,
+    // 老配置缺省时回退默认值 true，保持"默认开启自动检查"的行为
+    auto_check_update: typeof json?.auto_check_update === 'boolean' ? json.auto_check_update : true
   }
 }
 
@@ -137,7 +140,8 @@ async function patchConfig(patch) {
     exclude_paths: prev.exclude_paths,
     pinned: prev.pinned,
     theme: prev.theme,
-    auto_run_startup: prev.auto_run_startup
+    auto_run_startup: prev.auto_run_startup,
+    auto_check_update: prev.auto_check_update
   }
   await writeConfig({ ...base, ...(patch || {}) })
 }
@@ -225,13 +229,18 @@ function registerConfigIpc() {
       typeof payload?.auto_run_startup === 'boolean'
         ? payload.auto_run_startup
         : prev.auto_run_startup
+    const autoCheckUpdate =
+      typeof payload?.auto_check_update === 'boolean'
+        ? payload.auto_check_update
+        : prev.auto_check_update
     await writeConfig({
       paths: normalizePaths(payload?.paths),
       depth,
       exclude_paths: Array.isArray(payload?.exclude_paths) ? payload.exclude_paths : [],
       pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned,
       theme: normalizeTheme(payload?.theme ?? prev.theme),
-      auto_run_startup: autoRun
+      auto_run_startup: autoRun,
+      auto_check_update: autoCheckUpdate
     })
 
     // 仅在变化时调 setLoginItemSettings，避免无谓写注册表

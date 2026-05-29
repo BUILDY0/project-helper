@@ -1,12 +1,13 @@
 const { app, ipcMain } = require('electron')
 // electron-updater：从 GitHub Release 拉取版本信息并自动下载更新
 const { autoUpdater } = require('electron-updater')
+const { readConfig } = require('./config-store')
 
 // ==================== 自动更新 ====================
 /**
  * 配置 electron-updater：
- * - 启动后立即检查一次更新
- * - 每隔 1 小时再检查一次（保持 app 长时间打开时也能拿到新版本）
+ * - 启动 5 秒后检查一次，运行期间每隔 1 小时再检查一次（仅当 auto_check_update 为 true）
+ * - 渲染层手动触发的 'updater:check' 不受该开关影响
  * - 各阶段事件通过 'updater:status' 转发给渲染层做提示
  *
  * @param {() => import('electron').BrowserWindow | null} getMainWindow
@@ -19,7 +20,7 @@ function setupAutoUpdater(getMainWindow) {
   // 由用户在「有新版本」提示中确认后再下载，避免占用流量
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
-  // 关闭 electron-updater 内部 logger（默认会用 console，错误信息不弹窗，但避免日志噪音）
+  // 关闭 electron-updater 内部 logger，避免日志噪音
   autoUpdater.logger = null
 
   const send = (status, payload) => {
@@ -38,8 +39,20 @@ function setupAutoUpdater(getMainWindow) {
   )
   autoUpdater.on('update-downloaded', (info) => send('downloaded', info))
 
-  // 启动后延迟一点检查，避开应用初始化高峰
-  setTimeout(() => {
+  /** 每次定时触发时实时读取 config，保证用户改了配置后立即生效 */
+  async function isAutoCheckEnabled() {
+    try {
+      const cfg = await readConfig()
+      return cfg.auto_check_update !== false
+    } catch {
+      // 读取失败按默认开启处理，避免漏检
+      return true
+    }
+  }
+
+  // 启动后延迟 5 秒检查，避开应用初始化高峰
+  setTimeout(async () => {
+    if (!(await isAutoCheckEnabled())) return
     autoUpdater.checkForUpdates().catch((err) => {
       console.error('[updater] checkForUpdates 失败:', err.message)
     })
@@ -47,7 +60,8 @@ function setupAutoUpdater(getMainWindow) {
 
   // 长开应用每小时再检查一次
   setInterval(
-    () => {
+    async () => {
+      if (!(await isAutoCheckEnabled())) return
       autoUpdater.checkForUpdates().catch(() => {})
     },
     60 * 60 * 1000

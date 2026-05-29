@@ -6,11 +6,39 @@
         <span v-if="appVersion" class="version">v{{ appVersion }}</span>
 
         <!-- 开机自动运行：开关 + 文字 tooltip；点保存才落盘 -->
-        <span class="auto-run">
+        <span class="inline-toggle inline-toggle--auto-run">
           <SwitchInput v-model="config.auto_run_startup" size="sm" aria-label="开机自动运行" />
-          <span class="auto-run__label" v-tooltip="autoRunTip" @click="toggleAutoRunStartup">
+          <span class="inline-toggle__label" v-tooltip="autoRunTip" @click="toggleAutoRunStartup">
             开机自动运行
           </span>
+        </span>
+
+        <!-- 自动检查更新：开关 + 文字 tooltip + 手动检查按钮；点保存才落盘 -->
+        <span class="inline-toggle inline-toggle--auto-check-update">
+          <SwitchInput v-model="config.auto_check_update" size="sm" aria-label="自动检查更新" />
+          <span
+            class="inline-toggle__label"
+            v-tooltip="autoCheckUpdateTip"
+            @click="toggleAutoCheckUpdate"
+          >
+            自动检查更新
+          </span>
+          <button
+            class="update-check-btn"
+            :class="{ 'is-spinning': checkingUpdate }"
+            :disabled="checkingUpdate"
+            v-tooltip="'立即检查更新'"
+            aria-label="立即检查更新"
+            @click="onManualCheckUpdate"
+          >
+            <!-- refresh 图标：单段 C 形圆弧 + 顺时针箭头，与 .is-spinning 旋转方向一致 -->
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <path
+                d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                fill="currentColor"
+              />
+            </svg>
+          </button>
         </span>
       </div>
       <button class="primary-btn" :disabled="saving" @click="onSave">
@@ -162,16 +190,20 @@ const config = ref({
   paths: [],
   depth: 1,
   exclude_paths: [],
-  // 置顶项目路径列表
   pinned: [],
   auto_run_startup: false,
+  auto_check_update: true,
   // 配置文件最后修改时间（ms 时间戳），0 表示未知
   mtime: 0
 })
 const saving = ref(false)
 const toastRef = ref(null)
+// 手动检查更新按钮：点击后 3 秒内置灰
+const checkingUpdate = ref(false)
 
 const autoRunTip = '开启后，开机时会自动启动 ProjectHelper。修改后需点击"保存"才会生效。'
+const autoCheckUpdateTip =
+  '开启后，应用启动 5 秒后会检查一次新版本，运行期间每隔 1 小时再检查一次。修改后需点击"保存"才会生效。'
 
 const helpItems = [
   {
@@ -205,7 +237,8 @@ function snapshot(c) {
     depth: Number(c.depth) || 0,
     exclude_paths: [...(c.exclude_paths || [])],
     pinned: [...(c.pinned || [])],
-    auto_run_startup: !!c.auto_run_startup
+    auto_run_startup: !!c.auto_run_startup,
+    auto_check_update: !!c.auto_check_update
   })
 }
 
@@ -246,6 +279,7 @@ async function loadConfig() {
     exclude_paths: Array.isArray(cfg.exclude_paths) ? cfg.exclude_paths : [],
     pinned: Array.isArray(cfg.pinned) ? cfg.pinned : [],
     auto_run_startup: !!cfg.auto_run_startup,
+    auto_check_update: typeof cfg.auto_check_update === 'boolean' ? cfg.auto_check_update : true,
     mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
   }
   // 更新基线快照
@@ -428,6 +462,37 @@ function toggleAutoRunStartup() {
   config.value.auto_run_startup = !config.value.auto_run_startup
 }
 
+function toggleAutoCheckUpdate() {
+  config.value.auto_check_update = !config.value.auto_check_update
+}
+
+/**
+ * 手动触发一次检查更新
+ * - 不依赖 auto_check_update 配置（用户显式点击即检查）
+ * - 点击后按钮置灰 3 秒，避免短时间内重复请求 GitHub Release
+ * - 若发现新版本，由 UpdateBanner 通过 onUpdaterStatus 弹出下载提示
+ */
+async function onManualCheckUpdate() {
+  if (checkingUpdate.value) return
+  checkingUpdate.value = true
+  setTimeout(() => {
+    checkingUpdate.value = false
+  }, 3000)
+  try {
+    const r = await window.api.checkForUpdates?.()
+    if (!r?.ok) {
+      toastRef.value?.show(r?.message || '检查更新失败', 'error')
+      return
+    }
+    // 有新版本时由 UpdateBanner 接管"下载/安装"提示，这里仅在已是最新时给反馈
+    if (r.version && appVersion.value && r.version === appVersion.value) {
+      toastRef.value?.show(`已是最新版本 v${appVersion.value}`, 'success')
+    }
+  } catch (err) {
+    toastRef.value?.show(`检查更新失败：${err.message}`, 'error')
+  }
+}
+
 /** 保存配置 */
 async function onSave() {
   saving.value = true
@@ -441,7 +506,8 @@ async function onSave() {
         exclude_paths: config.value.exclude_paths,
         pinned: config.value.pinned,
         theme: config.value.theme,
-        auto_run_startup: !!config.value.auto_run_startup
+        auto_run_startup: !!config.value.auto_run_startup,
+        auto_check_update: !!config.value.auto_check_update
       })
     )
     const prevAutoRun = originalSnapshotAutoRun()
@@ -526,8 +592,8 @@ defineExpose({
   color: var(--color-text-tertiary);
 }
 
-/* ========== 开机自动运行：switch + 带 tooltip 的标签 ========== */
-.auto-run {
+/* ========== 标题区行内 toggle：switch + 带 tooltip 的标签 + 可选操作按钮 ========== */
+.inline-toggle {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -536,14 +602,57 @@ defineExpose({
   font-weight: 400;
   align-self: flex-end;
 }
-.auto-run__label {
+.inline-toggle__label {
   color: var(--color-text-secondary);
   /* 文字本身承载 tooltip，使用 help 手势提示用户可悬浮查看说明 */
   cursor: pointer;
   user-select: none;
 }
-.auto-run__label:hover {
+.inline-toggle__label:hover {
   color: var(--color-text);
+}
+
+/* 立即检查更新按钮 */
+.update-check-btn {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  /* 用负的上下 margin 不撑开行盒；左侧抵消 .inline-toggle 的 gap，紧贴文字 */
+  margin: -2px -2px -2px -2px;
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.update-check-btn svg {
+  display: block;
+}
+.update-check-btn:hover:not(:disabled) {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+.update-check-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.update-check-btn.is-spinning svg {
+  animation: update-spin 1s linear infinite;
+}
+@keyframes update-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .primary-btn {
