@@ -17,7 +17,7 @@ hero:
       link: /changelog/
 ---
 
-<HomeBanner src="/project-helper/banner.png" alt="Project Helper 应用截图" />
+<HomeBanner alt="Project Helper 应用截图" />
 
 <HomeFeatures
   :items="[

@@ -1,15 +1,25 @@
 <template>
-  <!-- 居中展示首页 banner 图片：圆角 + 阴影 + 主题色边框 -->
+  <!-- 居中展示首页 banner 图片：根据主题自动切换 light/dark 版本 -->
   <section class="home-banner">
-    <img class="home-banner-img" :src="src" :alt="alt" loading="lazy" />
+    <img class="home-banner-img" :src="currentSrc" :alt="alt" loading="lazy" />
   </section>
 </template>
 
 <script setup>
-defineProps({
-  src: { type: String, required: true },
+import { computed } from 'vue'
+import { useData } from 'vitepress'
+
+const props = defineProps({
+  // 浅色主题图片地址（可选，未传时使用默认值）
+  src: { type: String, default: '/project-helper/banner-light.png' },
+  // 深色主题图片地址（可选，未传时使用默认值）
+  srcDark: { type: String, default: '/project-helper/banner-dark.png' },
   alt: { type: String, default: '' }
 })
+
+const { isDark } = useData()
+
+const currentSrc = computed(() => (isDark.value ? props.srcDark : props.src))
 </script>
 
 <style scoped>
