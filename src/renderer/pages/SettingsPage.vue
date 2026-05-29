@@ -173,14 +173,14 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
-import NumberInput from '@/components/NumberInput.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import Toast from '@/components/Toast.vue'
-import HelpCircleLink from '@/components/HelpCircleLink.vue'
-import SwitchInput from '@/components/SwitchInput.vue'
-import InlineToggle from '@/components/InlineToggle.vue'
-import UpdateCheckButton from '@/components/UpdateCheckButton.vue'
-import Popconfirm from '@/components/Popconfirm.vue'
+import NumberInput from '@/components/common/NumberInput.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import Toast from '@/components/common/Toast.vue'
+import HelpCircleLink from '@/components/common/HelpCircleLink.vue'
+import SwitchInput from '@/components/common/SwitchInput.vue'
+import InlineToggle from '@/components/common/InlineToggle.vue'
+import UpdateCheckButton from '@/components/business/UpdateCheckButton.vue'
+import Popconfirm from '@/components/common/Popconfirm.vue'
 // 路径类型与 SystemPath 构造统一来自 src/shared，避免与主进程重复声明
 import { SystemPath } from '@shared/path-types.js'
 

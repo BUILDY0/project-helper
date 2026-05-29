@@ -33,11 +33,11 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import TopBanner from './components/TopBanner.vue'
+import TopBanner from './components/business/TopBanner.vue'
 import ProjectsPage from './pages/ProjectsPage.vue'
 import SettingsPage from './pages/SettingsPage.vue'
-import UnsavedDialog from './components/UnsavedDialog.vue'
-import UpdateBanner from './components/UpdateBanner.vue'
+import UnsavedDialog from './components/common/UnsavedDialog.vue'
+import UpdateBanner from './components/business/UpdateBanner.vue'
 
 // 当前激活的 tab：projects 项目展示页 / settings 配置页
 const activeTab = ref('projects')

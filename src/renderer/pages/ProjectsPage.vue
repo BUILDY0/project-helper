@@ -119,11 +119,11 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import ProjectCard from '@/components/ProjectCard.vue'
-import ContextMenu from '@/components/ContextMenu.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import Toast from '@/components/Toast.vue'
-import SwitchInput from '@/components/SwitchInput.vue'
+import ProjectCard from '@/components/business/ProjectCard.vue'
+import ContextMenu from '@/components/common/ContextMenu.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
+import Toast from '@/components/common/Toast.vue'
+import SwitchInput from '@/components/common/SwitchInput.vue'
 import { useIdes } from '@/composables/useIdes'
 
 const props = defineProps({

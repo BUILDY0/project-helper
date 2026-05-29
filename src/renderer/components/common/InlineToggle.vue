@@ -15,7 +15,7 @@
 </template>
 
 <script setup>
-import SwitchInput from '@/components/SwitchInput.vue'
+import SwitchInput from '@/components/common/SwitchInput.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
