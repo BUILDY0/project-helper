@@ -69,7 +69,12 @@ project-helper/
 │     │   ├─ ConfirmDialog.vue        # 两按钮通用确认弹窗
 │     │   ├─ UnsavedDialog.vue        # 三按钮未保存提示
 │     │   ├─ UpdateBanner.vue         # 右下角自动更新提示
+│     │   ├─ UpdateCheckButton.vue    # 设置页手动检查更新按钮
 │     │   ├─ ThemeSwitch.vue          # 主题切换开关
+│     │   ├─ SwitchInput.vue          # 通用开关组件
+│     │   ├─ InlineToggle.vue         # 行内 toggle 控件
+│     │   ├─ Popconfirm.vue           # 气泡确认
+│     │   ├─ HelpCircleLink.vue       # 设置项右侧帮助跳转图标
 │     │   ├─ NumberInput.vue
 │     │   └─ Toast.vue
 │     └─ pages/
@@ -90,7 +95,7 @@ project-helper/
 │  └─ deploy-docs.yml                 # 推送 v* tag 自动部署文档到 GitHub Pages
 ├─ feat.md                            # 开发功能规划清单
 ├─ jsconfig.json                      # 让 IDE 识别 '@' 别名
-├─ vite.config.js
+├─ vite.config.mjs
 ├─ package.json
 ├─ .prettierrc.json                   # Prettier 格式化规则
 ├─ .prettierignore

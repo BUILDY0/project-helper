@@ -34,19 +34,23 @@
   "depth": 1,
   "exclude_paths": ["D:/work/legacy"],
   "pinned": ["D:/work/my-favorite-project"],
-  "theme": "light"
+  "theme": "light",
+  "auto_run_startup": false,
+  "auto_check_update": true
 }
 ```
 
 速查表：
 
-| 配置项          | 类型                | 默认      | 说明                   |
-| --------------- | ------------------- | --------- | ---------------------- |
-| `paths`         | `object[]`          | `[]`      | 扫描根目录列表         |
-| `depth`         | `number`            | `1`       | 扫描深度，范围 `0 - 5` |
-| `exclude_paths` | `string[]`          | `[]`      | 排除目录列表           |
-| `pinned`        | `string[]`          | `[]`      | 置顶项目的绝对路径列表 |
-| `theme`         | `"light" \| "dark"` | `"light"` | 主题风格               |
+| 配置项              | 类型                | 默认      | 说明                                     |
+| ------------------- | ------------------- | --------- | ---------------------------------------- |
+| `paths`             | `object[]`          | `[]`      | 扫描根目录列表                           |
+| `depth`             | `number`            | `1`       | 扫描深度，范围 `0 - 5`                   |
+| `exclude_paths`     | `string[]`          | `[]`      | 排除目录列表                             |
+| `pinned`            | `string[]`          | `[]`      | 置顶项目的绝对路径列表                   |
+| `theme`             | `"light" \| "dark"` | `"light"` | 主题风格                                 |
+| `auto_run_startup`  | `boolean`           | `false`   | 是否随系统开机自启                       |
+| `auto_check_update` | `boolean`           | `true`    | 是否在启动后自动检查 GitHub Release 更新 |
 
 ### paths
 
@@ -138,3 +142,19 @@
 - **类型**：`"light" | "dark"`
 - **默认值**：`"light"`
 - **说明**：顶部栏主题切换开关会立即写入此字段；非法值会回落到 `"light"`。
+
+### auto_run_startup
+
+是否随系统开机自启动。
+
+- **类型**：`boolean`
+- **默认值**：`false`
+- **说明**：在 **配置页 → 启动选项** 切换；开启后会同步写入 Windows 登录项，关闭则移除。
+
+### auto_check_update
+
+是否在应用启动后自动检查 GitHub Release 是否有新版本。
+
+- **类型**：`boolean`
+- **默认值**：`true`
+- **说明**：开启时启动 5 秒后开始检查，并每小时复查一次；关闭则不会自动检查。
