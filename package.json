@@ -17,6 +17,8 @@
     "prepare:assets": "node scripts/prepare-assets.js",
     "build:icon": "npm run prepare:assets && npx -y png-to-ico build/icon.png > build/icon.ico",
     "build:renderer": "vite build",
+    "build:zip": "npm run build:icon && npm run build:renderer && electron-builder --win zip",
+    "build:nsis": "npm run build:icon && npm run build:renderer && electron-builder --win nsis",
     "build": "npm run build:icon && npm run build:renderer && electron-builder",
     "release": "npm run build:icon && npm run build:renderer && electron-builder --publish always",
     "start": "electron .",
@@ -54,6 +56,11 @@
   "build": {
     "appId": "com.jackraylei.projecthelper",
     "productName": "ProjectHelper",
+    "copyright": "Copyright © 2026 BUILDY0",
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
     "files": [
       "src/main/**/*",
       "src/preload/**/*",
@@ -72,13 +79,24 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ProjectHelper",
+      "language": "2052",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
     "publish": [
       {
