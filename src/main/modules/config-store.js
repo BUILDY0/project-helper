@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron')
+const { app, ipcMain } = require('electron')
 const path = require('node:path')
 const fsp = require('node:fs/promises')
 const os = require('node:os')
@@ -17,7 +17,20 @@ const DEFAULT_CONFIG = {
   depth: 1,
   exclude_paths: [],
   pinned: [],
-  theme: DEFAULT_THEME
+  theme: DEFAULT_THEME,
+  auto_run_startup: false
+}
+
+/** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
+function normalizeConfig(json) {
+  return {
+    paths: normalizePaths(json?.paths),
+    depth: typeof json?.depth === 'number' ? json.depth : 1,
+    exclude_paths: Array.isArray(json?.exclude_paths) ? json.exclude_paths : [],
+    pinned: Array.isArray(json?.pinned) ? json.pinned : [],
+    theme: normalizeTheme(json?.theme),
+    auto_run_startup: !!json?.auto_run_startup
+  }
 }
 
 /**
@@ -84,11 +97,7 @@ async function readConfig() {
     } catch {}
     return {
       config_path: CONFIG_PATH,
-      paths: normalizePaths(json.paths),
-      depth: typeof json.depth === 'number' ? json.depth : 1,
-      exclude_paths: Array.isArray(json.exclude_paths) ? json.exclude_paths : [],
-      pinned: Array.isArray(json.pinned) ? json.pinned : [],
-      theme: normalizeTheme(json.theme),
+      ...normalizeConfig(json),
       mtime
     }
   } catch (err) {
@@ -115,30 +124,89 @@ async function filterValidPaths(list) {
   return result
 }
 
-/** 写入 pinned 字段，复用其它字段不变 */
-async function writePinned(pinned) {
+/**
+ * 部分更新配置：读取现有 config，浅合并 patch 后整体写回
+ * 用于只想改一两个字段、其它字段保持不变的场景
+ */
+async function patchConfig(patch) {
   const prev = await readConfig()
-  // prev.* 字段都已经过 readConfig 内的归一化，这里直接复用即可
-  await writeConfig({
-    paths: prev.paths,
-    depth: prev.depth,
-    exclude_paths: prev.exclude_paths,
-    pinned: Array.isArray(pinned) ? pinned : [],
-    theme: prev.theme
-  })
-}
-
-/** 写入 theme 字段，复用其它字段不变 */
-async function writeTheme(theme) {
-  const prev = await readConfig()
-  await writeConfig({
+  // 仅取持久化字段，剔除 config_path / mtime 等派生字段
+  const base = {
     paths: prev.paths,
     depth: prev.depth,
     exclude_paths: prev.exclude_paths,
     pinned: prev.pinned,
-    theme: normalizeTheme(theme)
-  })
+    theme: prev.theme,
+    auto_run_startup: prev.auto_run_startup
+  }
+  await writeConfig({ ...base, ...(patch || {}) })
 }
+
+async function writePinned(pinned) {
+  await patchConfig({ pinned: Array.isArray(pinned) ? pinned : [] })
+}
+
+async function writeTheme(theme) {
+  await patchConfig({ theme: normalizeTheme(theme) })
+}
+
+async function writeAutoRunStartup(enabled) {
+  await patchConfig({ auto_run_startup: !!enabled })
+}
+
+// ==================== 开机自启 ====================
+// 注：本项目仅在 Windows 平台发布，下方代码不再做平台判断
+
+function getSystemLoginItemEnabled() {
+  try {
+    return !!app.getLoginItemSettings().openAtLogin
+  } catch (err) {
+    console.error('[config] 读取系统开机自启状态失败:', err.message)
+    return false
+  }
+}
+
+/**
+ * 把 auto_run_startup 配置同步到系统层面的开机自启项
+ * @returns {{ appliedToSystem: boolean, reason?: string }}
+ */
+function applyAutoRunStartup(enabled) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[config] dev 模式跳过开机自启写入：', enabled)
+    return { appliedToSystem: false, reason: 'dev' }
+  }
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: !!enabled,
+      // 显式指定可执行文件路径，避免 electron-updater 升级后用旧 execPath
+      path: process.execPath,
+      args: []
+    })
+    return { appliedToSystem: true }
+  } catch (err) {
+    console.error('[config] 设置开机自启失败:', err.message)
+    return { appliedToSystem: false, reason: 'error: ' + err.message }
+  }
+}
+
+/**
+ * 启动期同步：以系统层为准
+ * 用户可能在 Windows 启动管理器里手动取消，应用启动时反向修正 config，避免被反复覆盖
+ */
+async function syncAutoRunStartupOnStartup() {
+  const sysEnabled = getSystemLoginItemEnabled()
+  const cfg = await readConfig()
+  if (cfg.auto_run_startup !== sysEnabled) {
+    console.log(
+      '[config] 启动期同步开机自启：config=%s, system=%s，以系统层为准',
+      cfg.auto_run_startup,
+      sysEnabled
+    )
+    await writeAutoRunStartup(sysEnabled)
+  }
+}
+
+// ==================== IPC ====================
 
 /** 注册配置类 IPC：config:* 与 pin:toggle */
 function registerConfigIpc() {
@@ -149,19 +217,30 @@ function registerConfigIpc() {
   })
 
   ipcMain.handle('config:save', async (_e, payload) => {
-    // 持久化 paths/depth/exclude_paths/pinned/theme 字段；pinned/theme 未传则保留原值
     const prev = await readConfig()
     // 兼容字符串/数字两种深度入参，并在 [0, 5] 区间夹紧
     const rawDepth = Number(payload?.depth)
     const depth = Number.isFinite(rawDepth) ? Math.max(0, Math.min(5, rawDepth)) : 1
+    const autoRun =
+      typeof payload?.auto_run_startup === 'boolean'
+        ? payload.auto_run_startup
+        : prev.auto_run_startup
     await writeConfig({
       paths: normalizePaths(payload?.paths),
       depth,
       exclude_paths: Array.isArray(payload?.exclude_paths) ? payload.exclude_paths : [],
       pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned,
-      theme: normalizeTheme(payload?.theme ?? prev.theme)
+      theme: normalizeTheme(payload?.theme ?? prev.theme),
+      auto_run_startup: autoRun
     })
-    return true
+
+    // 仅在变化时调 setLoginItemSettings，避免无谓写注册表
+    let autoRunResult = { appliedToSystem: true, reason: 'unchanged' }
+    if (autoRun !== prev.auto_run_startup) {
+      autoRunResult = applyAutoRunStartup(autoRun)
+    }
+
+    return { ok: true, autoRun: autoRunResult }
   })
 
   /** 仅保存主题，不影响其他字段 —— 用于切换主题时立即写盘 */
@@ -190,8 +269,13 @@ module.exports = {
   CONFIG_PATH,
   ensureConfigFile,
   readConfig,
+  patchConfig,
   writePinned,
   writeTheme,
+  writeAutoRunStartup,
   filterValidPaths,
+  applyAutoRunStartup,
+  getSystemLoginItemEnabled,
+  syncAutoRunStartupOnStartup,
   registerConfigIpc
 }

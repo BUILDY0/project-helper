@@ -1,6 +1,10 @@
 const { app, Menu } = require('electron')
 
-const { ensureConfigFile, registerConfigIpc } = require('./modules/config-store')
+const {
+  ensureConfigFile,
+  syncAutoRunStartupOnStartup,
+  registerConfigIpc
+} = require('./modules/config-store')
 const { createWindow, detectIdesOnce, registerSystemBridge } = require('./modules/system-bridge')
 const { registerScannerIpc } = require('./modules/project-scanner')
 const { setupAutoUpdater, registerUpdaterIpc } = require('./modules/updater')
@@ -48,6 +52,13 @@ if (!gotTheLock) {
       await ensureConfigFile()
     } catch (err) {
       console.error('[startup] 初始化配置文件失败:', err.message)
+    }
+
+    // 启动期同步开机自启状态（以系统层为准）
+    try {
+      await syncAutoRunStartupOnStartup()
+    } catch (err) {
+      console.error('[startup] 同步开机自启失败:', err.message)
     }
 
     // 注册各领域 IPC（独立模块自管 handler）

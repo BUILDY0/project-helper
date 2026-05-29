@@ -4,6 +4,14 @@
       <div class="page-title">
         配置
         <span v-if="appVersion" class="version">v{{ appVersion }}</span>
+
+        <!-- 开机自动运行：开关 + 文字 tooltip；点保存才落盘 -->
+        <span class="auto-run">
+          <SwitchInput v-model="config.auto_run_startup" size="sm" aria-label="开机自动运行" />
+          <span class="auto-run__label" v-tooltip="autoRunTip" @click="toggleAutoRunStartup">
+            开机自动运行
+          </span>
+        </span>
       </div>
       <button class="primary-btn" :disabled="saving" @click="onSave">
         {{ saving ? '保存中...' : '保存' }}
@@ -138,6 +146,7 @@ import NumberInput from '@/components/NumberInput.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Toast from '@/components/Toast.vue'
 import HelpCircleLink from '@/components/HelpCircleLink.vue'
+import SwitchInput from '@/components/SwitchInput.vue'
 // 路径类型与 SystemPath 构造统一来自 src/shared，避免与主进程重复声明
 import { SystemPath } from '@shared/path-types.js'
 
@@ -155,11 +164,14 @@ const config = ref({
   exclude_paths: [],
   // 置顶项目路径列表
   pinned: [],
+  auto_run_startup: false,
   // 配置文件最后修改时间（ms 时间戳），0 表示未知
   mtime: 0
 })
 const saving = ref(false)
 const toastRef = ref(null)
+
+const autoRunTip = '开启后，开机时会自动启动 ProjectHelper。修改后需点击"保存"才会生效。'
 
 const helpItems = [
   {
@@ -192,8 +204,18 @@ function snapshot(c) {
     paths: [...(c.paths || [])],
     depth: Number(c.depth) || 0,
     exclude_paths: [...(c.exclude_paths || [])],
-    pinned: [...(c.pinned || [])]
+    pinned: [...(c.pinned || [])],
+    auto_run_startup: !!c.auto_run_startup
   })
+}
+
+/** 从 originalSnapshot 中解析 auto_run_startup 基线值 */
+function originalSnapshotAutoRun() {
+  try {
+    return !!JSON.parse(originalSnapshot || '{}').auto_run_startup
+  } catch {
+    return false
+  }
 }
 
 /** 是否有未保存的修改：与基线快照对比 */
@@ -223,6 +245,7 @@ async function loadConfig() {
     depth: typeof cfg.depth === 'number' ? cfg.depth : 1,
     exclude_paths: Array.isArray(cfg.exclude_paths) ? cfg.exclude_paths : [],
     pinned: Array.isArray(cfg.pinned) ? cfg.pinned : [],
+    auto_run_startup: !!cfg.auto_run_startup,
     mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
   }
   // 更新基线快照
@@ -401,6 +424,10 @@ function onHelpOpenError(message) {
 const MIN_LOADING_MS = 1000
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+function toggleAutoRunStartup() {
+  config.value.auto_run_startup = !config.value.auto_run_startup
+}
+
 /** 保存配置 */
 async function onSave() {
   saving.value = true
@@ -413,13 +440,29 @@ async function onSave() {
         depth: Number(config.value.depth) || 0,
         exclude_paths: config.value.exclude_paths,
         pinned: config.value.pinned,
-        theme: config.value.theme
+        theme: config.value.theme,
+        auto_run_startup: !!config.value.auto_run_startup
       })
     )
-    await window.api.saveConfig(payload)
+    const prevAutoRun = originalSnapshotAutoRun()
+    const result = await window.api.saveConfig(payload)
     // 落盘成功后重新拉取以刷新最后修改时间
     await loadConfig()
-    toastRef.value?.show('配置已保存', 'success')
+
+    // 切换了开关但系统层未生效（dev 等）时，附加说明避免用户误以为已生效
+    const autoRunChanged =
+      typeof payload.auto_run_startup === 'boolean' && payload.auto_run_startup !== prevAutoRun
+    const sysApplied = result?.autoRun?.appliedToSystem !== false
+    if (autoRunChanged && !sysApplied) {
+      const reason = result?.autoRun?.reason
+      const msg =
+        reason === 'dev'
+          ? '配置已保存（开发模式下"开机自动运行"不会写入系统）'
+          : '配置已保存（开机自动运行未能写入系统，请检查系统权限）'
+      toastRef.value?.show(msg, 'info')
+    } else {
+      toastRef.value?.show('配置已保存', 'success')
+    }
   } catch (err) {
     toastRef.value?.show(`保存失败：${err.message}`, 'error')
   } finally {
@@ -482,6 +525,27 @@ defineExpose({
   font-weight: 400;
   color: var(--color-text-tertiary);
 }
+
+/* ========== 开机自动运行：switch + 带 tooltip 的标签 ========== */
+.auto-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 20px;
+  font-size: 12px;
+  font-weight: 400;
+  align-self: flex-end;
+}
+.auto-run__label {
+  color: var(--color-text-secondary);
+  /* 文字本身承载 tooltip，使用 help 手势提示用户可悬浮查看说明 */
+  cursor: pointer;
+  user-select: none;
+}
+.auto-run__label:hover {
+  color: var(--color-text);
+}
+
 .primary-btn {
   height: 32px;
   padding: 0 18px;

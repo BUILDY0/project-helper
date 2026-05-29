@@ -107,17 +107,7 @@
             i
           </span>
           <span class="permanent-delete-copy">永久删除</span>
-          <span class="delete-switch" :class="{ checked: permanentDelete }">
-            <input
-              v-model="permanentDelete"
-              class="delete-switch-input"
-              type="checkbox"
-              aria-label="永久删除"
-            />
-            <span class="delete-switch-track">
-              <span class="delete-switch-thumb"></span>
-            </span>
-          </span>
+          <SwitchInput v-model="permanentDelete" tone="danger" aria-label="永久删除" />
         </label>
       </div>
     </ConfirmDialog>
@@ -133,6 +123,7 @@ import ProjectCard from '@/components/ProjectCard.vue'
 import ContextMenu from '@/components/ContextMenu.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Toast from '@/components/Toast.vue'
+import SwitchInput from '@/components/SwitchInput.vue'
 import { useIdes } from '@/composables/useIdes'
 
 const props = defineProps({
@@ -634,48 +625,5 @@ watch(
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
-}
-.delete-switch {
-  position: relative;
-  display: inline-flex;
-  width: 38px;
-  height: 22px;
-  flex-shrink: 0;
-}
-.delete-switch-input {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.delete-switch-track {
-  width: 100%;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--color-border-strong);
-  transition:
-    background 0.15s,
-    box-shadow 0.15s;
-}
-.delete-switch-thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.15s;
-}
-.delete-switch.checked .delete-switch-track {
-  background: var(--color-danger);
-}
-.delete-switch.checked .delete-switch-thumb {
-  transform: translateX(16px);
-}
-.delete-switch-input:focus-visible + .delete-switch-track {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 24%, transparent);
 }
 </style>
