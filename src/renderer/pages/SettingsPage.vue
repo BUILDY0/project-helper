@@ -229,33 +229,60 @@ async function loadConfig() {
   originalSnapshot = snapshot(config.value)
 }
 
-/** 新增扫描目录 */
+/** 新增扫描目录（支持多选） */
 async function addPath() {
-  const dir = await window.api.selectDirectory()
-  if (!dir) return
-  const key = getPathKey(dir)
-  if (config.value.paths.some((item) => getPathKey(item) === key)) {
-    toastRef.value?.show('该目录已存在', 'info')
-    return
+  const dirs = await window.api.selectDirectory({ multi: true })
+  if (!dirs || !dirs.length) return
+  const existKeys = new Set(config.value.paths.map(getPathKey))
+  let added = 0
+  let skipped = 0
+  for (const dir of dirs) {
+    const key = getPathKey(dir)
+    if (!key || existKeys.has(key)) {
+      skipped++
+      continue
+    }
+    existKeys.add(key)
+    config.value.paths.push(new SystemPath({ path: dir }))
+    added++
   }
-  config.value.paths.push(new SystemPath({ path: dir }))
+  notifyBatchAdd(added, skipped)
 }
 function removePath(i) {
   config.value.paths.splice(i, 1)
 }
 
-/** 新增排除目录 */
+/** 新增排除目录（支持多选） */
 async function addExclude() {
-  const dir = await window.api.selectDirectory()
-  if (!dir) return
-  if (config.value.exclude_paths.includes(dir)) {
-    toastRef.value?.show('该目录已存在', 'info')
-    return
+  const dirs = await window.api.selectDirectory({ multi: true })
+  if (!dirs || !dirs.length) return
+  const existSet = new Set(config.value.exclude_paths)
+  let added = 0
+  let skipped = 0
+  for (const dir of dirs) {
+    if (!dir || existSet.has(dir)) {
+      skipped++
+      continue
+    }
+    existSet.add(dir)
+    config.value.exclude_paths.push(dir)
+    added++
   }
-  config.value.exclude_paths.push(dir)
+  notifyBatchAdd(added, skipped)
 }
 function removeExclude(i) {
   config.value.exclude_paths.splice(i, 1)
+}
+
+/** 批量新增后的提示文案 */
+function notifyBatchAdd(added, skipped) {
+  if (added && skipped) {
+    toastRef.value?.show(`已新增 ${added} 个，${skipped} 个已存在已跳过`, 'success')
+  } else if (added) {
+    toastRef.value?.show(`已新增 ${added} 个`, 'success')
+  } else if (skipped) {
+    toastRef.value?.show('所选目录均已存在', 'info')
+  }
 }
 
 /** 移除单个 pinned 项 */

@@ -125,22 +125,30 @@ function registerSystemBridge() {
   })
 
   // ==================== 选择目录/文件 ====================
-  ipcMain.handle('dialog:select-directory', async (e) => {
+  /**
+   * 选择目录
+   * @param {object} [options]
+   * @param {boolean} [options.multi=false] 是否允许多选
+   * @returns {Promise<string|string[]|null>} 单选返回字符串、多选返回数组；取消返回 null
+   */
+  ipcMain.handle('dialog:select-directory', async (e, options = {}) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    const result = await dialog.showOpenDialog(win, {
-      properties: ['openDirectory']
-    })
+    const multi = !!options?.multi
+    const properties = ['openDirectory']
+    if (multi) properties.push('multiSelections')
+    const result = await dialog.showOpenDialog(win, { properties })
     if (result.canceled || result.filePaths.length === 0) return null
-    return result.filePaths[0]
+    return multi ? result.filePaths : result.filePaths[0]
   })
 
-  ipcMain.handle('dialog:select-file', async (e) => {
+  ipcMain.handle('dialog:select-file', async (e, options = {}) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    const result = await dialog.showOpenDialog(win, {
-      properties: ['openFile']
-    })
+    const multi = !!options?.multi
+    const properties = ['openFile']
+    if (multi) properties.push('multiSelections')
+    const result = await dialog.showOpenDialog(win, { properties })
     if (result.canceled || result.filePaths.length === 0) return null
-    return result.filePaths[0]
+    return multi ? result.filePaths : result.filePaths[0]
   })
 
   // ==================== Shell 操作 ====================

@@ -26,8 +26,16 @@ contextBridge.exposeInMainWorld('api', {
   saveTheme: (theme) => ipcRenderer.invoke('config:save-theme', theme),
 
   // 选择对话框
-  selectDirectory: () => ipcRenderer.invoke('dialog:select-directory'),
-  selectFile: () => ipcRenderer.invoke('dialog:select-file'),
+  /**
+   * 选择目录
+   * @param {{ multi?: boolean }} [options] multi=true 时返回 string[]，否则返回 string
+   */
+  selectDirectory: (options = {}) => ipcRenderer.invoke('dialog:select-directory', options),
+  /**
+   * 选择文件
+   * @param {{ multi?: boolean }} [options] multi=true 时返回 string[]，否则返回 string
+   */
+  selectFile: (options = {}) => ipcRenderer.invoke('dialog:select-file', options),
 
   // shell
   openFolder: (p) => ipcRenderer.invoke('shell:open-folder', p),
