@@ -5,41 +5,29 @@
         配置
         <span v-if="appVersion" class="version">v{{ appVersion }}</span>
 
-        <!-- 开机自动运行：开关 + 文字 tooltip；点保存才落盘 -->
-        <span class="inline-toggle inline-toggle--auto-run">
-          <SwitchInput v-model="config.auto_run_startup" size="sm" aria-label="开机自动运行" />
-          <span class="inline-toggle__label" v-tooltip="autoRunTip" @click="toggleAutoRunStartup">
-            开机自动运行
-          </span>
-        </span>
+        <!-- 开机自动运行 -->
+        <InlineToggle
+          v-model="config.auto_run_startup"
+          label="开机自动运行"
+          :tip="autoRunTip"
+          modifier-class="inline-toggle--auto-run"
+        />
 
-        <!-- 自动检查更新：开关 + 文字 tooltip + 手动检查按钮；点保存才落盘 -->
-        <span class="inline-toggle inline-toggle--auto-check-update">
-          <SwitchInput v-model="config.auto_check_update" size="sm" aria-label="自动检查更新" />
-          <span
-            class="inline-toggle__label"
-            v-tooltip="autoCheckUpdateTip"
-            @click="toggleAutoCheckUpdate"
-          >
-            自动检查更新
-          </span>
-          <button
-            class="update-check-btn"
-            :class="{ 'is-spinning': checkingUpdate }"
-            :disabled="checkingUpdate"
-            v-tooltip="'立即检查更新'"
-            aria-label="立即检查更新"
-            @click="onManualCheckUpdate"
-          >
-            <!-- refresh 图标：单段 C 形圆弧 + 顺时针箭头，与 .is-spinning 旋转方向一致 -->
-            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-              <path
-                d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
-        </span>
+        <!-- 自动检查更新（附带"立即检查"按钮） -->
+        <InlineToggle
+          v-model="config.auto_check_update"
+          label="自动检查更新"
+          :tip="autoCheckUpdateTip"
+          modifier-class="inline-toggle--auto-check-update"
+        >
+          <template #action>
+            <UpdateCheckButton
+              :current-version="appVersion"
+              @result="onUpdateCheckResult"
+              @error="onUpdateCheckError"
+            />
+          </template>
+        </InlineToggle>
       </div>
       <button class="primary-btn" :disabled="saving" @click="onSave">
         {{ saving ? '保存中...' : '保存' }}
@@ -83,7 +71,9 @@
               />
               <span class="forced-toggle__label" @click="toggleForced(i)">强制命中</span>
             </span>
-            <button class="icon-btn" v-tooltip="'移除'" @click="removePath(i)">×</button>
+            <Popconfirm message="确认移除该扫描目录？" @confirm="removePath(i)">
+              <button class="icon-btn" v-tooltip="'移除'">×</button>
+            </Popconfirm>
           </li>
         </ul>
         <div v-else class="empty-tip">暂未配置扫描目录</div>
@@ -121,7 +111,9 @@
         <ul v-if="config.exclude_paths.length" class="list">
           <li v-for="(p, i) in config.exclude_paths" :key="`ex-${i}`" class="list-item">
             <span class="path-text" v-tooltip.overflow="p">{{ p }}</span>
-            <button class="icon-btn" v-tooltip="'移除'" @click="removeExclude(i)">×</button>
+            <Popconfirm message="确认移除该排除项？" @confirm="removeExclude(i)">
+              <button class="icon-btn" v-tooltip="'移除'">×</button>
+            </Popconfirm>
           </li>
         </ul>
         <div v-else class="empty-tip">暂未配置排除项</div>
@@ -141,7 +133,9 @@
           <li v-for="(p, i) in config.pinned" :key="`pin-${i}`" class="list-item">
             <span class="pin-icon">★</span>
             <span class="path-text" v-tooltip.overflow="p">{{ p }}</span>
-            <button class="icon-btn" v-tooltip="'移除'" @click="removePinned(i)">×</button>
+            <Popconfirm message="确认移除该置顶项目？" @confirm="removePinned(i)">
+              <button class="icon-btn" v-tooltip="'移除'">×</button>
+            </Popconfirm>
           </li>
         </ul>
         <div v-else class="empty-tip">暂未置顶任何项目</div>
@@ -184,6 +178,9 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import Toast from '@/components/Toast.vue'
 import HelpCircleLink from '@/components/HelpCircleLink.vue'
 import SwitchInput from '@/components/SwitchInput.vue'
+import InlineToggle from '@/components/InlineToggle.vue'
+import UpdateCheckButton from '@/components/UpdateCheckButton.vue'
+import Popconfirm from '@/components/Popconfirm.vue'
 // 路径类型与 SystemPath 构造统一来自 src/shared，避免与主进程重复声明
 import { SystemPath } from '@shared/path-types.js'
 
@@ -207,7 +204,6 @@ const config = ref({
 })
 const saving = ref(false)
 const toastRef = ref(null)
-const checkingUpdate = ref(false)
 
 const autoRunTip = '开启后，开机时会自动启动 ProjectHelper。修改后需点击"保存"才会生效。'
 const autoCheckUpdateTip =
@@ -495,39 +491,15 @@ function onHelpOpenError(message) {
 const MIN_LOADING_MS = 1000
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-function toggleAutoRunStartup() {
-  config.value.auto_run_startup = !config.value.auto_run_startup
-}
-
-function toggleAutoCheckUpdate() {
-  config.value.auto_check_update = !config.value.auto_check_update
-}
-
-/**
- * 手动触发一次检查更新
- * - 不依赖 auto_check_update 配置（用户显式点击即检查）
- * - 若发现新版本，由 UpdateBanner 通过 onUpdaterStatus 弹出下载提示
- */
-async function onManualCheckUpdate() {
-  if (checkingUpdate.value) return
-  checkingUpdate.value = true
-  // 置灰 3 秒，避免短时间内重复请求 GitHub Release
-  setTimeout(() => {
-    checkingUpdate.value = false
-  }, 3000)
-  try {
-    const r = await window.api.checkForUpdates?.()
-    if (!r?.ok) {
-      toastRef.value?.show(r?.message || '检查更新失败', 'error')
-      return
-    }
-    // 有新版本时由 UpdateBanner 接管"下载/安装"提示，这里仅在已是最新时给反馈
-    if (r.version && appVersion.value && r.version === appVersion.value) {
-      toastRef.value?.show(`已是最新版本 v${appVersion.value}`, 'success')
-    }
-  } catch (err) {
-    toastRef.value?.show(`检查更新失败：${err.message}`, 'error')
+/** UpdateCheckButton 检查完成回调：仅在已是最新时给反馈，发现新版本由 UpdateBanner 接管 */
+function onUpdateCheckResult({ latest, version }) {
+  if (latest) {
+    toastRef.value?.show(`已是最新版本 v${version}`, 'success')
   }
+}
+
+function onUpdateCheckError(message) {
+  toastRef.value?.show(message || '检查更新失败', 'error')
 }
 
 /** 保存配置 */
@@ -627,69 +599,6 @@ defineExpose({
   font-size: 12px;
   font-weight: 400;
   color: var(--color-text-tertiary);
-}
-
-/* ========== 标题区行内 toggle：switch + 带 tooltip 的标签 + 可选操作按钮 ========== */
-.inline-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 20px;
-  font-size: 12px;
-  font-weight: 400;
-  align-self: flex-end;
-}
-.inline-toggle__label {
-  color: var(--color-text-secondary);
-  /* 文字本身承载 tooltip，使用 help 手势提示用户可悬浮查看说明 */
-  cursor: pointer;
-  user-select: none;
-}
-.inline-toggle__label:hover {
-  color: var(--color-text);
-}
-
-/* 立即检查更新按钮 */
-.update-check-btn {
-  width: 20px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
-  padding: 0;
-  /* 用负 margin 不撑开行盒；左侧抵消 .inline-toggle 的 gap，紧贴文字 */
-  margin: -2px;
-  cursor: pointer;
-  line-height: 1;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.update-check-btn svg {
-  display: block;
-}
-.update-check-btn:hover:not(:disabled) {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-.update-check-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-.update-check-btn.is-spinning svg {
-  animation: update-spin 1s linear infinite;
-}
-@keyframes update-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .primary-btn {
