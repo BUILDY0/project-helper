@@ -6,6 +6,7 @@
     "checkJs": false,
     "jsx": "preserve",
     "baseUrl": ".",
+    "types": [],
     "paths": {
       "@/*": ["src/renderer/*"],
       "@shared/*": ["src/shared/*"],

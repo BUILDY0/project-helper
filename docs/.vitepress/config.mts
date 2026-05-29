@@ -34,6 +34,11 @@ export default defineConfig({
   // <head> 注入：favicon / OG / Twitter Card，便于分享与浏览器识别
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/project-helper/logo.png' }],
+    // 首页 banner 的两张图都预加载：
+    // - 避免首次切换主题时再发起请求造成的绘制延迟
+    // - 两张图体积都很小（<60KB），并行下载收益 > 成本
+    ['link', { rel: 'preload', as: 'image', href: '/project-helper/banner-light.png' }],
+    ['link', { rel: 'preload', as: 'image', href: '/project-helper/banner-dark.png' }],
     ['meta', { name: 'theme-color', content: '#f0c14b' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:title', content: 'Project Helper' }],
