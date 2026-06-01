@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getParentPath } from '@/utils/path.js'
 
 /**
  * 项目卡片右键菜单：状态 + 菜单项装配 + 选项分发
@@ -10,6 +11,7 @@ import { ref } from 'vue'
  *   actions: {
  *     openInIde: (ideId: string, project: any) => Promise<void> | void,
  *     openFolder: (project: any) => Promise<void> | void,
+ *     openParentFolder: (project: any) => Promise<void> | void,
  *     copyPath: (project: any) => Promise<void> | void,
  *     showProperties: (project: any) => Promise<void> | void,
  *     togglePin: (project: any) => Promise<void> | void,
@@ -40,6 +42,10 @@ export function useContextMenu({ availableIdes, actions }) {
       items.push({ divider: true })
     }
     items.push({ label: '打开项目文件夹', action: 'open-folder' })
+    // 根路径（盘符根 / 文件系统根）没有父级，此项不展示
+    if (getParentPath(project.path)) {
+      items.push({ label: '打开项目父级文件夹', action: 'open-parent-folder' })
+    }
     items.push({ label: '复制项目路径', action: 'copy-path' })
     items.push({ label: '查看项目属性', action: 'show-properties' })
     items.push({ divider: true })
@@ -63,6 +69,8 @@ export function useContextMenu({ availableIdes, actions }) {
     }
     if (item.action === 'open-folder') {
       await actions.openFolder(p)
+    } else if (item.action === 'open-parent-folder') {
+      await actions.openParentFolder(p)
     } else if (item.action === 'copy-path') {
       await actions.copyPath(p)
     } else if (item.action === 'show-properties') {

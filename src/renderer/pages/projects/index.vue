@@ -97,6 +97,7 @@ import { useScrollToTop } from './composables/use-scroll-to-top.js'
 import { useProjectActions } from './composables/use-project-actions.js'
 import { useContextMenu } from './composables/use-context-menu.js'
 import { useDeleteProject } from './composables/use-delete-project.js'
+import { getParentPath } from '@/utils/path.js'
 
 const props = defineProps({
   active: Boolean
@@ -148,6 +149,17 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
       },
       openFolder: async (project) => {
         const r = await window.api.openFolder(project.path)
+        if (!r?.ok) {
+          toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+        }
+      },
+      openParentFolder: async (project) => {
+        const parent = getParentPath(project.path)
+        if (!parent) {
+          toastRef.value?.show('已是根目录，没有父级文件夹', 'info')
+          return
+        }
+        const r = await window.api.openFolder(parent)
         if (!r?.ok) {
           toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
         }
