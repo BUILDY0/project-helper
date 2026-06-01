@@ -44,6 +44,7 @@ async function findReadmeFile(dir) {
 
 /**
  * 读取 README 文件前三个非空行作为描述：各自去除 markdown 标题前缀（# / ## ...）后用换行拼接
+ * 非空行超过三行时另起一行追加省略号，提示内容被截断
  * 换行拼接是为了配合卡片 tooltip 的 markdown 渲染分行展示；卡片正文在 white-space:normal 下会折叠为空格
  * 读取失败或为空返回空串
  */
@@ -51,6 +52,7 @@ async function readReadmeFirstLines(readmePath) {
   try {
     const text = await fsp.readFile(readmePath, 'utf-8')
     const picked = []
+    let hasMore = false
     for (const raw of text.split(/\r?\n/)) {
       // 去掉 BOM、markdown 标题前缀（# 号及其后空白）与首尾空白后判空，跳过空内容行
       const line = raw
@@ -58,10 +60,16 @@ async function readReadmeFirstLines(readmePath) {
         .replace(/^#+\s*/, '')
         .trim()
       if (!line) continue
+      // 已取满三行又遇到非空行，说明后面还有内容，标记后停止
+      if (picked.length === 3) {
+        hasMore = true
+        break
+      }
       picked.push(line)
-      if (picked.length === 3) break
     }
-    return picked.join('\n')
+    if (picked.length === 0) return ''
+    // 省略号单独成行，提示后面还有内容
+    return picked.join('\n') + (hasMore ? '\n…' : '')
   } catch {
     return ''
   }
