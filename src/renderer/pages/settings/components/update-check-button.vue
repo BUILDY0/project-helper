@@ -9,18 +9,13 @@
     aria-label="立即检查更新"
     @click="onClick"
   >
-    <!-- refresh 图标：单段 C 形圆弧 + 顺时针箭头，与旋转动画方向一致 -->
-    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-      <path
-        d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.74 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
-        fill="currentColor"
-      />
-    </svg>
+    <IconRefreshCw :size="16" />
   </button>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import IconRefreshCw from '@/components/icons/icon-refresh-cw.vue'
 
 const props = defineProps({
   /** 当前应用版本号，用于在"已是最新"时回显 */
@@ -81,7 +76,7 @@ async function onClick() {
   cursor: not-allowed;
   opacity: 0.6;
 }
-.update-check-btn.is-spinning svg {
+.update-check-btn.is-spinning :deep(svg) {
   animation: update-spin 1s linear infinite;
 }
 @keyframes update-spin {

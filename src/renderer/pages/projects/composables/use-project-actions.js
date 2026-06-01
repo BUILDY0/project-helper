@@ -1,0 +1,80 @@
+/**
+ * 项目卡片上的快捷动作（双击打开 IDE、打开仓库、打开文件夹、打开 README、置顶切换）
+ *
+ * 这些动作大多与列表数据无关，仅在 toast 提示和置顶持久化处依赖外部状态。
+ *
+ * @param {{
+ *   toastRef: import('vue').Ref,
+ *   availableIdes: import('vue').Ref<Array>,
+ *   projects: import('vue').Ref<Array>
+ * }} options
+ */
+export function useProjectActions({ toastRef, availableIdes, projects }) {
+  /** 双击：用首个可用 IDE 打开（VS Code 优先，其次 CodeBuddy ...） */
+  async function openWithDefaultIde(project) {
+    const first = availableIdes.value[0]
+    if (!first) {
+      toastRef.value?.show('未检测到可用 IDE，请先安装并将 CLI 加入 PATH', 'error')
+      return
+    }
+    const r = await window.api.openInIde(first.id, project.path)
+    if (!r?.ok) {
+      toastRef.value?.show(
+        `无法启动 ${first.label.replace(' 打开', '')}：${r?.message || '未知错误'}`,
+        'error'
+      )
+    }
+  }
+
+  /** 状态图标：GitHub 图标点击，外部浏览器打开仓库地址 */
+  async function openGitUrl(project) {
+    if (!project?.gitUrl) return
+    const r = await window.api.openExternal(project.gitUrl)
+    if (!r?.ok) {
+      toastRef.value?.show(`打开仓库失败：${r?.message || '未知错误'}`, 'error')
+    }
+  }
+
+  /** 状态图标：Node.js 图标点击，打开项目文件夹 */
+  async function openPackageFolder(project) {
+    if (!project?.path) return
+    const r = await window.api.openFolder(project.path)
+    if (!r?.ok) {
+      toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+    }
+  }
+
+  /** 状态图标：Markdown 图标点击，用系统默认应用打开 readme.md */
+  async function openReadme(project) {
+    if (!project?.readmePath) return
+    const r = await window.api.openFolder(project.readmePath)
+    if (!r?.ok) {
+      toastRef.value?.show(`打开 README 失败：${r?.message || '未知错误'}`, 'error')
+    }
+  }
+
+  /**
+   * 切换 pin 状态：调用主进程持久化，结果回写后重排序
+   * 同步处理「pin 路径已失效」由主进程统一过滤
+   */
+  async function togglePin(project) {
+    if (!project) return
+    try {
+      const pinned = await window.api.togglePin(project.path)
+      const pinnedSet = new Set((pinned || []).map((p) => p))
+      // 回写每张卡片的 pinned 字段并重排序：pinned 优先 + 名称
+      for (const item of projects.value) {
+        item.pinned = pinnedSet.has(item.path)
+      }
+      projects.value.sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
+      toastRef.value?.show(project.pinned ? '已置顶' : '已取消置顶', 'success', 1200)
+    } catch (err) {
+      toastRef.value?.show(`操作失败：${err.message}`, 'error')
+    }
+  }
+
+  return { openWithDefaultIde, openGitUrl, openPackageFolder, openReadme, togglePin }
+}

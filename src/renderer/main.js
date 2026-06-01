@@ -4,7 +4,7 @@ import './styles/themes.css'
 import './styles/global.css'
 import './styles/tooltip.css'
 import tooltipPlugin from './directives/tooltip.js'
-import { initTheme } from './composables/useTheme.js'
+import { initTheme } from './composables/use-theme.js'
 
 // preload 加载失败时给一份"全部失败"的兜底 api，
 // 避免组件直接调用 window.api 的方法时抛出 "undefined" 异常导致整页崩溃

@@ -17,7 +17,7 @@
 | ✅   | minor | VitePress 使用文档及 GitHub Pages 部署 | —                                                                                |
 | ⬜   | minor | 复制项目                               | 默认复制到同个父级文件夹 + 自动命名后缀                                          |
 | ⬜   | minor | 重命名文件夹名                         | —                                                                                |
-| ⬜   | minor | 指定项目名规则                         | `projectName` / `fileName` / `projectName > fileName` / `fileName > projectName` |
+| ❌   | minor | 指定项目名规则                         | `projectName` / `fileName` / `projectName > fileName` / `fileName > projectName` |
 | ⬜   | minor | 收藏夹 Collection 功能                 | 本地 pinned 项目；网络上的收藏项目                                               |
 | ⬜   | minor | 排序方式                               | 按文件名；按最新修改时间                                                         |
 | ⬜   | minor | 支持 clone repo 的能力                 | —                                                                                |

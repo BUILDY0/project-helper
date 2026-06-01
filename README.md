@@ -57,29 +57,40 @@ project-helper/
 │     │   ├─ global.css                # 全局样式 / 公共 CSS 变量
 │     │   ├─ themes.css                # 浅色 / 深色主题色定义
 │     │   └─ tooltip.css               # 自定义 tooltip 指令样式
-│     ├─ composables/                  # 组合式 API（跨组件复用逻辑）
-│     │   ├─ useIdes.js
-│     │   └─ useTheme.js               # 主题切换（浅色/深色/跟随系统）
+│     ├─ composables/                  # 跨页复用的组合式 API（use-xxx.js）
+│     │   ├─ use-ides.js
+│     │   └─ use-theme.js              # 主题切换（浅色/深色/跟随系统）
+│     ├─ utils/                        # 跨页复用的纯函数（按需新增）
 │     ├─ directives/
 │     │   └─ tooltip.js                # v-tooltip 自定义指令（替代原生 title）
 │     ├─ components/
-│     │   ├─ TopBanner.vue
-│     │   ├─ ProjectCard.vue
-│     │   ├─ ContextMenu.vue
-│     │   ├─ ConfirmDialog.vue        # 两按钮通用确认弹窗
-│     │   ├─ UnsavedDialog.vue        # 三按钮未保存提示
-│     │   ├─ UpdateBanner.vue         # 右下角自动更新提示
-│     │   ├─ UpdateCheckButton.vue    # 设置页手动检查更新按钮
-│     │   ├─ ThemeSwitch.vue          # 主题切换开关
-│     │   ├─ SwitchInput.vue          # 通用开关组件
-│     │   ├─ InlineToggle.vue         # 行内 toggle 控件
-│     │   ├─ Popconfirm.vue           # 气泡确认
-│     │   ├─ HelpCircleLink.vue       # 设置项右侧帮助跳转图标
-│     │   ├─ NumberInput.vue
-│     │   └─ Toast.vue
-│     └─ pages/
-│         ├─ ProjectsPage.vue
-│         └─ SettingsPage.vue
+│     │   ├─ business/                 # 跨页复用的业务组件
+│     │   │   ├─ top-banner.vue
+│     │   │   └─ update-banner.vue
+│     │   ├─ common/                   # 跨页复用的通用 UI 组件
+│     │   │   ├─ confirm-dialog.vue
+│     │   │   ├─ context-menu.vue
+│     │   │   ├─ help-circle-link.vue
+│     │   │   ├─ inline-toggle.vue
+│     │   │   ├─ number-input.vue
+│     │   │   ├─ popconfirm.vue
+│     │   │   ├─ switch-input.vue
+│     │   │   ├─ theme-switch.vue
+│     │   │   ├─ toast.vue
+│     │   │   └─ unsaved-dialog.vue
+│     │   └─ icons/                    # SVG 图标组件库（详见 README.md）
+│     │       ├─ icon-*.vue
+│     │       └─ README.md
+│     └─ pages/                        # 路由级页面（详见 README.md）
+│         ├─ README.md
+│         ├─ projects/                 # 项目展示页
+│         │   ├─ index.vue
+│         │   ├─ components/
+│         │   └─ composables/
+│         └─ settings/                 # 配置页
+│             ├─ index.vue
+│             ├─ components/
+│             └─ composables/
 ├─ docs/                              # VitePress 站点（GitHub Pages）
 │  ├─ index.md                        # 首页
 │  ├─ guide/                          # 使用指南
