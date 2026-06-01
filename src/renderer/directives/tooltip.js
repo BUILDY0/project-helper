@@ -51,21 +51,25 @@ let hideTimer = null
 // 用计数而非布尔，是为了支持多个弹层叠加（如 ContextMenu 之上又开 ConfirmDialog），任意一层关闭时不会误启用
 let disabledCount = 0
 
-/** 解析指令的 binding 为 { content, placement, delay, whenOverflow }
+/** 解析指令的 binding 为 { content, placement, delay, whenOverflow, markdown }
  *
  * 支持：
  * - v-tooltip="'text'"
  * - v-tooltip:bottom="'text'"
  * - v-tooltip.overflow="'text'"               // 仅在元素文本被截断（出现 ... 或多行 clamp）时才显示
- * - v-tooltip="{ content, placement, delay, whenOverflow }"
+ * - v-tooltip.md="'**加粗** `代码`'"            // 按轻量内联 markdown 渲染
+ * - v-tooltip="{ content, placement, delay, whenOverflow, markdown }"
  */
 function parseBinding(binding) {
   const v = binding.value
+  const mods = binding.modifiers || {}
   let content = ''
   let placement = binding.arg || 'top'
   let delay = SHOW_DELAY
   // 修饰符 .overflow 与对象式 whenOverflow 等价
-  let whenOverflow = !!(binding.modifiers && binding.modifiers.overflow)
+  let whenOverflow = !!mods.overflow
+  // 修饰符 .md 与对象式 markdown 等价
+  let markdown = !!mods.md
   if (v == null) {
     content = ''
   } else if (typeof v === 'string' || typeof v === 'number') {
@@ -75,10 +79,47 @@ function parseBinding(binding) {
     if (v.placement) placement = v.placement
     if (typeof v.delay === 'number') delay = v.delay
     if (typeof v.whenOverflow === 'boolean') whenOverflow = v.whenOverflow
+    if (typeof v.markdown === 'boolean') markdown = v.markdown
   }
   // 仅接受 4 种合法值，其他兜底为 top
   if (!['top', 'bottom', 'left', 'right'].includes(placement)) placement = 'top'
-  return { content, placement, delay, whenOverflow }
+  return { content, placement, delay, whenOverflow, markdown }
+}
+
+/** HTML 转义：作为 markdown 渲染前的第一道处理，杜绝原始标签注入（XSS） */
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * 轻量内联 markdown -> 安全 HTML
+ * 仅支持：`行内代码`、**加粗**、*斜体*、换行
+ * 先整体转义再做替换，因此不会引入任何可执行 HTML
+ * 注：刻意不支持 _斜体_，避免误伤 README 里的 snake_case 标识符
+ */
+function renderInlineMarkdown(raw) {
+  let html = escapeHtml(raw)
+  // 行内代码优先处理，其内部不再二次解析强调语法
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+  // 加粗先于斜体，避免 ** 被单个 * 规则拆散
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+  // 换行转 <br>
+  html = html.replace(/\r?\n/g, '<br>')
+  return html
+}
+
+/**
+ * 把内容写入 tooltip 内容节点：markdown 模式走安全 HTML，否则纯文本
+ * 同时把原始字符串缓存在节点上，供 updated 钩子做"内容是否变化"的比较
+ */
+function applyContent(contentNode, options) {
+  if (options.markdown) {
+    contentNode.innerHTML = renderInlineMarkdown(options.content)
+  } else {
+    contentNode.textContent = options.content
+  }
+  contentNode.__rawContent__ = options.content
 }
 
 /**
@@ -181,7 +222,7 @@ function show(el, options) {
   const { content, placement } = options
   if (!content) return
   const contentNode = tipEl.querySelector('.app-tooltip__content')
-  contentNode.textContent = content
+  applyContent(contentNode, options)
   // 先显示但保持透明，等 place 计算完再可见，避免初始位置闪烁
   tipEl.classList.add('is-measuring')
   tipEl.classList.add('is-visible')
@@ -297,8 +338,8 @@ export const tooltip = {
     // 内容变化且仍在显示：实时刷新文本与位置
     else if (activeEl === el && tipEl) {
       const contentNode = tipEl.querySelector('.app-tooltip__content')
-      if (contentNode.textContent !== opts.content) {
-        contentNode.textContent = opts.content
+      if (contentNode.__rawContent__ !== opts.content) {
+        applyContent(contentNode, opts)
         place(el.getBoundingClientRect(), opts.placement)
       }
     }

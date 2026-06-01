@@ -43,21 +43,25 @@ async function findReadmeFile(dir) {
 }
 
 /**
- * 读取 README 文件第一行作为描述：去除 markdown 标题前缀（# / ## ...）和首尾空白
+ * 读取 README 文件前三个非空行作为描述：各自去除 markdown 标题前缀（# / ## ...）后用换行拼接
+ * 换行拼接是为了配合卡片 tooltip 的 markdown 渲染分行展示；卡片正文在 white-space:normal 下会折叠为空格
  * 读取失败或为空返回空串
  */
-async function readReadmeFirstLine(readmePath) {
+async function readReadmeFirstLines(readmePath) {
   try {
     const text = await fsp.readFile(readmePath, 'utf-8')
-    // 跳过开头的空行，取首个非空行
-    const lines = text.split(/\r?\n/)
-    for (const raw of lines) {
-      const line = raw.replace(/^\uFEFF/, '').trim()
+    const picked = []
+    for (const raw of text.split(/\r?\n/)) {
+      // 去掉 BOM、markdown 标题前缀（# 号及其后空白）与首尾空白后判空，跳过空内容行
+      const line = raw
+        .replace(/^\uFEFF/, '')
+        .replace(/^#+\s*/, '')
+        .trim()
       if (!line) continue
-      // 去掉 markdown 标题前缀（# 号及其后空白），保留纯文本
-      return line.replace(/^#+\s*/, '').trim()
+      picked.push(line)
+      if (picked.length === 3) break
     }
-    return ''
+    return picked.join('\n')
   } catch {
     return ''
   }
@@ -103,9 +107,8 @@ async function readGitConfigUrl(dir) {
 
 /**
  * 读取项目的展示信息：
- * - name：package.json 的 name 字段（非空） > 文件夹名
- * - description：package.json.description（非空） > readme.md 第一行（大小写兼容） > 空串
- *   description 来源相互独立：只要 package.json 没给出有效 description，就继续尝试 README。
+ * - name：文件夹名
+ * - description：根目录 readme.md 前三行（大小写兼容） > 空串
  * - gitUrl：.git/config origin > package.json.repository（含简写），归一为 https 链接
  * - hasPackageJson：是否存在 package.json（用于卡片展示 Node.js 状态图标）
  */
@@ -114,7 +117,7 @@ async function readProjectMeta(dir) {
   const pkgPath = path.join(dir, 'package.json')
 
   // 三处 IO 互不依赖，并行执行：
-  // - 读 package.json 文本
+  // - 读 package.json 文本（仅取 repository 与是否存在）
   // - 查找 readme.md（大小写不敏感）
   // - 读 .git/config 的 origin url
   const [pkgRead, readmePath, gitConfigUrl] = await Promise.all([
@@ -126,18 +129,12 @@ async function readProjectMeta(dir) {
     readGitConfigUrl(dir)
   ])
 
-  let pkgName = ''
-  let pkgDesc = ''
   let pkgRepoUrl = ''
   let hasPackageJson = false
   if (pkgRead.ok) {
     try {
       const pkg = JSON.parse(pkgRead.text)
       hasPackageJson = true
-      if (typeof pkg.name === 'string' && pkg.name.trim()) pkgName = pkg.name.trim()
-      if (typeof pkg.description === 'string' && pkg.description.trim()) {
-        pkgDesc = pkg.description.trim()
-      }
       // repository 可能是 string 或 { url: '...' }
       const repo = pkg.repository
       if (typeof repo === 'string') pkgRepoUrl = repo
@@ -147,18 +144,15 @@ async function readProjectMeta(dir) {
     }
   }
 
-  // readme.md 既作为 description 的回退来源，也作为卡片"是否有 README"状态
-  let description = pkgDesc
-  if (!description && readmePath) {
-    description = await readReadmeFirstLine(readmePath)
-  }
+  // description 仅来自根目录 README 前两行；readmePath 同时作为卡片"是否有 README"状态
+  const description = readmePath ? await readReadmeFirstLines(readmePath) : ''
 
   // gitUrl：.git/config 优先（更准；本地未推送也能拿到实际 origin），其次 package.json.repository
   const rawGit = gitConfigUrl || pkgRepoUrl
   const gitUrl = normalizeGitUrl(rawGit)
 
   return {
-    name: pkgName || folderName,
+    name: folderName,
     description,
     gitUrl,
     hasPackageJson,

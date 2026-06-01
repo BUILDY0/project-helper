@@ -52,7 +52,7 @@
       <div
         v-if="project.description"
         class="card-desc"
-        v-tooltip:bottom.overflow="project.description"
+        v-tooltip:bottom.overflow.md="project.description"
       >
         {{ project.description }}
       </div>
