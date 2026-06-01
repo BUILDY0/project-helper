@@ -13,6 +13,7 @@ import { getParentPath } from '@/utils/path.js'
  *     openFolder: (project: any) => Promise<void> | void,
  *     openParentFolder: (project: any) => Promise<void> | void,
  *     copyPath: (project: any) => Promise<void> | void,
+ *     rename: (project: any) => Promise<void> | void,
  *     showProperties: (project: any) => Promise<void> | void,
  *     togglePin: (project: any) => Promise<void> | void,
  *     requestDelete: (project: any) => void
@@ -47,6 +48,7 @@ export function useContextMenu({ availableIdes, actions }) {
       items.push({ label: '打开项目父级文件夹', action: 'open-parent-folder' })
     }
     items.push({ label: '复制项目路径', action: 'copy-path' })
+    items.push({ label: '重命名', action: 'rename' })
     items.push({ label: '查看项目属性', action: 'show-properties' })
     items.push({ divider: true })
     items.push({ label: project.pinned ? '取消置顶' : '置顶', action: 'toggle-pin' })
@@ -73,6 +75,8 @@ export function useContextMenu({ availableIdes, actions }) {
       await actions.openParentFolder(p)
     } else if (item.action === 'copy-path') {
       await actions.copyPath(p)
+    } else if (item.action === 'rename') {
+      await actions.rename(p)
     } else if (item.action === 'show-properties') {
       await actions.showProperties(p)
     } else if (item.action === 'toggle-pin') {

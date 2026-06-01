@@ -18,7 +18,7 @@
           </div>
           <div class="dlg-actions">
             <button v-if="!closeIcon" class="btn" @click="onCancel">{{ cancelText }}</button>
-            <button class="btn danger" @click="onConfirm">{{ confirmText }}</button>
+            <button class="btn" :class="confirmTone" @click="onConfirm">{{ confirmText }}</button>
           </div>
         </div>
       </div>
@@ -33,7 +33,9 @@ defineProps({
   message: { type: String, default: '' },
   confirmText: { type: String, default: '确认' },
   cancelText: { type: String, default: '取消' },
-  closeIcon: { type: Boolean, default: false }
+  closeIcon: { type: Boolean, default: false },
+  // 确认按钮配色：danger（默认，红）用于删除等破坏性操作；primary 用于普通操作
+  confirmTone: { type: String, default: 'danger' }
 })
 const emit = defineEmits(['confirm', 'cancel'])
 
@@ -120,6 +122,14 @@ const onCancel = () => emit('cancel')
 }
 .btn.danger:hover {
   background: var(--color-danger-hover);
+}
+.btn.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-surface);
+}
+.btn.primary:hover {
+  background: var(--color-primary-hover);
 }
 
 .fade-enter-active,

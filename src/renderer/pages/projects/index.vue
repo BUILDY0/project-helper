@@ -52,6 +52,29 @@
       @select="onMenuSelect"
     />
 
+    <!-- 重命名项目 -->
+    <ConfirmDialog
+      :visible="renameVisible"
+      title="重命名项目"
+      close-icon
+      confirm-text="确定"
+      confirm-tone="primary"
+      @cancel="onCancelRename"
+      @confirm="onConfirmRename"
+    >
+      <div class="rename-body">
+        <input
+          ref="renameInputRef"
+          v-model="renameValue"
+          class="rename-field"
+          type="text"
+          spellcheck="false"
+          placeholder="请输入新的文件夹名称"
+          @keyup.enter="onConfirmRename"
+        />
+      </div>
+    </ConfirmDialog>
+
     <!-- 删除项目二次确认 -->
     <ConfirmDialog
       :visible="confirmVisible"
@@ -81,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import PageLayout from '@/components/common/page-layout.vue'
 import ContextMenu from '@/components/common/context-menu.vue'
 import ConfirmDialog from '@/components/common/confirm-dialog.vue'
@@ -97,6 +120,7 @@ import { useScrollToTop } from './composables/use-scroll-to-top.js'
 import { useProjectActions } from './composables/use-project-actions.js'
 import { useContextMenu } from './composables/use-context-menu.js'
 import { useDeleteProject } from './composables/use-delete-project.js'
+import { useRenameProject } from './composables/use-rename-project.js'
 import { getParentPath } from '@/utils/path.js'
 
 const props = defineProps({
@@ -135,6 +159,20 @@ const {
   onCancelDelete,
   onConfirmDelete
 } = useDeleteProject({ toastRef, projects })
+
+// 重命名：弹窗输入新名称，确认后改名并就地更新列表
+const renameInputRef = ref(null)
+const { renameVisible, renameValue, requestRename, onCancelRename, onConfirmRename } =
+  useRenameProject({ toastRef, projects })
+
+// 弹窗打开后聚焦并选中输入框文本，便于直接覆盖输入
+watch(renameVisible, (val) => {
+  if (!val) return
+  nextTick(() => {
+    renameInputRef.value?.focus()
+    renameInputRef.value?.select()
+  })
+})
 
 // 右键菜单：把分发动作显式注入，避免 composable 之间隐式耦合
 const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect, closeMenu } =
@@ -178,6 +216,7 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
           toastRef.value?.show(`查看属性失败：${r?.message || '未知错误'}`, 'error')
         }
       },
+      rename: requestRename,
       togglePin,
       requestDelete
     }
@@ -206,6 +245,26 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.rename-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rename-field {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  outline: none;
+  user-select: text;
+}
+.rename-field:focus {
+  border-color: var(--color-primary);
 }
 .delete-path {
   padding: 8px 10px;

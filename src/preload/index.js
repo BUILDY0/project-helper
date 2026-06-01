@@ -50,6 +50,9 @@ contextBridge.exposeInMainWorld('api', {
   detectIdes: () => ipcRenderer.invoke('ide:detect'),
   deleteFolder: (p, options = {}) =>
     ipcRenderer.invoke('shell:delete-folder', { targetPath: p, force: !!options.force }),
+  /** 同级目录下重命名项目文件夹，返回 { ok, path }（path 为新绝对路径） */
+  renameFolder: (p, newName) =>
+    ipcRenderer.invoke('shell:rename-folder', { targetPath: p, newName }),
   /** 调起系统原生「文件夹属性」对话框 */
   showProperties: (p) => ipcRenderer.invoke('shell:show-properties', p),
   /** 写入系统剪贴板 */

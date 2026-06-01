@@ -5,6 +5,8 @@ const fsp = require('node:fs/promises')
 const { exec, spawn } = require('node:child_process')
 const os = require('node:os')
 
+const { readConfig, patchConfig } = require('./config-store')
+
 /** 创建主窗口：无边框，使用自定义顶部 banner */
 function createWindow() {
   // 任务栏 / 窗口图标（__dirname 指向 src/main/modules，需回退三层到工程根）
@@ -83,6 +85,27 @@ async function detectIdesOnce() {
     })
   )
   return detectedIdes
+}
+
+/**
+ * 文件夹重命名后，把配置里记录的路径同步到新位置。
+ * 若 p 恰为 oldBase，或位于 oldBase 子孙路径下，则用 newBase 替换其前缀；
+ * 否则原样返回。比较在 Windows 下大小写不敏感。
+ *
+ * @returns {{ value: string, changed: boolean }}
+ */
+function remapPathPrefix(p, oldBase, newBase) {
+  if (typeof p !== 'string' || !p) return { value: p, changed: false }
+  const resolved = path.resolve(p)
+  const oldResolved = path.resolve(oldBase)
+  const lower = resolved.toLowerCase()
+  const oldLower = oldResolved.toLowerCase()
+  if (lower === oldLower) return { value: newBase, changed: true }
+  // 子孙路径：以「oldBase + 分隔符」为前缀，保留其余部分拼到 newBase 之后
+  if (lower.startsWith(oldLower + path.sep)) {
+    return { value: path.join(newBase, resolved.slice(oldResolved.length)), changed: true }
+  }
+  return { value: p, changed: false }
 }
 
 /**
@@ -244,6 +267,86 @@ function registerSystemBridge() {
     } catch (err) {
       return { ok: false, message: err.message }
     }
+  })
+
+  // ==================== 重命名文件夹 ====================
+  /**
+   * 重命名项目文件夹：在原父级目录下改名。
+   * - 校验新名非空且不含路径分隔符 / Windows 文件名非法字符
+   * - 目标已存在（非纯大小写变化）时拒绝，避免覆盖
+   * - 成功后把配置中记录的扫描根 / 排除路径 / 置顶同步到新位置
+   * 返回 { ok, path }，path 为改名后的新绝对路径
+   */
+  ipcMain.handle('shell:rename-folder', async (_e, payload) => {
+    const targetPath = payload?.targetPath
+    const newName = typeof payload?.newName === 'string' ? payload.newName.trim() : ''
+    if (!targetPath) return { ok: false, message: '路径为空' }
+    if (!newName) return { ok: false, message: '名称不能为空' }
+    if (/[\\/:*?"<>|]/.test(newName)) {
+      return { ok: false, message: '名称不能包含 \\ / : * ? " < > | 等字符' }
+    }
+
+    try {
+      await fsp.access(targetPath, fs.constants.F_OK)
+    } catch {
+      return { ok: false, message: '原文件夹不存在' }
+    }
+
+    const newPath = path.join(path.dirname(targetPath), newName)
+    // 名称未变化：无需任何操作
+    if (path.basename(targetPath) === newName) return { ok: true, path: newPath }
+
+    // 目标已存在则拒绝；仅纯大小写变化（同一路径）放行，交给 rename 处理
+    if (newPath.toLowerCase() !== targetPath.toLowerCase()) {
+      try {
+        await fsp.access(newPath, fs.constants.F_OK)
+        return { ok: false, message: '同级目录下已存在同名文件夹' }
+      } catch {
+        // 不存在，可以改名
+      }
+    }
+
+    try {
+      await fsp.rename(targetPath, newPath)
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
+
+    // 同步配置中记录的路径（扫描根 / 排除路径 / 置顶），避免改名后扫描不到或残留失效项。
+    // 同时覆盖被重命名文件夹的子孙路径（如配置项恰好位于其内部）。
+    try {
+      const cfg = await readConfig()
+      let changed = false
+
+      const nextPaths = (cfg.paths || []).map((item) => {
+        const r = remapPathPrefix(item.path, targetPath, newPath)
+        if (!r.changed) return item
+        changed = true
+        return { ...item, path: r.value }
+      })
+      const nextExcludes = (cfg.exclude_paths || []).map((p) => {
+        const r = remapPathPrefix(p, targetPath, newPath)
+        if (r.changed) changed = true
+        return r.value
+      })
+      const nextPinned = (cfg.pinned || []).map((p) => {
+        const r = remapPathPrefix(p, targetPath, newPath)
+        if (r.changed) changed = true
+        return r.value
+      })
+
+      if (changed) {
+        await patchConfig({
+          paths: nextPaths,
+          exclude_paths: nextExcludes,
+          pinned: nextPinned
+        })
+      }
+    } catch (err) {
+      console.error('[rename] 同步配置路径失败:', err.message)
+    }
+
+    return { ok: true, path: newPath }
   })
 
   // ==================== Windows 原生属性框 ====================
