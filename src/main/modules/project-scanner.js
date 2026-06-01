@@ -2,7 +2,7 @@ const { ipcMain } = require('electron')
 const path = require('node:path')
 const fsp = require('node:fs/promises')
 
-const { readConfig, writePinned, filterValidPaths } = require('./config-store')
+const { cleanupInvalidPaths } = require('./config-store')
 
 // ==================== 项目扫描 ====================
 /**
@@ -253,18 +253,10 @@ async function scanProjects(roots, depth, excludes) {
 /** 注册项目扫描相关的 IPC */
 function registerScannerIpc() {
   ipcMain.handle('projects:scan', async () => {
-    const cfg = await readConfig()
-
-    // 扫描时清理已失效的 pinned 路径，避免冗余残留；如有变化则落盘
-    const validPinned = await filterValidPaths(cfg.pinned)
-    if (validPinned.length !== (cfg.pinned || []).length) {
-      try {
-        await writePinned(validPinned)
-      } catch (err) {
-        console.error('[pin] 清理失效 pinned 失败:', err.message)
-      }
-    }
-    const pinnedSet = new Set(validPinned.map((p) => path.resolve(p)))
+    // 扫描前清理配置中所有路径字段（paths / exclude_paths / pinned）里已失效的项，
+    // 有变化会自动落盘；返回清理后的配置快照
+    const cfg = await cleanupInvalidPaths()
+    const pinnedSet = new Set(cfg.pinned.map((p) => path.resolve(p)))
 
     const list = await scanProjects(cfg.paths, cfg.depth, cfg.exclude_paths)
     // 标记每个项目的 pinned 状态

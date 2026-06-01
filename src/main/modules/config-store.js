@@ -3,7 +3,7 @@ const path = require('node:path')
 const fsp = require('node:fs/promises')
 const os = require('node:os')
 
-const { normalizePaths } = require('../../shared/path-types.js')
+const { normalizePaths, PathType } = require('../../shared/path-types.js')
 const { DEFAULT_THEME, normalizeTheme } = require('../../shared/theme.js')
 
 // 应用工作目录与配置文件：放在用户主目录下的独立目录，避免污染 home
@@ -109,22 +109,64 @@ async function readConfig() {
   }
 }
 
+/** 判断一个路径是否为有效目录（存在且是目录） */
+async function isValidDir(p) {
+  try {
+    const stat = await fsp.stat(p)
+    return stat.isDirectory()
+  } catch {
+    // 路径不存在或访问失败
+    return false
+  }
+}
+
 /**
- * 从一组 path 中过滤掉已经失效（不存在或不是目录）的项
- * 用于清理 pinned，避免冗余数据残留
+ * 从一组 path 字符串中过滤掉已经失效（不存在或不是目录）的项
+ * 用于清理 pinned / exclude_paths，避免冗余数据残留
  */
 async function filterValidPaths(list) {
   const arr = Array.isArray(list) ? list : []
-  const result = []
-  for (const p of arr) {
+  const checks = await Promise.all(arr.map(isValidDir))
+  return arr.filter((_, i) => checks[i])
+}
+
+/**
+ * 从一组路径对象（{ path, type, ... }）中过滤掉已失效的项
+ * 仅 SYSTEM 类型才是本地目录，参与"是否存在"的校验并可能被丢弃；
+ * SSH / WSL / DevContainer / RemoteRepo 等非本地路径无法用 fs 判定，一律保留
+ */
+async function filterValidPathItems(list) {
+  const arr = Array.isArray(list) ? list : []
+  const checks = await Promise.all(
+    arr.map((item) => (item?.type === PathType.SYSTEM ? isValidDir(item.path) : true))
+  )
+  return arr.filter((_, i) => checks[i])
+}
+
+/**
+ * 清理配置中所有"目录路径"字段里已失效（不存在或非目录）的项：
+ * paths（对象数组） / exclude_paths / pinned。
+ * 任一字段有变化才落盘，返回清理后的配置快照。
+ */
+async function cleanupInvalidPaths() {
+  const cfg = await readConfig()
+  const [paths, exclude_paths, pinned] = await Promise.all([
+    filterValidPathItems(cfg.paths),
+    filterValidPaths(cfg.exclude_paths),
+    filterValidPaths(cfg.pinned)
+  ])
+  const changed =
+    paths.length !== (cfg.paths || []).length ||
+    exclude_paths.length !== (cfg.exclude_paths || []).length ||
+    pinned.length !== (cfg.pinned || []).length
+  if (changed) {
     try {
-      const stat = await fsp.stat(p)
-      if (stat.isDirectory()) result.push(p)
-    } catch {
-      // 路径不存在或访问失败，丢弃
+      await patchConfig({ paths, exclude_paths, pinned })
+    } catch (err) {
+      console.error('[config] 清理失效路径失败:', err.message)
     }
   }
-  return result
+  return { ...cfg, paths, exclude_paths, pinned }
 }
 
 /**
@@ -283,6 +325,7 @@ module.exports = {
   writeTheme,
   writeAutoRunStartup,
   filterValidPaths,
+  cleanupInvalidPaths,
   applyAutoRunStartup,
   getSystemLoginItemEnabled,
   syncAutoRunStartupOnStartup,
