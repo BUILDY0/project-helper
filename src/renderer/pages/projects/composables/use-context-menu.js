@@ -13,6 +13,7 @@ import { getParentPath } from '@/utils/path.js'
  *     openFolder: (project: any) => Promise<void> | void,
  *     openParentFolder: (project: any) => Promise<void> | void,
  *     copyPath: (project: any) => Promise<void> | void,
+ *     copyParentPath: (project: any) => Promise<void> | void,
  *     rename: (project: any) => Promise<void> | void,
  *     showProperties: (project: any) => Promise<void> | void,
  *     togglePin: (project: any) => Promise<void> | void,
@@ -43,11 +44,15 @@ export function useContextMenu({ availableIdes, actions }) {
       items.push({ divider: true })
     }
     items.push({ label: '打开项目文件夹', action: 'open-folder' })
-    // 根路径（盘符根 / 文件系统根）没有父级，此项不展示
-    if (getParentPath(project.path)) {
+    // 根路径（盘符根 / 文件系统根）没有父级，父级相关项统一不展示
+    const hasParent = Boolean(getParentPath(project.path))
+    if (hasParent) {
       items.push({ label: '打开项目父级文件夹', action: 'open-parent-folder' })
     }
     items.push({ label: '复制项目路径', action: 'copy-path' })
+    if (hasParent) {
+      items.push({ label: '复制项目父级路径', action: 'copy-parent-path' })
+    }
     items.push({ label: '重命名', action: 'rename' })
     items.push({ label: '查看项目属性', action: 'show-properties' })
     items.push({ divider: true })
@@ -75,6 +80,8 @@ export function useContextMenu({ availableIdes, actions }) {
       await actions.openParentFolder(p)
     } else if (item.action === 'copy-path') {
       await actions.copyPath(p)
+    } else if (item.action === 'copy-parent-path') {
+      await actions.copyParentPath(p)
     } else if (item.action === 'rename') {
       await actions.rename(p)
     } else if (item.action === 'show-properties') {

@@ -210,6 +210,19 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
           toastRef.value?.show(`复制失败：${r?.message || '未知错误'}`, 'error')
         }
       },
+      copyParentPath: async (project) => {
+        const parent = getParentPath(project.path)
+        if (!parent) {
+          toastRef.value?.show('已是根目录，没有父级路径', 'info')
+          return
+        }
+        const r = await window.api.copyText(parent)
+        if (r?.ok) {
+          toastRef.value?.show('已复制项目父级路径', 'success', 1200)
+        } else {
+          toastRef.value?.show(`复制失败：${r?.message || '未知错误'}`, 'error')
+        }
+      },
       showProperties: async (project) => {
         const r = await window.api.showProperties(project.path)
         if (!r?.ok) {
