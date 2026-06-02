@@ -6,10 +6,22 @@ contextBridge.exposeInMainWorld('api', {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
   close: () => ipcRenderer.invoke('window:close'),
+  /** 显式退出应用，绕过"关闭→隐藏托盘"策略 */
+  quit: () => ipcRenderer.invoke('app:quit'),
   onMaximizeChange: (cb) => {
     const listener = (_e, val) => cb(val)
     ipcRenderer.on('window:maximize-change', listener)
     return () => ipcRenderer.removeListener('window:maximize-change', listener)
+  },
+
+  /**
+   * 主进程要求渲染层激活某个 tab（如托盘菜单"打开主窗口"切到项目页）
+   * payload: { tab: string }
+   */
+  onActivate: (cb) => {
+    const listener = (_e, val) => cb(val)
+    ipcRenderer.on('window:activate', listener)
+    return () => ipcRenderer.removeListener('window:activate', listener)
   },
 
   // 开发模式辅助

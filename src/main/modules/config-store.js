@@ -5,6 +5,7 @@ const os = require('node:os')
 
 const { normalizePaths, PathType } = require('../../shared/path-types.js')
 const { DEFAULT_THEME, normalizeTheme } = require('../../shared/theme.js')
+const { bus, Events } = require('./event-bus.js')
 
 // 应用工作目录与配置文件：放在用户主目录下的独立目录，避免污染 home
 const APP_HOME = path.join(os.homedir(), '.project-helper')
@@ -19,7 +20,8 @@ const DEFAULT_CONFIG = {
   pinned: [],
   theme: DEFAULT_THEME,
   auto_run_startup: false,
-  auto_check_update: true
+  auto_check_update: true,
+  tray: true
 }
 
 /** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
@@ -32,7 +34,9 @@ function normalizeConfig(json) {
     theme: normalizeTheme(json?.theme),
     auto_run_startup: !!json?.auto_run_startup,
     // 老配置缺省时回退默认值 true，保持"默认开启自动检查"的行为
-    auto_check_update: typeof json?.auto_check_update === 'boolean' ? json.auto_check_update : true
+    auto_check_update: typeof json?.auto_check_update === 'boolean' ? json.auto_check_update : true,
+    // 关闭按钮是否最小化到托盘；老配置缺省时默认开启
+    tray: typeof json?.tray === 'boolean' ? json.tray : true
   }
 }
 
@@ -183,7 +187,8 @@ async function patchConfig(patch) {
     pinned: prev.pinned,
     theme: prev.theme,
     auto_run_startup: prev.auto_run_startup,
-    auto_check_update: prev.auto_check_update
+    auto_check_update: prev.auto_check_update,
+    tray: prev.tray
   }
   await writeConfig({ ...base, ...(patch || {}) })
 }
@@ -275,6 +280,7 @@ function registerConfigIpc() {
       typeof payload?.auto_check_update === 'boolean'
         ? payload.auto_check_update
         : prev.auto_check_update
+    const tray = typeof payload?.tray === 'boolean' ? payload.tray : prev.tray
     await writeConfig({
       paths: normalizePaths(payload?.paths),
       depth,
@@ -282,13 +288,22 @@ function registerConfigIpc() {
       pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned,
       theme: normalizeTheme(payload?.theme ?? prev.theme),
       auto_run_startup: autoRun,
-      auto_check_update: autoCheckUpdate
+      auto_check_update: autoCheckUpdate,
+      tray
     })
 
     // 仅在变化时调 setLoginItemSettings，避免无谓写注册表
     let autoRunResult = { appliedToSystem: true, reason: 'unchanged' }
     if (autoRun !== prev.auto_run_startup) {
       autoRunResult = applyAutoRunStartup(autoRun)
+    }
+
+    // 广播配置已更新：tray / 其它模块订阅后自行响应（如启停托盘）
+    try {
+      const next = await readConfig()
+      bus.emit(Events.CONFIG_SAVED, { config: next })
+    } catch (err) {
+      console.error('[config] 广播 CONFIG_SAVED 失败:', err.message)
     }
 
     return { ok: true, autoRun: autoRunResult }

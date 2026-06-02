@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import TopBanner from './components/business/top-banner.vue'
 import ProjectsPage from './pages/projects/index.vue'
 import SettingsPage from './pages/settings/index.vue'
@@ -87,6 +87,17 @@ function onUnsavedCancel() {
   unsaved.visible = false
   unsaved.pendingTab = ''
 }
+
+// 订阅主进程激活信号（如托盘菜单"打开主窗口"），复用 onRequestTab 走未保存提示
+let offActivate = null
+onMounted(() => {
+  offActivate = window.api.onActivate?.(({ tab } = {}) => {
+    if (tab) onRequestTab(tab)
+  })
+})
+onBeforeUnmount(() => {
+  offActivate?.()
+})
 </script>
 
 <style scoped>

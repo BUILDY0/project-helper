@@ -1,18 +1,21 @@
-const { app, Menu } = require('electron')
+const { app, Menu, ipcMain } = require('electron')
 
 const {
   ensureConfigFile,
   syncAutoRunStartupOnStartup,
-  registerConfigIpc
+  registerConfigIpc,
+  readConfig
 } = require('./modules/config-store')
 const { createWindow, detectIdesOnce, registerSystemBridge } = require('./modules/system-bridge')
 const { registerScannerIpc } = require('./modules/project-scanner')
 const { setupAutoUpdater, registerUpdaterIpc } = require('./modules/updater')
+const { setupTray, destroyTray } = require('./modules/tray')
+const { bus, Events } = require('./modules/event-bus')
 
 // 主窗口引用：autoUpdater 等模块通过 getMainWindow() 获取，避免循环依赖
 let mainWindow = null
 
-/** 激活已有主窗口：用于第二次启动应用时切回当前实例 */
+/** 激活已有主窗口：用于第二次启动应用、托盘点击等"切回当前实例"场景 */
 function activateMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) return
 
@@ -20,9 +23,22 @@ function activateMainWindow() {
     mainWindow.restore()
   }
 
-  mainWindow.show()
+  // 关闭→隐藏到托盘后，窗口处于 hidden 状态，需要显式 show
+  if (!mainWindow.isVisible()) {
+    mainWindow.show()
+  }
+
   mainWindow.moveTop()
   mainWindow.focus()
+}
+
+/**
+ * 真正退出应用：托盘菜单"退出"、自动更新安装等场景调用。
+ * 必须先置 isQuitting=true，否则会被 close 监听器拦下变成"隐藏到托盘"。
+ */
+function forceQuit() {
+  app.isQuitting = true
+  app.quit()
 }
 
 // 全局兜底：避免主进程未捕获异常 / Promise rejection 触发 Electron 原生错误对话框
@@ -41,6 +57,11 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', () => {
     activateMainWindow()
+  })
+
+  // 订阅配置变更：close 事件需要同步读取 trayEnabled，因此把它挂在 app 上即时刷新
+  bus.on(Events.CONFIG_SAVED, ({ config }) => {
+    app.trayEnabled = config?.tray !== false
   })
 
   app.whenReady().then(async () => {
@@ -67,7 +88,39 @@ if (!gotTheLock) {
     registerScannerIpc()
     registerUpdaterIpc()
 
+    // app:quit 由 index.js 注册，复用 forceQuit；
+    // 渲染层/托盘菜单需要"彻底退出"时使用，避免误用 window:close 被托盘策略拦截
+    ipcMain.handle('app:quit', forceQuit)
+
+    // 启动期读一次 tray 配置，初始化关闭按钮的行为；后续变更由 CONFIG_SAVED 事件驱动
+    let initialTrayEnabled = true
+    try {
+      const cfg = await readConfig()
+      initialTrayEnabled = cfg.tray !== false
+    } catch (err) {
+      console.error('[startup] 读取 tray 配置失败，按默认隐藏到托盘处理:', err.message)
+    }
+    app.trayEnabled = initialTrayEnabled
+
     mainWindow = createWindow()
+
+    // 拦截关闭：app.trayEnabled=true 时隐藏到托盘，否则放行让窗口正常退出
+    mainWindow.on('close', (e) => {
+      if (app.isQuitting) return
+      if (app.trayEnabled !== false) {
+        e.preventDefault()
+        mainWindow.hide()
+      } else {
+        // 关闭即退出：放行 close，由 window-all-closed 收尾
+        app.isQuitting = true
+      }
+    })
+
+    // 托盘常驻：与 tray 配置无关，应用生命周期内始终展示
+    setupTray({
+      getMainWindow: () => mainWindow,
+      onQuit: forceQuit
+    })
 
     // 启动期一次性探测可用 IDE（异步，不阻塞窗口）。结果缓存在 system-bridge 模块，
     // 渲染层通过 ide:get-available 直接读取，整个生命周期内不再重复 exec。
@@ -80,6 +133,15 @@ if (!gotTheLock) {
   })
 }
 
+// 窗口全部关闭：仅在显式退出时才让进程结束；隐藏到托盘场景需驻留进程
 app.on('window-all-closed', () => {
-  app.quit()
+  if (app.isQuitting || app.trayEnabled === false) {
+    app.quit()
+  }
+})
+
+// 退出前释放托盘句柄，避免 dev 热重载或异常退出时残留
+app.on('before-quit', () => {
+  app.isQuitting = true
+  destroyTray()
 })

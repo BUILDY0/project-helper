@@ -133,6 +133,8 @@ function registerSystemBridge() {
     BrowserWindow.fromWebContents(e.sender)?.close()
   })
 
+  // 注：app:quit 由 index.js 注册，直接复用 forceQuit，避免退出语义在两处漂移
+
   // ==================== 开发模式辅助 ====================
   /** 渲染层用来判断是否处于开发环境，决定是否显示 dev-only 入口（如 console 按钮） */
   ipcMain.handle('app:is-dev', () => process.env.NODE_ENV === 'development')

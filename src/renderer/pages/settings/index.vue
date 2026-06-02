@@ -6,6 +6,9 @@
           配置
           <span v-if="appVersion" class="version">v{{ appVersion }}</span>
 
+          <!-- 关闭时隐藏到托盘 -->
+          <InlineToggle v-model="config.tray" label="关闭时隐藏到托盘" :tip="TRAY_TIP" />
+
           <!-- 开机自动运行 -->
           <InlineToggle
             v-model="config.auto_run_startup"
@@ -202,6 +205,8 @@ import { getPathText } from './utils/path-helper.js'
 import { formatTime } from '@/utils/format-time.js'
 
 // ===== 页面级 UI 文案常量（仅本页使用，直接内联） =====
+const TRAY_TIP =
+  '开启后，点击关闭按钮会将应用最小化到系统托盘；关闭则点击关闭按钮直接退出。修改后需点击"保存"才会生效。'
 const AUTO_RUN_TIP = '开启后，开机时会自动启动 ProjectHelper。修改后需点击"保存"才会生效。'
 const AUTO_CHECK_UPDATE_TIP =
   '开启后，应用启动 5 秒后会检查一次新版本，运行期间每隔 1 小时再检查一次。修改后需点击"保存"才会生效。'
@@ -459,5 +464,8 @@ defineExpose({
   align-items: center;
   gap: 18px;
   padding: 4px 0 2px;
+}
+.inline-toggle:not(:first-of-type) {
+  margin-left: 10px;
 }
 </style>

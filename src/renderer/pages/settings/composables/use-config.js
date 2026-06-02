@@ -19,6 +19,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     pinned: [],
     auto_run_startup: false,
     auto_check_update: true,
+    tray: true,
     // 配置文件最后修改时间（ms 时间戳），0 表示未知
     mtime: 0
   })
@@ -35,7 +36,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       exclude_paths: [...(c.exclude_paths || [])],
       pinned: [...(c.pinned || [])],
       auto_run_startup: !!c.auto_run_startup,
-      auto_check_update: !!c.auto_check_update
+      auto_check_update: !!c.auto_check_update,
+      tray: !!c.tray
     })
   }
 
@@ -64,6 +66,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       pinned: Array.isArray(cfg.pinned) ? cfg.pinned : [],
       auto_run_startup: !!cfg.auto_run_startup,
       auto_check_update: typeof cfg.auto_check_update === 'boolean' ? cfg.auto_check_update : true,
+      tray: typeof cfg.tray === 'boolean' ? cfg.tray : true,
       mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
     }
     // 更新基线快照
@@ -86,7 +89,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
           pinned: config.value.pinned,
           theme: config.value.theme,
           auto_run_startup: !!config.value.auto_run_startup,
-          auto_check_update: !!config.value.auto_check_update
+          auto_check_update: !!config.value.auto_check_update,
+          tray: !!config.value.tray
         })
       )
       const prevAutoRun = originalSnapshotAutoRun()

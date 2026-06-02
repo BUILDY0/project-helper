@@ -95,6 +95,8 @@ function registerUpdaterIpc() {
 
   // 下载完成后立即重启并安装
   ipcMain.handle('updater:quit-and-install', () => {
+    // 置位以绕过"关闭→隐藏托盘"拦截，确保升级流程能真正退出主进程
+    app.isQuitting = true
     autoUpdater.quitAndInstall()
     return { ok: true }
   })
