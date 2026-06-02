@@ -4,18 +4,19 @@
     - #prefix：路径前的小图标（如置顶星标）
     - #middle：路径与移除按钮之间的扩展位（如"强制命中"开关）
   -->
-  <li class="list-item">
+  <div class="list-item">
     <slot name="prefix" />
     <span class="path-text" v-tooltip.overflow="path">{{ path }}</span>
     <slot name="middle" />
-    <Popconfirm :message="removeMessage" @confirm="emit('remove')">
-      <button class="icon-btn" v-tooltip="'移除'">×</button>
-    </Popconfirm>
-  </li>
+    <BasePopconfirm :message="removeMessage" @confirm="emit('remove')">
+      <BaseButton variant="icon" size="xs" class="remove-btn" v-tooltip="'移除'">×</BaseButton>
+    </BasePopconfirm>
+  </div>
 </template>
 
 <script setup>
-import Popconfirm from '@/components/common/popconfirm.vue'
+import BasePopconfirm from '@/components/common/base-popconfirm.vue'
+import BaseButton from '@/components/common/base-button.vue'
 
 defineProps({
   path: { type: String, required: true },
@@ -42,21 +43,12 @@ const emit = defineEmits(['remove'])
   color: var(--color-text);
   user-select: text;
 }
-.icon-btn {
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
+/* 移除按钮：基于 BaseButton icon xs，移除态 hover 用 danger 色提示破坏性 */
+.remove-btn {
   font-size: 16px;
-  line-height: 1;
-  transition:
-    background 0.15s,
-    color 0.15s;
+  color: var(--color-text-tertiary);
 }
-.icon-btn:hover {
-  background: var(--color-hover);
+.remove-btn:hover:not(:disabled) {
   color: var(--color-danger);
 }
 </style>

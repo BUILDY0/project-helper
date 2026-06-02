@@ -3,6 +3,7 @@ import App from './App.vue'
 import './styles/themes.css'
 import './styles/global.css'
 import './styles/tooltip.css'
+import './styles/base-components.css'
 import tooltipPlugin from './directives/tooltip.js'
 import { initTheme } from './composables/use-theme.js'
 

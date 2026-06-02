@@ -1,46 +1,31 @@
 <template>
   <button class="help-link" type="button" :aria-label="label" @click="onOpen">
     <span class="help-link__content">
-      <!-- 图标风格参考 VSCode codicons (CC BY 4.0)，统一使用 currentColor 适配主题 -->
-      <svg
-        v-if="icon === 'github'"
-        class="help-link__icon"
-        width="18"
-        height="18"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          d="M8 0C3.58 0 0 3.64 0 8.13c0 3.59 2.29 6.63 5.47 7.71.4.07.55-.18.55-.39 0-.19-.01-.83-.01-1.51-2.01.38-2.53-.5-2.69-.96-.09-.23-.48-.96-.82-1.16-.28-.15-.68-.52-.01-.53.63-.01 1.08.59 1.23.83.72 1.23 1.87.88 2.33.67.07-.53.28-.88.51-1.08-1.78-.21-3.64-.91-3.64-4.02 0-.89.31-1.62.82-2.19-.08-.2-.36-1.04.08-2.16 0 0 .67-.22 2.2.84A7.45 7.45 0 0 1 8 3.91c.68 0 1.36.09 2 .27 1.53-1.06 2.2-.84 2.2-.84.44 1.12.16 1.96.08 2.16.51.57.82 1.3.82 2.19 0 3.12-1.87 3.81-3.65 4.02.29.25.54.74.54 1.5 0 1.08-.01 1.95-.01 2.22 0 .21.15.47.55.39A8.04 8.04 0 0 0 16 8.13C16 3.64 12.42 0 8 0Z"
-        />
-      </svg>
-      <svg
-        v-else
-        class="help-link__icon"
-        width="18"
-        height="18"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          d="M3.5 2A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14h8.75a.75.75 0 0 0 0-1.5H3.5a.5.5 0 0 1 0-1h8.75A.75.75 0 0 0 13 10.75V2.75A.75.75 0 0 0 12.25 2H3.5Zm0 1.5h8v6.5h-8V3.5Zm1.25 1.25A.75.75 0 0 1 5.5 4h4.75a.75.75 0 0 1 0 1.5H5.5a.75.75 0 0 1-.75-.75Zm0 2A.75.75 0 0 1 5.5 6h3.25a.75.75 0 0 1 0 1.5H5.5a.75.75 0 0 1-.75-.75Z"
-        />
-      </svg>
+      <component :is="iconComponent" :size="18" class="help-link__icon" />
       <span class="help-link__label">{{ label }}</span>
     </span>
   </button>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import IconGithub from '@/components/icons/icon-github.vue'
+import IconDocs from '@/components/icons/icon-docs.vue'
+
 const props = defineProps({
   label: { type: String, required: true },
   url: { type: String, required: true },
+  /** 图标 key：当前支持 'docs'(默认) / 'github'，按需扩展 */
   icon: { type: String, default: 'docs' }
 })
 
 const emit = defineEmits(['error'])
+
+const ICON_MAP = {
+  github: IconGithub,
+  docs: IconDocs
+}
+const iconComponent = computed(() => ICON_MAP[props.icon] || IconDocs)
 
 async function onOpen() {
   const r = await window.api.openExternal(props.url)

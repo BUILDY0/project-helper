@@ -1,7 +1,7 @@
 <template>
   <!-- 标题区行内 toggle：switch + 文字标签 + 可选 #action 插槽 -->
   <span class="inline-toggle" :class="modifierClass">
-    <SwitchInput
+    <BaseSwitch
       :model-value="modelValue"
       size="sm"
       :aria-label="ariaLabel || label"
@@ -15,14 +15,13 @@
 </template>
 
 <script setup>
-import SwitchInput from '@/components/common/switch-input.vue'
+import BaseSwitch from '@/components/common/base-switch.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   label: { type: String, required: true },
   tip: { type: String, default: '' },
   ariaLabel: { type: String, default: '' },
-  /** 业务侧的 BEM modifier hook，例如 'inline-toggle--auto-run' */
   modifierClass: { type: String, default: '' }
 })
 const emit = defineEmits(['update:modelValue'])
@@ -38,14 +37,15 @@ function onLabelClick() {
   align-items: center;
   gap: 6px;
   margin-left: 20px;
+  height: 16px;
   font-size: 12px;
   font-weight: 400;
-  align-self: flex-end;
 }
 .inline-toggle__label {
   color: var(--color-text-secondary);
   cursor: pointer;
   user-select: none;
+  margin-bottom: 2px;
 }
 .inline-toggle__label:hover {
   color: var(--color-text);

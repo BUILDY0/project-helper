@@ -4,16 +4,16 @@
     - 仅一个确定按钮 + 右上角 × 关闭，不提供取消按钮
     - 浮层 Teleport 到 body，避免被祖先 overflow:hidden 截断
   -->
-  <span ref="triggerRef" class="popconfirm-trigger" @click.stop="onTriggerClick">
+  <span ref="triggerRef" class="base-popconfirm__trigger" @click.stop="onTriggerClick">
     <slot />
   </span>
 
   <Teleport to="body">
-    <transition name="popconfirm-fade">
+    <transition name="base-popconfirm-fade">
       <div
         v-if="open"
         ref="popperRef"
-        class="popconfirm"
+        class="base-popconfirm"
         :style="{
           left: pos.left + 'px',
           top: pos.top + 'px',
@@ -23,20 +23,28 @@
         role="dialog"
         @click.stop
       >
-        <button class="popconfirm__close" type="button" aria-label="关闭" @click="close">×</button>
+        <BaseButton
+          variant="icon"
+          size="xs"
+          class="btn-close-affix"
+          aria-label="关闭"
+          @click="close"
+        >
+          ×
+        </BaseButton>
 
-        <div class="popconfirm__body">
-          <span class="popconfirm__icon" aria-hidden="true">i</span>
-          <div class="popconfirm__message">{{ message }}</div>
+        <div class="base-popconfirm__body">
+          <span class="base-popconfirm__icon" aria-hidden="true">i</span>
+          <div class="base-popconfirm__message">{{ message }}</div>
         </div>
 
-        <div class="popconfirm__actions">
-          <button class="popconfirm__btn" type="button" @click="onConfirm">
+        <div class="base-popconfirm__actions">
+          <BaseButton variant="primary" size="xs" @click="onConfirm">
             {{ confirmText }}
-          </button>
+          </BaseButton>
         </div>
 
-        <span class="popconfirm__arrow" aria-hidden="true" />
+        <span class="base-popconfirm__arrow" aria-hidden="true" />
       </div>
     </transition>
   </Teleport>
@@ -44,6 +52,7 @@
 
 <script setup>
 import { ref, reactive, nextTick, onBeforeUnmount, watch } from 'vue'
+import BaseButton from './base-button.vue'
 import {
   setDisabled as setTooltipDisabled,
   hideAll as hideAllTooltips
@@ -182,13 +191,13 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
-.popconfirm-trigger {
+<style>
+.base-popconfirm__trigger {
   display: inline-flex;
   align-items: center;
 }
 
-.popconfirm {
+.base-popconfirm {
   position: fixed;
   z-index: 1200;
   min-width: 200px;
@@ -202,39 +211,13 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-.popconfirm__close {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  border-radius: var(--radius-sm);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.popconfirm__close:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-
-.popconfirm__body {
+.base-popconfirm__body {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   padding-right: 18px;
 }
-.popconfirm__icon {
+.base-popconfirm__icon {
   flex-shrink: 0;
   width: 15px;
   height: 15px;
@@ -249,35 +232,20 @@ onBeforeUnmount(() => {
   line-height: 1;
   margin-top: 1px;
 }
-.popconfirm__message {
+.base-popconfirm__message {
   flex: 1;
   line-height: 1.5;
   word-break: break-all;
 }
 
-.popconfirm__actions {
+.base-popconfirm__actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
 }
-.popconfirm__btn {
-  height: 26px;
-  padding: 0 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-text-on-primary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.popconfirm__btn:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
 
 /* 小三角 */
-.popconfirm__arrow {
+.base-popconfirm__arrow {
   position: absolute;
   width: 8px;
   height: 8px;
@@ -287,25 +255,25 @@ onBeforeUnmount(() => {
   left: 50%;
   margin-left: -4px;
 }
-.popconfirm[data-placement='top'] .popconfirm__arrow {
+.base-popconfirm[data-placement='top'] .base-popconfirm__arrow {
   bottom: -5px;
   border-top: none;
   border-left: none;
 }
-.popconfirm[data-placement='bottom'] .popconfirm__arrow {
+.base-popconfirm[data-placement='bottom'] .base-popconfirm__arrow {
   top: -5px;
   border-bottom: none;
   border-right: none;
 }
 
-.popconfirm-fade-enter-active,
-.popconfirm-fade-leave-active {
+.base-popconfirm-fade-enter-active,
+.base-popconfirm-fade-leave-active {
   transition:
     opacity 0.12s,
     transform 0.12s;
 }
-.popconfirm-fade-enter-from,
-.popconfirm-fade-leave-to {
+.base-popconfirm-fade-enter-from,
+.base-popconfirm-fade-leave-to {
   opacity: 0;
   transform: translateY(2px);
 }

@@ -7,14 +7,22 @@
           <div class="bar" :style="{ width: percent + '%' }"></div>
         </div>
         <div class="actions">
-          <button v-if="status === 'available'" class="btn primary" @click="onDownload">
+          <BaseButton v-if="status === 'available'" variant="primary" size="sm" @click="onDownload">
             下载
-          </button>
-          <button v-if="status === 'downloaded'" class="btn primary" @click="onInstall">
+          </BaseButton>
+          <BaseButton v-if="status === 'downloaded'" variant="primary" size="sm" @click="onInstall">
             重启安装
-          </button>
-          <button v-if="showChangelog" class="btn link" @click="onViewChangelog">新改动！</button>
-          <button class="btn" @click="visible = false">关闭</button>
+          </BaseButton>
+          <BaseButton
+            v-if="showChangelog"
+            variant="text"
+            tone="primary"
+            size="sm"
+            @click="onViewChangelog"
+          >
+            新改动！
+          </BaseButton>
+          <BaseButton size="sm" @click="visible = false">关闭</BaseButton>
         </div>
       </div>
     </transition>
@@ -23,6 +31,7 @@
 
 <script setup>
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import BaseButton from '@/components/common/base-button.vue'
 
 // 当前更新状态：available / downloading / downloaded / error
 const status = ref('')
@@ -132,36 +141,6 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-.btn {
-  height: 28px;
-  padding: 0 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 12px;
-  transition: background 0.15s;
-}
-.btn:hover {
-  background: var(--color-hover);
-}
-.btn.primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-text-on-primary);
-}
-.btn.primary:hover {
-  background: var(--color-primary-hover);
-}
-.btn.link {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-primary);
-  padding: 0 8px;
-}
-.btn.link:hover {
-  background: var(--color-hover);
 }
 
 .slide-enter-active,

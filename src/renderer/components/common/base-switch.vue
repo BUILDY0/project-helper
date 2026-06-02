@@ -14,12 +14,16 @@
     :aria-checked="modelValue"
     :aria-label="ariaLabel || undefined"
     :disabled="disabled"
-    class="ui-switch"
-    :class="[`is-${size}`, `tone-${tone}`, { 'is-on': modelValue, 'is-disabled': disabled }]"
+    class="base-switch"
+    :class="[
+      `base-switch--${size}`,
+      `base-switch--${tone}`,
+      { 'is-on': modelValue, 'is-disabled': disabled }
+    ]"
     @click="onToggle"
   >
-    <span class="ui-switch__track">
-      <span class="ui-switch__thumb"></span>
+    <span class="base-switch__track">
+      <span class="base-switch__thumb"></span>
     </span>
   </button>
 </template>
@@ -51,8 +55,8 @@ function onToggle() {
 }
 </script>
 
-<style scoped>
-.ui-switch {
+<style>
+.base-switch {
   background: transparent;
   border: none;
   padding: 0;
@@ -61,11 +65,11 @@ function onToggle() {
   cursor: pointer;
   flex-shrink: 0;
 }
-.ui-switch.is-disabled {
+.base-switch.is-disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
-.ui-switch__track {
+.base-switch__track {
   position: relative;
   border-radius: 999px;
   background: var(--color-hover);
@@ -76,8 +80,9 @@ function onToggle() {
     box-shadow 0.2s;
   display: inline-block;
   flex-shrink: 0;
+  margin-bottom: -1px;
 }
-.ui-switch__thumb {
+.base-switch__thumb {
   position: absolute;
   top: 50%;
   border-radius: 50%;
@@ -90,58 +95,58 @@ function onToggle() {
 }
 
 /* ===== 尺寸 ===== */
-/* md：默认尺寸，与 ThemeSwitch 一致 (40×22, thumb 18, 左右 2 边距，行程 20) */
-.ui-switch.is-md .ui-switch__track {
+/* md：默认尺寸 (40×22, thumb 18, 左右 2 边距，行程 20) */
+.base-switch--md .base-switch__track {
   width: 40px;
   height: 22px;
 }
-.ui-switch.is-md .ui-switch__thumb {
+.base-switch--md .base-switch__thumb {
   left: 2px;
   width: 18px;
   height: 18px;
 }
-.ui-switch.is-md.is-on .ui-switch__thumb {
+.base-switch--md.is-on .base-switch__thumb {
   left: 20px;
 }
 
 /* sm：紧凑版 (30×16, thumb 12, 左右 1 边距，行程 16) */
-.ui-switch.is-sm .ui-switch__track {
+.base-switch--sm .base-switch__track {
   width: 30px;
   height: 16px;
 }
-.ui-switch.is-sm .ui-switch__thumb {
+.base-switch--sm .base-switch__thumb {
   left: 1px;
   width: 12px;
   height: 12px;
 }
-.ui-switch.is-sm.is-on .ui-switch__thumb {
+.base-switch--sm.is-on .base-switch__thumb {
   left: 16px;
 }
 
 /* ===== tone ===== */
-.ui-switch.tone-primary.is-on .ui-switch__track {
+.base-switch--primary.is-on .base-switch__track {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
-.ui-switch.tone-primary.is-on .ui-switch__thumb {
+.base-switch--primary.is-on .base-switch__thumb {
   background: var(--color-text-on-primary, #fff);
 }
-.ui-switch.tone-danger.is-on .ui-switch__track {
+.base-switch--danger.is-on .base-switch__track {
   background: var(--color-danger);
   border-color: var(--color-danger);
 }
-.ui-switch.tone-danger.is-on .ui-switch__thumb {
+.base-switch--danger.is-on .base-switch__thumb {
   background: #fff;
 }
 
 /* ===== focus ===== */
-.ui-switch:focus-visible {
+.base-switch:focus-visible {
   outline: none;
 }
-.ui-switch.tone-primary:focus-visible .ui-switch__track {
+.base-switch--primary:focus-visible .base-switch__track {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 24%, transparent);
 }
-.ui-switch.tone-danger:focus-visible .ui-switch__track {
+.base-switch--danger:focus-visible .base-switch__track {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 24%, transparent);
 }
 </style>

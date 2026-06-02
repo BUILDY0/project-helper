@@ -1,8 +1,14 @@
 <template>
-  <div class="num-input">
-    <button class="step" :disabled="disabledMinus" @click="onMinus">−</button>
-    <input class="num-field" type="text" :value="modelValue" @input="onInput" @blur="onBlur" />
-    <button class="step" :disabled="disabledPlus" @click="onPlus">+</button>
+  <div class="base-number-input">
+    <button class="base-number-input__step" :disabled="disabledMinus" @click="onMinus">−</button>
+    <input
+      class="base-number-input__field"
+      type="text"
+      :value="modelValue"
+      @input="onInput"
+      @blur="onBlur"
+    />
+    <button class="base-number-input__step" :disabled="disabledPlus" @click="onPlus">+</button>
   </div>
 </template>
 
@@ -42,8 +48,8 @@ function onBlur(e) {
 }
 </script>
 
-<style scoped>
-.num-input {
+<style>
+.base-number-input {
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--color-border-strong);
@@ -52,23 +58,24 @@ function onBlur(e) {
   background: var(--color-surface);
   height: 32px;
 }
-.step {
+.base-number-input__step {
   width: 30px;
   height: 100%;
   border: none;
   background: var(--color-surface);
   color: var(--color-text);
   font-size: 14px;
+  cursor: pointer;
   transition: background 0.15s;
 }
-.step:hover:not(:disabled) {
+.base-number-input__step:hover:not(:disabled) {
   background: var(--color-hover);
 }
-.step:disabled {
+.base-number-input__step:disabled {
   color: var(--color-text-tertiary);
   cursor: not-allowed;
 }
-.num-field {
+.base-number-input__field {
   width: 50px;
   height: 100%;
   border: none;

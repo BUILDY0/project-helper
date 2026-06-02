@@ -6,7 +6,9 @@
     @contextmenu.prevent="$emit('contextmenu', $event, project)"
   >
     <!-- 右上角 pin 按钮：pinned 时常显示金色实星；未 pinned 时仅在 hover 时显示空心星 -->
-    <button
+    <BaseButton
+      variant="icon"
+      size="xs"
       class="pin-btn"
       :class="{ active: project.pinned }"
       v-tooltip="project.pinned ? '取消置顶' : '置顶'"
@@ -14,36 +16,42 @@
       @dblclick.stop
     >
       {{ project.pinned ? '★' : '☆' }}
-    </button>
+    </BaseButton>
 
     <!-- 头部：folder emoji + 状态图标列 -->
     <div class="card-head">
       <div class="card-icon">📁</div>
       <div class="status-icons" @dblclick.stop>
-        <button
+        <BaseButton
           v-if="project.gitUrl"
+          variant="icon"
+          size="xs"
           class="status-btn"
           v-tooltip="'在浏览器打开仓库'"
           @click.stop="$emit('open-git', project)"
         >
           <IconGithub :size="14" />
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-if="project.hasPackageJson"
+          variant="icon"
+          size="xs"
           class="status-btn"
           v-tooltip="'打开项目文件夹'"
           @click.stop="$emit('open-pkg', project)"
         >
           <IconNode :size="14" />
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-if="project.readmePath"
+          variant="icon"
+          size="xs"
           class="status-btn"
           v-tooltip="'打开 README'"
           @click.stop="$emit('open-readme', project)"
         >
           <IconReadme :size="14" />
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -65,6 +73,7 @@
 import IconGithub from '@/components/icons/icon-github.vue'
 import IconNode from '@/components/icons/icon-node.vue'
 import IconReadme from '@/components/icons/icon-readme.vue'
+import BaseButton from '@/components/common/base-button.vue'
 
 defineProps({
   project: { type: Object, required: true }
@@ -120,26 +129,7 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   align-items: center;
   gap: 2px;
 }
-.status-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.status-btn:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
+/* status-btn 沿用 BaseButton icon xs 默认外观，仅 14px 图标天然居中无需额外样式 */
 .card-info {
   flex: 1;
   min-width: 0;
@@ -172,32 +162,22 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   text-overflow: ellipsis;
 }
 
-/* pin 按钮 */
+/* pin 按钮：基于 BaseButton icon xs，定制 24px 边长 + 绝对定位 + 卡片 hover 渐显 + active 金色 */
 .pin-btn {
   position: absolute;
   top: 8px;
   right: 8px;
   width: 24px;
   height: 24px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
   font-size: 16px;
-  line-height: 1;
   color: var(--color-text-tertiary);
   /* 默认未 pin 时半透明，hover 卡片再淡入 */
   opacity: 0;
-  transition:
-    opacity 0.15s,
-    background 0.15s,
-    color 0.15s,
-    transform 0.15s;
 }
 .card:hover .pin-btn {
   opacity: 1;
 }
-.pin-btn:hover {
-  background: var(--color-hover);
+.pin-btn:hover:not(:disabled) {
   color: var(--color-accent-hover);
 }
 .pin-btn.active {
@@ -205,7 +185,7 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   opacity: 1;
   color: var(--color-accent);
 }
-.pin-btn.active:hover {
+.pin-btn.active:hover:not(:disabled) {
   color: var(--color-accent-hover);
   transform: scale(1.06);
 }

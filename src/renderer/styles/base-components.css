@@ -1,0 +1,38 @@
+/* ===== 原子组件样式 token + 共性规格 =====
+ * 由 main.js 全局加载，承载所有 base-* 原子组件相关的：
+ *   1) 可对外覆盖的 CSS 变量（--xxx）的默认值声明
+ *   2) 跨原子组件复用的"视觉规格"型 class（如关闭按钮的位置/字号约定）
+ *
+ * 设计原则：
+ * - Vue 组件文件（包括 base-* 原子组件）不允许定义/覆盖 CSS 变量；
+ *   所有变量声明集中在本文件，确保 token 只有"一份事实来源"
+ * - 业务方覆盖时：在祖先 scoped 样式里直接覆盖原子组件的 class（同特异性即可生效）
+ * - 跨组件复用规格（如 .btn-close-affix）以原子组件基座 class（.base-btn）作前缀，
+ *   确保特异性 ≥ 原子组件内部规则，覆盖天然生效
+ */
+
+/* ===== 关闭按钮（× 按钮）的复用规格 =====
+ * 与 <BaseButton variant="icon"> 搭配使用，承载弹窗 / 浮层右上角的关闭键
+ * 推荐尺寸搭配：
+ *   · dialog 类大面板：BaseButton size="sm"（28px）+ 默认字号 18px
+ *   · popconfirm 类小气泡：BaseButton size="xs"（22px）+ 字号 16px（在 .base-popconfirm 上覆盖）
+ * 三个变量按 fallback 写法暴露，业务/原子组件容器可在祖先选择器上覆盖
+ */
+.base-btn.btn-close-affix {
+  position: absolute;
+  top: var(--close-top, 8px);
+  right: var(--close-right, 8px);
+  font-size: var(--close-font-size, 18px);
+  color: var(--color-text-tertiary);
+}
+
+/* dialog 内 padding 较大，× 与 22px 标题左侧 padding 视觉对齐 */
+.base-confirm-dialog .base-btn.btn-close-affix {
+  --close-top: 12px;
+  --close-right: 12px;
+}
+
+/* popconfirm 气泡较小，缩小 × 字号与按钮 22px 比例匹配 */
+.base-popconfirm .base-btn.btn-close-affix {
+  --close-font-size: 16px;
+}

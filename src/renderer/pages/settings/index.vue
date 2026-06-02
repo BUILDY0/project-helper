@@ -11,7 +11,6 @@
             v-model="config.auto_run_startup"
             label="开机自动运行"
             :tip="AUTO_RUN_TIP"
-            modifier-class="inline-toggle--auto-run"
           />
 
           <!-- 自动检查更新（附带"立即检查"按钮） -->
@@ -19,7 +18,6 @@
             v-model="config.auto_check_update"
             label="自动检查更新"
             :tip="AUTO_CHECK_UPDATE_TIP"
-            modifier-class="inline-toggle--auto-check-update"
           >
             <template #action>
               <UpdateCheckButton
@@ -30,9 +28,9 @@
             </template>
           </InlineToggle>
         </div>
-        <button class="primary-btn" :disabled="saving" @click="onSave">
+        <BaseButton variant="primary" :loading="saving" @click="onSave">
           {{ saving ? '保存中...' : '保存' }}
-        </button>
+        </BaseButton>
       </div>
     </template>
 
@@ -40,9 +38,9 @@
       <!-- 配置文件路径：只读 input + 两个操作按钮 -->
       <SettingField label="配置文件路径">
         <div class="row">
-          <input class="input" :value="config.config_path" readonly />
-          <button class="btn" @click="onOpenConfigFile">打开文件</button>
-          <button class="btn" @click="onOpenConfigFolder">打开文件夹</button>
+          <BaseInput class="config-path" :model-value="config.config_path" readonly />
+          <BaseButton @click="onOpenConfigFile">打开文件</BaseButton>
+          <BaseButton @click="onOpenConfigFolder">打开文件夹</BaseButton>
         </div>
         <div class="hint">
           <span>最后修改：{{ formatTime(config.mtime) }}</span>
@@ -52,12 +50,12 @@
       <!-- 扫描目录 -->
       <SettingField label="扫描目录">
         <template #actions>
-          <button class="link-btn" :disabled="!config.paths.length" @click="askClearPaths">
+          <BaseButton variant="text" inline :disabled="!config.paths.length" @click="askClearPaths">
             清空
-          </button>
-          <button class="link-btn" @click="addPath">+ 新增</button>
+          </BaseButton>
+          <BaseButton variant="text" inline @click="addPath">+ 新增</BaseButton>
         </template>
-        <ul v-if="config.paths.length" class="list">
+        <div v-if="config.paths.length" class="list">
           <PathListItem
             v-for="(p, i) in config.paths"
             :key="`path-${i}`"
@@ -67,7 +65,7 @@
           >
             <template #middle>
               <span class="forced-toggle" v-tooltip="FORCED_TIP">
-                <SwitchInput
+                <BaseSwitch
                   :model-value="isForced(p)"
                   size="sm"
                   aria-label="强制命中"
@@ -77,19 +75,24 @@
               </span>
             </template>
           </PathListItem>
-        </ul>
+        </div>
         <div v-else class="empty-tip">暂未配置扫描目录</div>
       </SettingField>
 
       <!-- 扫描深度 -->
       <SettingField label="扫描深度">
         <template #actions>
-          <button class="link-btn" :disabled="config.depth === DEFAULT_DEPTH" @click="resetDepth">
+          <BaseButton
+            variant="text"
+            inline
+            :disabled="config.depth === DEFAULT_DEPTH"
+            @click="resetDepth"
+          >
             重置
-          </button>
+          </BaseButton>
         </template>
         <div class="row">
-          <NumberInput v-model="config.depth" :min="0" :max="5" />
+          <BaseNumberInput v-model="config.depth" :min="0" :max="5" />
           <span class="hint inline">默认 1，范围 0 - 5</span>
         </div>
       </SettingField>
@@ -97,16 +100,17 @@
       <!-- 排除文件夹 -->
       <SettingField label="排除文件夹">
         <template #actions>
-          <button
-            class="link-btn"
+          <BaseButton
+            variant="text"
+            inline
             :disabled="!config.exclude_paths.length"
             @click="askClearExcludes"
           >
             清空
-          </button>
-          <button class="link-btn" @click="addExclude">+ 新增</button>
+          </BaseButton>
+          <BaseButton variant="text" inline @click="addExclude">+ 新增</BaseButton>
         </template>
-        <ul v-if="config.exclude_paths.length" class="list">
+        <div v-if="config.exclude_paths.length" class="list">
           <PathListItem
             v-for="(p, i) in config.exclude_paths"
             :key="`ex-${i}`"
@@ -114,18 +118,23 @@
             remove-message="确认移除该排除项？"
             @remove="removeExclude(i)"
           />
-        </ul>
+        </div>
         <div v-else class="empty-tip">暂未配置排除项</div>
       </SettingField>
 
       <!-- 置顶项目（pin） -->
       <SettingField label="置顶项目">
         <template #actions>
-          <button class="link-btn" :disabled="!config.pinned.length" @click="askClearPinned">
+          <BaseButton
+            variant="text"
+            inline
+            :disabled="!config.pinned.length"
+            @click="askClearPinned"
+          >
             清空
-          </button>
+          </BaseButton>
         </template>
-        <ul v-if="config.pinned.length" class="list">
+        <div v-if="config.pinned.length" class="list">
           <PathListItem
             v-for="(p, i) in config.pinned"
             :key="`pin-${i}`"
@@ -135,7 +144,7 @@
           >
             <template #prefix><span class="pin-icon">★</span></template>
           </PathListItem>
-        </ul>
+        </div>
         <div v-else class="empty-tip">暂未置顶任何项目</div>
       </SettingField>
 
@@ -155,7 +164,7 @@
     </div>
 
     <!-- 二次确认弹窗：清空共用 -->
-    <ConfirmDialog
+    <BaseConfirmDialog
       :visible="confirmDlg.visible"
       :title="confirmDlg.title"
       :message="confirmDlg.message"
@@ -164,18 +173,20 @@
       @confirm="onConfirmAction"
     />
 
-    <Toast ref="toastRef" />
+    <BaseToast ref="toastRef" />
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
 import PageLayout from '@/components/common/page-layout.vue'
-import NumberInput from '@/components/common/number-input.vue'
-import ConfirmDialog from '@/components/common/confirm-dialog.vue'
-import Toast from '@/components/common/toast.vue'
+import BaseInput from '@/components/common/base-input.vue'
+import BaseButton from '@/components/common/base-button.vue'
+import BaseNumberInput from '@/components/common/base-number-input.vue'
+import BaseConfirmDialog from '@/components/common/base-confirm-dialog.vue'
+import BaseToast from '@/components/common/base-toast.vue'
 import HelpCircleLink from '@/components/common/help-circle-link.vue'
-import SwitchInput from '@/components/common/switch-input.vue'
+import BaseSwitch from '@/components/common/base-switch.vue'
 import InlineToggle from '@/components/common/inline-toggle.vue'
 import UpdateCheckButton from './components/update-check-button.vue'
 import SettingField from './components/setting-field.vue'
@@ -379,31 +390,13 @@ defineExpose({
   font-size: 16px;
   font-weight: 600;
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 8px;
 }
 .page-title .version {
   font-size: 12px;
   font-weight: 400;
   color: var(--color-text-tertiary);
-}
-
-.primary-btn {
-  height: 32px;
-  padding: 0 18px;
-  border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: var(--color-text-on-primary);
-  border: none;
-  font-size: 13px;
-  transition: background 0.15s;
-}
-.primary-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-.primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .hint {
@@ -421,57 +414,11 @@ defineExpose({
   align-items: center;
   gap: 8px;
 }
-.input {
+.config-path {
   flex: 1;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface-2);
-  color: var(--color-text);
-  font-size: 13px;
-  outline: none;
-  user-select: text;
-}
-
-.btn {
-  height: 32px;
-  padding: 0 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 13px;
-  transition: background 0.15s;
-}
-.btn:hover {
-  background: var(--color-hover);
-}
-
-.link-btn {
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-.link-btn:hover:not(:disabled) {
-  color: var(--color-text);
-  background: var(--color-hover);
-}
-.link-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;

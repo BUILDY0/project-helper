@@ -1,9 +1,14 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="ctx-mask" @click="onClose" @contextmenu.prevent="onClose">
+    <div
+      v-if="visible"
+      class="base-context-menu__mask"
+      @click="onClose"
+      @contextmenu.prevent="onClose"
+    >
       <div
         ref="menuRef"
-        class="ctx-menu"
+        class="base-context-menu"
         :style="{
           left: pos.left + 'px',
           top: pos.top + 'px',
@@ -12,15 +17,20 @@
         @click.stop
       >
         <template v-for="(item, idx) in items" :key="idx">
-          <div v-if="item.divider" class="ctx-divider" />
-          <div v-else class="ctx-item" :class="{ danger: item.danger }" @click="onItemClick(item)">
+          <div v-if="item.divider" class="base-context-menu__divider" />
+          <div
+            v-else
+            class="base-context-menu__item"
+            :class="{ 'is-danger': item.danger }"
+            @click="onItemClick(item)"
+          >
             {{ item.label }}
           </div>
         </template>
         <!-- footnote：仅做标识用的菜单脚注（如展示当前操作的对象名） -->
         <template v-if="footnote">
-          <div class="ctx-divider" />
-          <div class="ctx-footnote">{{ footnote }}</div>
+          <div class="base-context-menu__divider" />
+          <div class="base-context-menu__footnote">{{ footnote }}</div>
         </template>
       </div>
     </div>
@@ -113,7 +123,24 @@ onBeforeUnmount(() => {
     setTooltipDisabled(false)
     tipSuppressed = false
   }
+  document.removeEventListener('keydown', onKeyDown)
 })
+
+// ESC 关闭：仅在 visible=true 期间监听，等价于点击遮罩
+function onKeyDown(e) {
+  if (e.key === 'Escape') {
+    e.stopPropagation()
+    emit('close')
+  }
+}
+watch(
+  () => props.visible,
+  (vis) => {
+    if (vis) document.addEventListener('keydown', onKeyDown)
+    else document.removeEventListener('keydown', onKeyDown)
+  },
+  { immediate: true }
+)
 
 const onClose = () => emit('close')
 const onItemClick = (item) => {
@@ -122,13 +149,13 @@ const onItemClick = (item) => {
 }
 </script>
 
-<style scoped>
-.ctx-mask {
+<style>
+.base-context-menu__mask {
   position: fixed;
   inset: 0;
   z-index: 1000;
 }
-.ctx-menu {
+.base-context-menu {
   position: absolute;
   min-width: 160px;
   background: var(--color-surface);
@@ -138,29 +165,29 @@ const onItemClick = (item) => {
   padding: 4px;
   font-size: 13px;
 }
-.ctx-item {
+.base-context-menu__item {
   padding: 7px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--color-text);
   transition: background 0.12s;
 }
-.ctx-item:hover {
+.base-context-menu__item:hover {
   background: var(--color-hover);
 }
-.ctx-item.danger {
+.base-context-menu__item.is-danger {
   color: var(--color-danger);
 }
-.ctx-item.danger:hover {
+.base-context-menu__item.is-danger:hover {
   background: var(--color-danger-bg-soft);
 }
-.ctx-divider {
+.base-context-menu__divider {
   height: 1px;
   background: var(--color-border);
   margin: 4px 6px;
 }
 /* 菜单脚注：紧凑、小字、置灰、居中，超长省略 */
-.ctx-footnote {
+.base-context-menu__footnote {
   padding: 4px 12px;
   font-size: 11px;
   color: var(--color-text-tertiary);

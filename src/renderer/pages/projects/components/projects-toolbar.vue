@@ -11,44 +11,46 @@
         </span>
       </div>
       <!-- 搜索框：紧挨项目数，留一点间距 -->
-      <div class="search-box">
-        <IconSearch class="search-icon" :size="14" />
-        <input
-          :value="keyword"
-          class="search-input"
-          type="text"
-          placeholder="搜索项目（路径 / 项目名 / 描述）"
-          @input="emit('update:keyword', $event.target.value)"
-        />
-        <button
-          v-if="keyword"
-          class="search-clear"
-          v-tooltip="'清空'"
-          @click="emit('update:keyword', '')"
-        >
-          ×
-        </button>
-      </div>
+      <BaseInput
+        class="search-box"
+        size="sm"
+        :model-value="keyword"
+        clearable
+        placeholder="搜索项目（路径 / 项目名 / 描述）"
+        @update:model-value="emit('update:keyword', $event)"
+      >
+        <template #prefix>
+          <IconSearch :size="14" />
+        </template>
+      </BaseInput>
     </div>
     <div class="header-actions">
-      <button
-        class="icon-action"
+      <!-- 工具栏一级图标按钮：复用 secondary 的描边/背景/文字色，与右侧「刷新」对等；
+           仅在业务层把宽度收成方形（28×28），避免使用 icon variant 的透明浮层观感 -->
+      <BaseButton
+        class="square-btn"
+        variant="secondary"
+        size="sm"
         v-tooltip="'回到顶部'"
         :disabled="atTop"
         @click="emit('scroll-to-top')"
       >
         <IconArrowUp :size="14" />
-      </button>
-      <button class="refresh-btn" :disabled="loading" @click="emit('refresh')">
-        <IconRefresh :size="14" :class="{ spin: loading }" />
-        <span>{{ loading ? '扫描中...' : '刷新' }}</span>
-      </button>
+      </BaseButton>
+      <BaseButton size="sm" :loading="loading" @click="emit('refresh')">
+        <template v-if="!loading" #prefix>
+          <IconRefresh :size="14" />
+        </template>
+        {{ loading ? '扫描中...' : '刷新' }}
+      </BaseButton>
     </div>
   </div>
 </template>
 
 <script setup>
 import IconSearch from '@/components/icons/icon-search.vue'
+import BaseInput from '@/components/common/base-input.vue'
+import BaseButton from '@/components/common/base-button.vue'
 import IconArrowUp from '@/components/icons/icon-arrow-up.vue'
 import IconRefresh from '@/components/icons/icon-refresh.vue'
 
@@ -86,58 +88,6 @@ const emit = defineEmits(['update:keyword', 'scroll-to-top', 'refresh'])
 .search-box {
   margin-left: 8px;
   width: 260px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-.search-box:focus-within {
-  border-color: var(--color-primary);
-}
-.search-icon {
-  color: var(--color-text-tertiary);
-  flex-shrink: 0;
-}
-.search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: var(--color-text);
-  user-select: text;
-}
-.search-input::placeholder {
-  color: var(--color-text-tertiary);
-}
-.search-clear {
-  width: 18px;
-  height: 18px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-  font-size: 14px;
-  line-height: 1;
-  border-radius: 50%;
-  /* 用 flex 居中字符，避免基线偏移 */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.search-clear:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
 }
 
 /* 包裹 count 的固定宽度容器，避免筛选时数字位数变化引起后续元素位移 */
@@ -165,55 +115,11 @@ const emit = defineEmits(['update:keyword', 'scroll-to-top', 'refresh'])
   gap: 8px;
   flex-shrink: 0;
 }
-.icon-action {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  color: var(--color-text);
-  transition:
-    background 0.15s,
-    color 0.15s,
-    opacity 0.15s;
-}
-.icon-action:hover:not(:disabled) {
-  background: var(--color-hover);
-}
-.icon-action:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 
-.refresh-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 13px;
-  transition: background 0.15s;
-}
-.refresh-btn:hover:not(:disabled) {
-  background: var(--color-hover);
-}
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.spin {
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* 工具栏内的方形图标按钮：宽度跟随高度，去掉横向 padding；
+   color/border/background/hover 全部继承 BaseButton 的 secondary 规则，与「刷新」对齐 */
+.header-actions :deep(.base-btn.square-btn) {
+  width: 28px;
+  padding: 0;
 }
 </style>

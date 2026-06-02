@@ -10,46 +10,8 @@
   >
     <span class="theme-switch__track">
       <span class="theme-switch__thumb">
-        <!-- 浅色：太阳 -->
-        <svg
-          v-if="!isDark"
-          class="theme-switch__icon"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2" />
-          <path d="M12 20v2" />
-          <path d="m4.93 4.93 1.41 1.41" />
-          <path d="m17.66 17.66 1.41 1.41" />
-          <path d="M2 12h2" />
-          <path d="M20 12h2" />
-          <path d="m6.34 17.66-1.41 1.41" />
-          <path d="m19.07 4.93-1.41 1.41" />
-        </svg>
-        <!-- 深色：月亮 -->
-        <svg
-          v-else
-          class="theme-switch__icon"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-        </svg>
+        <IconSun v-if="!isDark" :size="12" class="theme-switch__icon" />
+        <IconMoon v-else :size="12" class="theme-switch__icon" />
       </span>
     </span>
   </button>
@@ -57,6 +19,8 @@
 
 <script setup>
 import { computed } from 'vue'
+import IconSun from '@/components/icons/icon-sun.vue'
+import IconMoon from '@/components/icons/icon-moon.vue'
 
 /**
  * 主题切换 switch（纯展示）

@@ -42,17 +42,23 @@ defineProps({
 - `aria-hidden="true"`：装饰用图标默认对屏幕阅读器隐藏；如果是承担语义的图标，由调用方在外层 `<button :aria-label="...">` 上补语义。
 - 默认 `size` 取该图标"最常见的展示尺寸"（窗口控制按钮通常 16，列表内嵌图标 14）。
 
-## 何时新增 / 不新增图标
+## 何时新增图标
 
-**新增**：满足以下任一即可下沉到本目录：
+**所有 svg 都必须落在本目录**——业务/通用组件**不允许内联 svg**。无论该图标是否多处复用。
 
-- 在 ≥ 2 个文件中重复使用。
-- 在某个文件里以 `v-if` 切换出现，把切换逻辑独立到调用方更清晰。
-- 通过组件化能让调用方模板**显著瘦身**（≥ 10 行 svg 内联）。
+理由：
 
-**不新增**（保留在原组件内）：
+- 避免同一图标在多处分别维护 path（如 GitHub logo 在卡片状态图标和帮助链接里各写一份），不一致风险
+- 业务组件模板更轻，关注点回归到布局/交互
+- 主题色、动画、size 切换都靠 icon 组件统一封装，调用方仅决定"用哪个图标"
 
-- 仅在某个组件内部出现一次，且该组件本身就是该图标的"专用容器"。例如 `ThemeSwitch` 里的 sun/moon、`HelpCircleLink` 里的 GitHub/Docs logo —— 它们已经被语义化了，再多套一层反而冗余。
+**例外**：仅当图标是组件内部高度耦合的"装饰元素"且不构成可识别图形（如分隔点、装饰小圆点），可保留内联。可识别的图标（GitHub、太阳、月亮、文档…）**一律下沉**。
+
+## 笔触风格约定
+
+- **优先 fill 实心**：`fill="currentColor"`，跟随父级 `color`，简单、易着色
+- **stroke 描线**：少数图标设计上是描线风格（如 lucide 系的 sun / moon），保留 `stroke="currentColor" fill="none"` 写法即可，不必强行改为 fill
+- 带固定品牌色（如 Node.js 绿）则在 `<path fill="...">` 写死
 
 ## 动画
 
@@ -95,17 +101,20 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 
 ## 现有图标清单
 
-| 文件                  | 用途                    | 特殊点                            |
-| --------------------- | ----------------------- | --------------------------------- |
-| `icon-search.vue`     | 搜索框放大镜            | —                                 |
-| `icon-arrow-up.vue`   | 回到顶部                | —                                 |
-| `icon-refresh.vue`    | 刷新（顺时针圆弧+箭头） | 配合 `class="spin"` 旋转          |
-| `icon-refresh-cw.vue` | 检查更新（C 形圆弧）    | 配合 `class="is-spinning"` 旋转   |
-| `icon-github.vue`     | 卡片状态图标            | octicons 风格                     |
-| `icon-node.vue`       | 卡片状态图标            | 固定品牌绿 `#83cd29`              |
-| `icon-readme.vue`     | 卡片状态图标            | 双 path + group fill              |
-| `icon-terminal.vue`   | DevTools 入口           | VSCode codicons                   |
-| `icon-minimize.vue`   | 窗口最小化              | VSCode codicons (chrome-minimize) |
-| `icon-maximize.vue`   | 窗口最大化              | VSCode codicons (chrome-maximize) |
-| `icon-restore.vue`    | 窗口还原                | VSCode codicons (chrome-restore)  |
-| `icon-close.vue`      | 窗口关闭                | VSCode codicons (chrome-close)    |
+| 文件                  | 用途                                   | 特殊点                            |
+| --------------------- | -------------------------------------- | --------------------------------- |
+| `icon-search.vue`     | 搜索框放大镜                           | —                                 |
+| `icon-arrow-up.vue`   | 回到顶部                               | —                                 |
+| `icon-refresh.vue`    | 刷新（顺时针圆弧+箭头）                | 配合 `class="spin"` 旋转          |
+| `icon-refresh-cw.vue` | 检查更新（C 形圆弧）                   | 配合 `class="is-spinning"` 旋转   |
+| `icon-github.vue`     | GitHub logo（卡片状态图标 / 帮助链接） | octicons 风格                     |
+| `icon-docs.vue`       | 文档（帮助链接）                       | codicons book 风格                |
+| `icon-sun.vue`        | 太阳（主题切换-浅色态）                | lucide 风格 stroke 描线           |
+| `icon-moon.vue`       | 月亮（主题切换-深色态）                | lucide 风格 stroke 描线           |
+| `icon-node.vue`       | 卡片状态图标                           | 固定品牌绿 `#83cd29`              |
+| `icon-readme.vue`     | 卡片状态图标                           | 双 path + group fill              |
+| `icon-terminal.vue`   | DevTools 入口                          | VSCode codicons                   |
+| `icon-minimize.vue`   | 窗口最小化                             | VSCode codicons (chrome-minimize) |
+| `icon-maximize.vue`   | 窗口最大化                             | VSCode codicons (chrome-maximize) |
+| `icon-restore.vue`    | 窗口还原                               | VSCode codicons (chrome-restore)  |
+| `icon-close.vue`      | 窗口关闭                               | VSCode codicons (chrome-close)    |

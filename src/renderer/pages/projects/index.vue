@@ -42,7 +42,7 @@
     </div>
 
     <!-- 右键菜单 -->
-    <ContextMenu
+    <BaseContextMenu
       :visible="ctxVisible"
       :x="ctxX"
       :y="ctxY"
@@ -53,7 +53,7 @@
     />
 
     <!-- 重命名项目 -->
-    <ConfirmDialog
+    <BaseConfirmDialog
       :visible="renameVisible"
       title="重命名项目"
       close-icon
@@ -63,20 +63,17 @@
       @confirm="onConfirmRename"
     >
       <div class="rename-body">
-        <input
+        <BaseInput
           ref="renameInputRef"
           v-model="renameValue"
-          class="rename-field"
-          type="text"
-          spellcheck="false"
           placeholder="请输入新的文件夹名称"
-          @keyup.enter="onConfirmRename"
+          @enter="onConfirmRename"
         />
       </div>
-    </ConfirmDialog>
+    </BaseConfirmDialog>
 
     <!-- 删除项目二次确认 -->
-    <ConfirmDialog
+    <BaseConfirmDialog
       :visible="confirmVisible"
       title="删除项目"
       close-icon
@@ -94,22 +91,23 @@
             i
           </span>
           <span class="permanent-delete-copy">永久删除</span>
-          <SwitchInput v-model="permanentDelete" tone="danger" aria-label="永久删除" />
+          <BaseSwitch v-model="permanentDelete" tone="danger" aria-label="永久删除" />
         </label>
       </div>
-    </ConfirmDialog>
+    </BaseConfirmDialog>
 
-    <Toast ref="toastRef" />
+    <BaseToast ref="toastRef" />
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import PageLayout from '@/components/common/page-layout.vue'
-import ContextMenu from '@/components/common/context-menu.vue'
-import ConfirmDialog from '@/components/common/confirm-dialog.vue'
-import Toast from '@/components/common/toast.vue'
-import SwitchInput from '@/components/common/switch-input.vue'
+import BaseContextMenu from '@/components/common/base-context-menu.vue'
+import BaseConfirmDialog from '@/components/common/base-confirm-dialog.vue'
+import BaseInput from '@/components/common/base-input.vue'
+import BaseToast from '@/components/common/base-toast.vue'
+import BaseSwitch from '@/components/common/base-switch.vue'
 import ProjectCard from './components/project-card.vue'
 import ProjectsToolbar from './components/projects-toolbar.vue'
 import EmptyState from './components/empty-state.vue'
@@ -263,21 +261,6 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-.rename-field {
-  width: 100%;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: 13px;
-  outline: none;
-  user-select: text;
-}
-.rename-field:focus {
-  border-color: var(--color-primary);
 }
 .delete-path {
   padding: 8px 10px;

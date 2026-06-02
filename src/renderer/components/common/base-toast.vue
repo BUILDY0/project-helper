@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
-    <transition-group name="toast" tag="div" class="toast-wrap">
-      <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
+    <transition-group name="base-toast" tag="div" class="base-toast__wrap">
+      <div v-for="t in toasts" :key="t.id" class="base-toast" :class="`base-toast--${t.type}`">
         {{ t.text }}
       </div>
     </transition-group>
@@ -26,8 +26,8 @@ function show(text, type = 'info', duration = 2200) {
 defineExpose({ show })
 </script>
 
-<style scoped>
-.toast-wrap {
+<style>
+.base-toast__wrap {
   position: fixed;
   top: 60px;
   left: 50%;
@@ -38,7 +38,7 @@ defineExpose({ show })
   z-index: 1200;
   pointer-events: none;
 }
-.toast {
+.base-toast {
   background: var(--color-toast-bg);
   color: var(--color-toast-fg);
   padding: 8px 16px;
@@ -46,21 +46,22 @@ defineExpose({ show })
   font-size: 13px;
   box-shadow: var(--shadow-md);
 }
-.toast.success {
+/* info 是默认态，无 modifier */
+.base-toast--success {
   background: var(--color-success);
   color: #fff;
 }
-.toast.error {
+.base-toast--error {
   background: var(--color-danger);
   color: #fff;
 }
 
-.toast-enter-active,
-.toast-leave-active {
+.base-toast-enter-active,
+.base-toast-leave-active {
   transition: all 0.2s;
 }
-.toast-enter-from,
-.toast-leave-to {
+.base-toast-enter-from,
+.base-toast-leave-to {
   opacity: 0;
   transform: translateY(-6px);
 }

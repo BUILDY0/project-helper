@@ -9,15 +9,17 @@
 
     <!-- 中部 tab：按钮本身 no-drag，但两侧空白区域仍可拖动 -->
     <nav class="banner-tabs">
-      <button
+      <BaseButton
         v-for="tab in tabs"
         :key="tab.key"
+        variant="text"
+        size="sm"
         class="tab-btn no-drag"
         :class="{ active: activeTab === tab.key }"
         @click="$emit('update:activeTab', tab.key)"
       >
         {{ tab.label }}
-      </button>
+      </BaseButton>
     </nav>
 
     <!-- 右侧窗口控制：按钮 no-drag。
@@ -58,6 +60,7 @@
 import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
 import folderIcon from '@resources/icon.png'
 import { useTheme } from '@/composables/use-theme.js'
+import BaseButton from '@/components/common/base-button.vue'
 import ThemeSwitch from '@/components/common/theme-switch.vue'
 import IconTerminal from '@/components/icons/icon-terminal.vue'
 import IconMinimize from '@/components/icons/icon-minimize.vue'
@@ -159,23 +162,12 @@ const onToggleDevTools = () => window.api.toggleDevTools?.()
   height: 100%;
   flex: 1;
 }
+/* tab：text 变体 + sm 已锁定 28px 高度，仅在 active 态切到主色 */
 .tab-btn {
-  border: none;
-  background: transparent;
-  height: 28px;
-  padding: 0 14px;
-  border-radius: var(--radius-md);
   color: var(--color-text-secondary);
-  font-size: 13px;
-  transition:
-    background 0.15s,
-    color 0.15s;
 }
-.tab-btn:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
-}
-.tab-btn.active {
+.tab-btn.active,
+.tab-btn.active:hover:not(:disabled) {
   background: var(--color-primary);
   color: var(--color-text-on-primary);
 }
