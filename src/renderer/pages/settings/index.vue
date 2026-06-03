@@ -50,80 +50,85 @@
         </div>
       </SettingField>
 
-      <!-- 扫描目录 -->
-      <SettingField label="扫描目录">
-        <template #actions>
-          <BaseButton variant="text" inline :disabled="!config.paths.length" @click="askClearPaths">
-            清空
-          </BaseButton>
-          <BaseButton variant="text" inline @click="addPath">+ 新增</BaseButton>
-        </template>
-        <div v-if="config.paths.length" class="list">
-          <PathListItem
-            v-for="(p, i) in config.paths"
-            :key="`path-${i}`"
-            :path="getPathText(p)"
-            remove-message="确认移除该扫描目录？"
-            @remove="removePath(i)"
-          >
-            <template #middle>
-              <span class="forced-toggle" v-tooltip="FORCED_TIP">
-                <BaseSwitch
-                  :model-value="isForced(p)"
-                  size="sm"
-                  aria-label="强制命中"
-                  @update:model-value="(v) => setForced(i, v)"
-                />
-                <span class="forced-toggle__label" @click="toggleForced(i)">强制命中</span>
-              </span>
-            </template>
-          </PathListItem>
-        </div>
-        <div v-else class="empty-tip">暂未配置扫描目录</div>
-      </SettingField>
+      <!-- 扫描目录 + 扫描深度 + 排除文件夹（合并为一个大 card） -->
+      <SettingFieldGroup>
+        <SettingFieldSection label="扫描目录">
+          <template #actions>
+            <BaseButton
+              variant="text"
+              inline
+              :disabled="!config.paths.length"
+              @click="askClearPaths"
+            >
+              清空
+            </BaseButton>
+            <BaseButton variant="text" inline @click="addPath">+ 新增</BaseButton>
+          </template>
+          <div v-if="config.paths.length" class="list">
+            <PathListItem
+              v-for="(p, i) in config.paths"
+              :key="`path-${i}`"
+              :path="getPathText(p)"
+              remove-message="确认移除该扫描目录？"
+              @remove="removePath(i)"
+            >
+              <template #middle>
+                <span class="forced-toggle" v-tooltip="FORCED_TIP">
+                  <BaseSwitch
+                    :model-value="isForced(p)"
+                    size="sm"
+                    aria-label="强制命中"
+                    @update:model-value="(v) => setForced(i, v)"
+                  />
+                  <span class="forced-toggle__label" @click="toggleForced(i)">强制命中</span>
+                </span>
+              </template>
+            </PathListItem>
+          </div>
+          <div v-else class="empty-tip">暂未配置扫描目录</div>
+        </SettingFieldSection>
 
-      <!-- 扫描深度 -->
-      <SettingField label="扫描深度">
-        <template #actions>
-          <BaseButton
-            variant="text"
-            inline
-            :disabled="config.depth === DEFAULT_DEPTH"
-            @click="resetDepth"
-          >
-            重置
-          </BaseButton>
-        </template>
-        <div class="row">
-          <BaseNumberInput v-model="config.depth" :min="0" :max="5" />
-          <span class="hint inline">默认 1，范围 0 - 5</span>
-        </div>
-      </SettingField>
+        <SettingFieldSection label="扫描深度">
+          <template #actions>
+            <BaseButton
+              variant="text"
+              inline
+              :disabled="config.depth === DEFAULT_DEPTH"
+              @click="resetDepth"
+            >
+              重置
+            </BaseButton>
+          </template>
+          <div class="row">
+            <BaseNumberInput v-model="config.depth" :min="0" :max="5" />
+            <span class="hint inline">默认 1，范围 0 - 5</span>
+          </div>
+        </SettingFieldSection>
 
-      <!-- 排除文件夹 -->
-      <SettingField label="排除文件夹">
-        <template #actions>
-          <BaseButton
-            variant="text"
-            inline
-            :disabled="!config.exclude_paths.length"
-            @click="askClearExcludes"
-          >
-            清空
-          </BaseButton>
-          <BaseButton variant="text" inline @click="addExclude">+ 新增</BaseButton>
-        </template>
-        <div v-if="config.exclude_paths.length" class="list">
-          <PathListItem
-            v-for="(p, i) in config.exclude_paths"
-            :key="`ex-${i}`"
-            :path="p"
-            remove-message="确认移除该排除项？"
-            @remove="removeExclude(i)"
-          />
-        </div>
-        <div v-else class="empty-tip">暂未配置排除项</div>
-      </SettingField>
+        <SettingFieldSection label="排除文件夹">
+          <template #actions>
+            <BaseButton
+              variant="text"
+              inline
+              :disabled="!config.exclude_paths.length"
+              @click="askClearExcludes"
+            >
+              清空
+            </BaseButton>
+            <BaseButton variant="text" inline @click="addExclude">+ 新增</BaseButton>
+          </template>
+          <div v-if="config.exclude_paths.length" class="list">
+            <PathListItem
+              v-for="(p, i) in config.exclude_paths"
+              :key="`ex-${i}`"
+              :path="p"
+              remove-message="确认移除该排除项？"
+              @remove="removeExclude(i)"
+            />
+          </div>
+          <div v-else class="empty-tip">暂未配置排除项</div>
+        </SettingFieldSection>
+      </SettingFieldGroup>
 
       <!-- 置顶项目（pin） -->
       <SettingField label="置顶项目">
@@ -201,6 +206,8 @@ import BaseSwitch from '@/components/common/base-switch.vue'
 import InlineToggle from '@/components/common/inline-toggle.vue'
 import UpdateCheckButton from './components/update-check-button.vue'
 import SettingField from './components/setting-field.vue'
+import SettingFieldGroup from './components/setting-field-group.vue'
+import SettingFieldSection from './components/setting-field-section.vue'
 import PathListItem from './components/path-list-item.vue'
 import AboutDialog from './components/about-dialog.vue'
 import { useConfig } from './composables/use-config.js'
