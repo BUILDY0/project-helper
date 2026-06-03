@@ -38,17 +38,37 @@
     </template>
 
     <div class="settings-fields">
-      <!-- 配置文件路径：只读 input + 两个操作按钮 -->
-      <SettingField label="配置文件路径">
-        <div class="row">
-          <BaseInput class="config-path" :model-value="config.config_path" readonly />
-          <BaseButton @click="onOpenConfigFile">打开文件</BaseButton>
-          <BaseButton @click="onOpenConfigFolder">打开文件夹</BaseButton>
-        </div>
-        <div class="hint">
-          <span>最后修改：{{ formatTime(config.mtime) }}</span>
-        </div>
-      </SettingField>
+      <!-- 配置文件路径 + 安装包缓存路径：合并为一个 card -->
+      <SettingFieldGroup>
+        <SettingFieldSection label="配置文件路径">
+          <div class="row">
+            <BaseInput class="config-path" :model-value="config.config_path" readonly />
+            <BaseButton @click="onOpenConfigFile">打开文件</BaseButton>
+            <BaseButton @click="onOpenConfigFolder">打开文件夹</BaseButton>
+          </div>
+          <div class="hint">
+            <span>最后修改：{{ formatTime(config.mtime) }}</span>
+          </div>
+        </SettingFieldSection>
+
+        <SettingFieldSection label="安装包缓存路径">
+          <div class="row">
+            <div class="wrap">
+              <BaseInput class="config-path" :model-value="config.installer_path" readonly />
+              <span class="installer-toggle" v-tooltip="AUTO_CLEAR_INSTALLER_TIP">
+                <BaseSwitch v-model="config.auto_clear_installer" size="sm" aria-label="自动清理" />
+                <span
+                  class="installer-toggle__label"
+                  @click="config.auto_clear_installer = !config.auto_clear_installer"
+                >
+                  自动清理
+                </span>
+              </span>
+            </div>
+            <BaseButton @click="onOpenInstallerFolder">打开文件夹</BaseButton>
+          </div>
+        </SettingFieldSection>
+      </SettingFieldGroup>
 
       <!-- 扫描目录 + 扫描深度 + 排除文件夹（合并为一个大 card） -->
       <SettingFieldGroup>
@@ -227,6 +247,8 @@ const AUTO_RUN_TIP = '开启后，开机时会自动启动 ProjectHelper。修�
 const AUTO_CHECK_UPDATE_TIP =
   '开启后，应用启动 5 秒后会检查一次新版本，运行期间每隔 1 小时再检查一次。修改后需点击"保存"才会生效。'
 const FORCED_TIP = '开启后，扫描时强制命中当前目录。修改后需点击"保存"才会生效。'
+const AUTO_CLEAR_INSTALLER_TIP =
+  '每次启动后在系统空闲时检测并清理安装包，非必要请勿开启此项，避免升级过程发生意外。修改后需点击"保存"才会生效。'
 
 const HELP_ITEMS = [
   {
@@ -371,6 +393,19 @@ async function onOpenConfigFolder() {
   }
 }
 
+/** 打开安装包缓存目录 */
+async function onOpenInstallerFolder() {
+  const p = config.value.installer_path
+  if (!p) {
+    toastRef.value?.show('安装包缓存路径为空', 'error')
+    return
+  }
+  const r = await window.api.openFolder(p)
+  if (!r?.ok) {
+    toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+  }
+}
+
 function onHelpOpenError(message) {
   toastRef.value?.show(`打开链接失败：${message}`, 'error')
 }
@@ -447,8 +482,9 @@ defineExpose({
   align-items: center;
   gap: 8px;
 }
-.config-path {
+.wrap {
   flex: 1;
+  position: relative;
 }
 
 .list {
@@ -474,12 +510,27 @@ defineExpose({
   color: var(--color-text-secondary);
   flex-shrink: 0;
 }
-.forced-toggle__label {
+.forced-toggle__label,
+.installer-toggle__label {
   cursor: pointer;
   user-select: none;
 }
-.forced-toggle__label:hover {
+.forced-toggle__label:hover,
+.installer-toggle__label:hover {
   color: var(--color-text);
+}
+
+/* 安装包缓存路径：自动清理开关，样式与"强制命中"一致 */
+.installer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  position: absolute;
+  right: 20px;
+  height: 100%;
 }
 
 .empty-tip {

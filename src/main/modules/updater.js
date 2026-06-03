@@ -1,7 +1,9 @@
 const { app, ipcMain } = require('electron')
 // electron-updater：从 GitHub Release 拉取版本信息并自动下载更新
 const { autoUpdater } = require('electron-updater')
-const { readConfig } = require('./config-store')
+const path = require('node:path')
+const fsp = require('node:fs/promises')
+const { readConfig, getInstallerDir } = require('./config-store')
 
 // ==================== 自动更新 ====================
 /**
@@ -52,10 +54,11 @@ function setupAutoUpdater(getMainWindow) {
 
   // 启动后延迟 5 秒检查，避开应用初始化高峰
   setTimeout(async () => {
-    if (!(await isAutoCheckEnabled())) return
-    autoUpdater.checkForUpdates().catch((err) => {
-      console.error('[updater] checkForUpdates 失败:', err.message)
-    })
+    if (await isAutoCheckEnabled()) {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error('[updater] checkForUpdates 失败:', err.message)
+      })
+    }
   }, 5000)
 
   // 长开应用每小时再检查一次
@@ -66,6 +69,41 @@ function setupAutoUpdater(getMainWindow) {
     },
     60 * 60 * 1000
   )
+}
+
+/**
+ * 若 auto_clear_installer 开启，递归删除安装包缓存目录内的所有条目，保留目录本身。
+ * 任何单个条目删除失败仅打日志，不中断其余清理。
+ */
+async function clearInstallerCacheIfEnabled() {
+  let cfg
+  try {
+    cfg = await readConfig()
+  } catch {
+    return
+  }
+  if (!cfg.auto_clear_installer) return
+
+  const installerDir = getInstallerDir()
+  let entries
+  try {
+    entries = await fsp.readdir(installerDir)
+  } catch {
+    // 目录不存在或无法读取，无需处理
+    return
+  }
+  if (!entries.length) return
+
+  console.log(`[installer-cleaner] 清理 ${installerDir}，共 ${entries.length} 个条目`)
+  for (const name of entries) {
+    const full = path.join(installerDir, name)
+    try {
+      await fsp.rm(full, { recursive: true, force: true })
+    } catch (err) {
+      console.error(`[installer-cleaner] 删除失败: ${full}`, err.message)
+    }
+  }
+  console.log('[installer-cleaner] 清理完成')
 }
 
 /** 注册自动更新与版本号相关的 IPC */
@@ -120,5 +158,6 @@ function registerUpdaterIpc() {
 
 module.exports = {
   setupAutoUpdater,
-  registerUpdaterIpc
+  registerUpdaterIpc,
+  clearInstallerCacheIfEnabled
 }

@@ -8,7 +8,11 @@ const {
 } = require('./modules/config-store')
 const { createWindow, detectIdesOnce, registerSystemBridge } = require('./modules/system-bridge')
 const { registerScannerIpc } = require('./modules/project-scanner')
-const { setupAutoUpdater, registerUpdaterIpc } = require('./modules/updater')
+const {
+  setupAutoUpdater,
+  registerUpdaterIpc,
+  clearInstallerCacheIfEnabled
+} = require('./modules/updater')
 const { setupTray, destroyTray } = require('./modules/tray')
 const { bus, Events } = require('./modules/event-bus')
 
@@ -130,6 +134,13 @@ if (!gotTheLock) {
 
     // 启动后台自动更新检查（仅打包后生效，dev 下 electron-updater 不会执行实际请求）
     setupAutoUpdater(() => mainWindow)
+
+    // 启动 5 秒后执行安装包缓存清理（独立于 isPackaged，dev 下也可验证）
+    setTimeout(() => {
+      clearInstallerCacheIfEnabled().catch((err) => {
+        console.error('[installer-cleaner] 清理失败:', err.message)
+      })
+    }, 5000)
   })
 }
 

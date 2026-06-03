@@ -11,6 +11,13 @@ const { bus, Events } = require('./event-bus.js')
 const APP_HOME = path.join(os.homedir(), '.project-helper')
 const CONFIG_PATH = path.join(APP_HOME, 'config.json')
 
+// electron-updater 下载目录规则：%LOCALAPPDATA%\{package.name}-updater
+// 用函数延迟取，避免模块加载期 app 未 ready
+function getInstallerDir() {
+  const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local')
+  return path.join(localAppData, app.getName() + '-updater')
+}
+
 // ==================== 配置读写 ====================
 
 const DEFAULT_CONFIG = {
@@ -21,7 +28,8 @@ const DEFAULT_CONFIG = {
   theme: DEFAULT_THEME,
   auto_run_startup: false,
   auto_check_update: true,
-  tray: true
+  tray: true,
+  auto_clear_installer: false
 }
 
 /** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
@@ -36,7 +44,9 @@ function normalizeConfig(json) {
     // 老配置缺省时回退默认值 true，保持"默认开启自动检查"的行为
     auto_check_update: typeof json?.auto_check_update === 'boolean' ? json.auto_check_update : true,
     // 关闭按钮是否最小化到托盘；老配置缺省时默认开启
-    tray: typeof json?.tray === 'boolean' ? json.tray : true
+    tray: typeof json?.tray === 'boolean' ? json.tray : true,
+    // 空闲时自动清理安装包缓存目录；默认关闭
+    auto_clear_installer: !!json?.auto_clear_installer
   }
 }
 
@@ -188,7 +198,8 @@ async function patchConfig(patch) {
     theme: prev.theme,
     auto_run_startup: prev.auto_run_startup,
     auto_check_update: prev.auto_check_update,
-    tray: prev.tray
+    tray: prev.tray,
+    auto_clear_installer: prev.auto_clear_installer
   }
   await writeConfig({ ...base, ...(patch || {}) })
 }
@@ -281,6 +292,10 @@ function registerConfigIpc() {
         ? payload.auto_check_update
         : prev.auto_check_update
     const tray = typeof payload?.tray === 'boolean' ? payload.tray : prev.tray
+    const autoClearInstaller =
+      typeof payload?.auto_clear_installer === 'boolean'
+        ? payload.auto_clear_installer
+        : prev.auto_clear_installer
     await writeConfig({
       paths: normalizePaths(payload?.paths),
       depth,
@@ -289,7 +304,8 @@ function registerConfigIpc() {
       theme: normalizeTheme(payload?.theme ?? prev.theme),
       auto_run_startup: autoRun,
       auto_check_update: autoCheckUpdate,
-      tray
+      tray,
+      auto_clear_installer: autoClearInstaller
     })
 
     // 仅在变化时调 setLoginItemSettings，避免无谓写注册表
@@ -308,6 +324,9 @@ function registerConfigIpc() {
 
     return { ok: true, autoRun: autoRunResult }
   })
+
+  /** 返回安装包缓存目录路径 */
+  ipcMain.handle('installer:get-dir', () => getInstallerDir())
 
   /** 仅保存主题，不影响其他字段 —— 用于切换主题时立即写盘 */
   ipcMain.handle('config:save-theme', async (_e, theme) => {
@@ -333,6 +352,7 @@ function registerConfigIpc() {
 module.exports = {
   APP_HOME,
   CONFIG_PATH,
+  getInstallerDir,
   ensureConfigFile,
   readConfig,
   patchConfig,

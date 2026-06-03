@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('api', {
   saveConfig: (payload) => ipcRenderer.invoke('config:save', payload),
   /** 仅保存主题，change 时即时写入，避免与配置页未保存逻辑冲突 */
   saveTheme: (theme) => ipcRenderer.invoke('config:save-theme', theme),
+  /** 安装包缓存目录路径 */
+  getInstallerDir: () => ipcRenderer.invoke('installer:get-dir'),
 
   // 选择对话框
   /**

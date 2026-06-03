@@ -13,6 +13,7 @@ import { ref } from 'vue'
 export function useConfig({ toastRef, minLoadingMs = 1000 }) {
   const config = ref({
     config_path: '',
+    installer_path: '',
     paths: [],
     depth: 1,
     exclude_paths: [],
@@ -20,6 +21,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     auto_run_startup: false,
     auto_check_update: true,
     tray: true,
+    auto_clear_installer: false,
     // 配置文件最后修改时间（ms 时间戳），0 表示未知
     mtime: 0
   })
@@ -37,7 +39,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       pinned: [...(c.pinned || [])],
       auto_run_startup: !!c.auto_run_startup,
       auto_check_update: !!c.auto_check_update,
-      tray: !!c.tray
+      tray: !!c.tray,
+      auto_clear_installer: !!c.auto_clear_installer
     })
   }
 
@@ -57,9 +60,13 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
 
   /** 加载配置 */
   async function loadConfig() {
-    const cfg = await window.api.readConfig()
+    const [cfg, installerDir] = await Promise.all([
+      window.api.readConfig(),
+      window.api.getInstallerDir().catch(() => '')
+    ])
     config.value = {
       config_path: cfg.config_path || '',
+      installer_path: installerDir || '',
       paths: Array.isArray(cfg.paths) ? cfg.paths : [],
       depth: typeof cfg.depth === 'number' ? cfg.depth : 1,
       exclude_paths: Array.isArray(cfg.exclude_paths) ? cfg.exclude_paths : [],
@@ -67,6 +74,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       auto_run_startup: !!cfg.auto_run_startup,
       auto_check_update: typeof cfg.auto_check_update === 'boolean' ? cfg.auto_check_update : true,
       tray: typeof cfg.tray === 'boolean' ? cfg.tray : true,
+      auto_clear_installer: !!cfg.auto_clear_installer,
       mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
     }
     // 更新基线快照
@@ -90,7 +98,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
           theme: config.value.theme,
           auto_run_startup: !!config.value.auto_run_startup,
           auto_check_update: !!config.value.auto_check_update,
-          tray: !!config.value.tray
+          tray: !!config.value.tray,
+          auto_clear_installer: !!config.value.auto_clear_installer
         })
       )
       const prevAutoRun = originalSnapshotAutoRun()
