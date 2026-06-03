@@ -4,16 +4,22 @@ const {
   ensureConfigFile,
   syncAutoRunStartupOnStartup,
   registerConfigIpc,
-  readConfig
+  readConfig,
+  readRecentOpened
 } = require('./modules/config-store')
-const { createWindow, detectIdesOnce, registerSystemBridge } = require('./modules/system-bridge')
-const { registerScannerIpc } = require('./modules/project-scanner')
+const {
+  createWindow,
+  detectIdesOnce,
+  registerSystemBridge,
+  openProjectWithDefaultIde
+} = require('./modules/system-bridge')
+const { registerScannerIpc, getRecentProjects } = require('./modules/project-scanner')
 const {
   setupAutoUpdater,
   registerUpdaterIpc,
   clearInstallerCacheIfEnabled
 } = require('./modules/updater')
-const { setupTray, destroyTray } = require('./modules/tray')
+const { setupTray, destroyTray, updateTrayMenu } = require('./modules/tray')
 const { bus, Events } = require('./modules/event-bus')
 
 // 主窗口引用：autoUpdater 等模块通过 getMainWindow() 获取，避免循环依赖
@@ -123,7 +129,31 @@ if (!gotTheLock) {
     // 托盘常驻：与 tray 配置无关，应用生命周期内始终展示
     setupTray({
       getMainWindow: () => mainWindow,
-      onQuit: forceQuit
+      onQuit: forceQuit,
+      openProject: (projectPath) => openProjectWithDefaultIde(projectPath)
+    })
+
+    // 项目扫描完成后，更新托盘菜单中的最近打开项目列表
+    let lastScannedProjects = []
+    const refreshTrayRecent = async () => {
+      const recentOpened = await readRecentOpened()
+      const recent = getRecentProjects(lastScannedProjects, recentOpened, 5)
+      updateTrayMenu(
+        recent,
+        () => mainWindow,
+        forceQuit,
+        (projectPath) => openProjectWithDefaultIde(projectPath)
+      )
+    }
+
+    bus.on(Events.PROJECTS_SCANNED, ({ projects }) => {
+      lastScannedProjects = projects
+      refreshTrayRecent()
+    })
+
+    // 托盘打开项目后轻量刷新：appendRecentOpened 已在 system-bridge 写盘，此处只重读记录重排
+    bus.on(Events.PROJECT_OPENED, () => {
+      refreshTrayRecent()
     })
 
     // 启动期一次性探测可用 IDE（异步，不阻塞窗口）。结果缓存在 system-bridge 模块，

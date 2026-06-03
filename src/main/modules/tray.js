@@ -39,15 +39,67 @@ function showMainWindow(getMainWindow, { tab } = {}) {
 }
 
 /**
+ * 构建右键菜单模板并更新托盘菜单
+ * @param {() => import('electron').BrowserWindow | null} getMainWindow
+ * @param {() => void} onQuit
+ * @param {{ name: string, path: string }[]} recentProjects 最近修改的项目列表（最多5个）
+ * @param {(projectPath: string) => void} openProject 打开项目的回调
+ */
+/**
+ * 截断过长的项目名：超过 maxLen 时保留首尾，中间用省略号替换
+ * 例：maxLen=32，"very-long-project-name-here-foo-bar" → "very-long-project-name-…oo-bar"
+ */
+function truncateName(name, maxLen = 32) {
+  if (name.length <= maxLen) return name
+  const half = Math.floor((maxLen - 1) / 2)
+  return name.slice(0, half) + '…' + name.slice(name.length - (maxLen - 1 - half))
+}
+
+function buildContextMenu(getMainWindow, onQuit, recentProjects, openProject) {
+  const template = []
+
+  // 最近项目区块（有项目时才展示）
+  if (recentProjects && recentProjects.length > 0) {
+    template.push({
+      label: '最近打开项目',
+      enabled: false
+    })
+    for (const proj of recentProjects) {
+      template.push({
+        label: `📁 ${truncateName(proj.name)}`,
+        click: () => openProject(proj.path)
+      })
+    }
+    template.push({ type: 'separator' })
+  }
+
+  template.push(
+    {
+      label: '打开主窗口',
+      click: () => showMainWindow(getMainWindow, { tab: 'projects' })
+    },
+    {
+      label: '退出',
+      click: () => {
+        if (typeof onQuit === 'function') onQuit()
+      }
+    }
+  )
+
+  return Menu.buildFromTemplate(template)
+}
+
+/**
  * 创建系统托盘（应用生命周期内常驻）
  *
  * @param {{
  *   getMainWindow: () => import('electron').BrowserWindow | null,
- *   onQuit: () => void
+ *   onQuit: () => void,
+ *   openProject: (projectPath: string) => void
  * }} options
  * @returns {Tray | null} 创建失败返回 null，不阻断启动
  */
-function setupTray({ getMainWindow, onQuit }) {
+function setupTray({ getMainWindow, onQuit, openProject }) {
   if (trayInstance) return trayInstance
 
   let tray
@@ -59,27 +111,25 @@ function setupTray({ getMainWindow, onQuit }) {
   }
 
   tray.setToolTip('ProjectHelper')
-
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: '打开主窗口',
-      // 菜单项是"回到首页"语义，强制切到项目页
-      click: () => showMainWindow(getMainWindow, { tab: 'projects' })
-    },
-    {
-      label: '退出',
-      click: () => {
-        if (typeof onQuit === 'function') onQuit()
-      }
-    }
-  ])
-  tray.setContextMenu(contextMenu)
+  tray.setContextMenu(buildContextMenu(getMainWindow, onQuit, [], openProject))
 
   // 左键单击与"打开主窗口"菜单项行为一致：恢复窗口并切回项目页
   tray.on('click', () => showMainWindow(getMainWindow, { tab: 'projects' }))
 
   trayInstance = tray
   return tray
+}
+
+/**
+ * 用新的最近项目列表更新托盘右键菜单
+ * @param {{ name: string, path: string }[]} recentProjects
+ * @param {() => import('electron').BrowserWindow | null} getMainWindow
+ * @param {() => void} onQuit
+ * @param {(projectPath: string) => void} openProject
+ */
+function updateTrayMenu(recentProjects, getMainWindow, onQuit, openProject) {
+  if (!trayInstance || trayInstance.isDestroyed()) return
+  trayInstance.setContextMenu(buildContextMenu(getMainWindow, onQuit, recentProjects, openProject))
 }
 
 /** 释放托盘资源：仅在 before-quit / dev 热重载时调用 */
@@ -92,5 +142,6 @@ function destroyTray() {
 
 module.exports = {
   setupTray,
-  destroyTray
+  destroyTray,
+  updateTrayMenu
 }

@@ -5,7 +5,8 @@ const fsp = require('node:fs/promises')
 const { exec, spawn } = require('node:child_process')
 const os = require('node:os')
 
-const { readConfig, patchConfig } = require('./config-store')
+const { readConfig, patchConfig, appendRecentOpened } = require('./config-store')
+const { bus, Events } = require('./event-bus')
 
 /** 创建主窗口：无边框，使用自定义顶部 banner */
 function createWindow() {
@@ -106,6 +107,53 @@ function remapPathPrefix(p, oldBase, newBase) {
     return { value: path.join(newBase, resolved.slice(oldResolved.length)), changed: true }
   }
   return { value: p, changed: false }
+}
+
+/**
+ * 主进程内部用：用默认 IDE 打开项目路径
+ * 优先 detectedIdes[0]（启动期探测的第一个可用 IDE），
+ * 降级顺序：vscode CLI → shell.openPath（系统默认程序打开文件夹）
+ */
+function openProjectWithDefaultIde(targetPath) {
+  if (!targetPath) return
+
+  const tryExec = (cli) =>
+    new Promise((resolve) => {
+      exec(`${cli} "${targetPath}"`, { shell: true, windowsHide: true }, (err) => resolve(!err))
+    })
+
+  const notifyOpened = async () => {
+    await appendRecentOpened(targetPath).catch(() => {})
+    bus.emit(Events.PROJECT_OPENED, { projectPath: targetPath })
+  }
+
+  const run = async () => {
+    const first = detectedIdes.find((x) => x.available)
+    if (first) {
+      const ok = await tryExec(first.cli)
+      if (ok) {
+        notifyOpened()
+        return
+      }
+    }
+
+    // 兜底：vscode
+    if (!first || first.cli !== 'code') {
+      const ok = await tryExec('code')
+      if (ok) {
+        notifyOpened()
+        return
+      }
+    }
+
+    // 最终兜底：系统默认程序打开文件夹
+    shell
+      .openPath(targetPath)
+      .then(() => notifyOpened())
+      .catch(() => {})
+  }
+
+  run().catch((err) => console.error('[tray] 打开项目失败:', err.message))
 }
 
 /**
@@ -231,11 +279,15 @@ function registerSystemBridge() {
       if (!targetPath) return resolve({ ok: false, message: '路径为空' })
       const ide = SUPPORTED_IDES.find((x) => x.id === id)
       if (!ide) return resolve({ ok: false, message: `未知 IDE：${id}` })
-      // 用双引号包裹路径，规避路径中空格；CLI 名来自白名单，无注入风险
       const cmd = `${ide.cli} "${targetPath}"`
-      exec(cmd, { shell: true, windowsHide: true }, (err, _stdout, stderr) => {
-        if (err) resolve({ ok: false, message: stderr || err.message })
-        else resolve({ ok: true })
+      exec(cmd, { shell: true, windowsHide: true }, async (err, _stdout, stderr) => {
+        if (err) {
+          resolve({ ok: false, message: stderr || err.message })
+        } else {
+          await appendRecentOpened(targetPath).catch(() => {})
+          bus.emit(Events.PROJECT_OPENED, { projectPath: targetPath })
+          resolve({ ok: true })
+        }
       })
     })
   })
@@ -407,5 +459,10 @@ while ((Get-Date) -lt $end) { [System.Windows.Forms.Application]::DoEvents(); St
 module.exports = {
   createWindow,
   detectIdesOnce,
-  registerSystemBridge
+  registerSystemBridge,
+  /**
+   * 主进程内部用：用默认 IDE 打开项目路径
+   * 优先 detectedIdes[0]，不存在则尝试 vscode，再降级 shell.openPath
+   */
+  openProjectWithDefaultIde
 }

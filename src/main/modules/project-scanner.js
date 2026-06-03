@@ -3,6 +3,7 @@ const path = require('node:path')
 const fsp = require('node:fs/promises')
 
 const { cleanupInvalidPaths } = require('./config-store')
+const { bus, Events } = require('./event-bus')
 
 // ==================== 项目扫描 ====================
 /**
@@ -168,6 +169,49 @@ async function readProjectMeta(dir) {
   }
 }
 
+/**
+ * 取项目目录的最近活跃时间戳（ms）：max(mtimeMs, ctimeMs)
+ * 用于无打开记录时的补齐排序，stat 失败时返回 0
+ */
+async function getProjectLastOpened(dir) {
+  try {
+    const st = await fsp.stat(dir)
+    return Math.max(st.mtimeMs, st.ctimeMs)
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * 取最近打开项目列表（混合策略）：
+ * 1. 优先按 recent_opened 记录（openedAt 降序）
+ * 2. 不足 n 个时，从剩余项目中按 max(mtime, ctime) 降序补齐
+ *
+ * @param {object[]} projects 已扫描项目列表（含 lastOpened 字段）
+ * @param {{ path: string, openedAt: number }[]} recentOpened config 中的打开记录
+ * @param {number} n 最多返回条数
+ */
+function getRecentProjects(projects, recentOpened = [], n = 5) {
+  const openedMap = new Map((recentOpened || []).map((r) => [r.path, r.openedAt]))
+
+  // 有打开记录的项目，按 openedAt 降序
+  const recorded = projects
+    .filter((p) => openedMap.has(p.path))
+    .sort((a, b) => (openedMap.get(b.path) || 0) - (openedMap.get(a.path) || 0))
+    .slice(0, n)
+
+  if (recorded.length >= n) return recorded
+
+  // 补齐：无记录的项目按 max(mtime, ctime) 降序
+  const recordedPaths = new Set(recorded.map((p) => p.path))
+  const fallback = projects
+    .filter((p) => !recordedPaths.has(p.path))
+    .sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0))
+    .slice(0, n - recorded.length)
+
+  return [...recorded, ...fallback]
+}
+
 /** 路径标准化用于 exclude 匹配 */
 function normalize(p) {
   return path.resolve(p).toLowerCase()
@@ -217,8 +261,11 @@ async function scanProjects(roots, depth, excludes) {
 
     // 当前层若是项目则收录，但不影响下钻：monorepo 场景外层项目里可能还有子项目
     if (forced || (await isProject(dir))) {
-      const meta = await readProjectMeta(dir)
-      projects.push({ path: dir, ...meta })
+      const [meta, lastOpened] = await Promise.all([
+        readProjectMeta(dir),
+        getProjectLastOpened(dir)
+      ])
+      projects.push({ path: dir, ...meta, lastOpened })
     }
 
     // 已到深度边界，无需下钻
@@ -266,10 +313,13 @@ function registerScannerIpc() {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
       return a.name.localeCompare(b.name)
     })
+    // 通知其他模块（如托盘）项目列表已更新
+    bus.emit(Events.PROJECTS_SCANNED, { projects: list })
     return list
   })
 }
 
 module.exports = {
-  registerScannerIpc
+  registerScannerIpc,
+  getRecentProjects
 }

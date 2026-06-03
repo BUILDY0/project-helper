@@ -189,7 +189,12 @@ async function cleanupInvalidPaths() {
  */
 async function patchConfig(patch) {
   const prev = await readConfig()
-  // 仅取持久化字段，剔除 config_path / mtime 等派生字段
+  // 先读原始 JSON 以保留 recent_opened 等不经过 normalizeConfig 的字段
+  let rawJson = {}
+  try {
+    const text = await fsp.readFile(CONFIG_PATH, 'utf-8')
+    rawJson = JSON.parse(text)
+  } catch {}
   const base = {
     paths: prev.paths,
     depth: prev.depth,
@@ -199,13 +204,47 @@ async function patchConfig(patch) {
     auto_run_startup: prev.auto_run_startup,
     auto_check_update: prev.auto_check_update,
     tray: prev.tray,
-    auto_clear_installer: prev.auto_clear_installer
+    auto_clear_installer: prev.auto_clear_installer,
+    // 保留未经 normalizeConfig 管理的字段
+    ...(Array.isArray(rawJson.recent_opened) ? { recent_opened: rawJson.recent_opened } : {})
   }
   await writeConfig({ ...base, ...(patch || {}) })
 }
 
 async function writePinned(pinned) {
   await patchConfig({ pinned: Array.isArray(pinned) ? pinned : [] })
+}
+
+/** 读取最近打开记录，返回 { path, openedAt }[]，最旧优先（读取时不做排序，由调用方排） */
+async function readRecentOpened() {
+  try {
+    await ensureConfigFile()
+    const text = await fsp.readFile(CONFIG_PATH, 'utf-8')
+    const json = JSON.parse(text)
+    return Array.isArray(json?.recent_opened) ? json.recent_opened : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 追加一条打开记录：同路径去重后插到末尾，总条数上限 20
+ * 直接读写原始 JSON，不走 patchConfig 的双层 IO 链
+ */
+async function appendRecentOpened(projectPath) {
+  if (!projectPath) return
+  try {
+    await ensureConfigFile()
+    const text = await fsp.readFile(CONFIG_PATH, 'utf-8')
+    const json = JSON.parse(text)
+    const list = Array.isArray(json.recent_opened) ? json.recent_opened : []
+    const filtered = list.filter((r) => r.path !== projectPath)
+    filtered.push({ path: projectPath, openedAt: Date.now() })
+    json.recent_opened = filtered.slice(-20)
+    await fsp.writeFile(CONFIG_PATH, JSON.stringify(json, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('[config] appendRecentOpened 失败:', err.message)
+  }
 }
 
 async function writeTheme(theme) {
@@ -364,5 +403,7 @@ module.exports = {
   applyAutoRunStartup,
   getSystemLoginItemEnabled,
   syncAutoRunStartupOnStartup,
+  readRecentOpened,
+  appendRecentOpened,
   registerConfigIpc
 }

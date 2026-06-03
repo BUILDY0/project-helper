@@ -17,7 +17,11 @@ const bus = new EventEmitter()
 /** 已登记的事件名常量。值即事件字符串，统一从这里取避免拼写漂移 */
 const Events = Object.freeze({
   /** 配置已落盘并完成归一化。payload: { config } —— 完整最新配置（含派生字段） */
-  CONFIG_SAVED: 'config:saved'
+  CONFIG_SAVED: 'config:saved',
+  /** 项目扫描完成。payload: { projects } —— 完整项目列表（含 lastModified） */
+  PROJECTS_SCANNED: 'projects:scanned',
+  /** 通过托盘打开了某个项目。payload: { projectPath } */
+  PROJECT_OPENED: 'project:opened'
 })
 
 module.exports = {
