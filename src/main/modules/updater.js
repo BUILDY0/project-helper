@@ -103,6 +103,19 @@ function registerUpdaterIpc() {
 
   // 返回当前版本号
   ipcMain.handle('app:get-version', () => app.getVersion())
+
+  // 关于弹窗所需运行时信息
+  ipcMain.handle('app:get-info', () => {
+    const os = require('os')
+    return {
+      version: app.getVersion(),
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+      node: process.versions.node,
+      v8: process.versions.v8,
+      os: `${os.type()} ${process.arch} ${os.release()}`
+    }
+  })
 }
 
 module.exports = {

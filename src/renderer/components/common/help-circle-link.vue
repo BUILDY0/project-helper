@@ -11,23 +11,30 @@
 import { computed } from 'vue'
 import IconGithub from '@/components/icons/icon-github.vue'
 import IconDocs from '@/components/icons/icon-docs.vue'
+import IconInfo from '@/components/icons/icon-info.vue'
 
 const props = defineProps({
   label: { type: String, required: true },
-  url: { type: String, required: true },
-  /** 图标 key：当前支持 'docs'(默认) / 'github'，按需扩展 */
+  /** 外链 url；留空时点击触发 action 事件而非外链跳转 */
+  url: { type: String, default: '' },
+  /** 图标 key：'docs'(默认) / 'github' / 'info' */
   icon: { type: String, default: 'docs' }
 })
 
-const emit = defineEmits(['error'])
+const emit = defineEmits(['error', 'action'])
 
 const ICON_MAP = {
   github: IconGithub,
-  docs: IconDocs
+  docs: IconDocs,
+  info: IconInfo
 }
 const iconComponent = computed(() => ICON_MAP[props.icon] || IconDocs)
 
 async function onOpen() {
+  if (!props.url) {
+    emit('action')
+    return
+  }
   const r = await window.api.openExternal(props.url)
   if (!r?.ok) emit('error', r?.message || '打开链接失败')
 }

@@ -160,6 +160,7 @@
             :label="item.label"
             :url="item.url"
             :icon="item.icon"
+            @action="onHelpAction(item)"
             @error="onHelpOpenError"
           />
         </div>
@@ -177,6 +178,13 @@
     />
 
     <BaseToast ref="toastRef" />
+
+    <AboutDialog
+      :visible="aboutVisible"
+      @close="aboutVisible = false"
+      @copy-success="toastRef?.show('已复制到剪贴板', 'success')"
+      @copy-error="(msg) => toastRef?.show(`复制失败：${msg}`, 'error')"
+    />
   </PageLayout>
 </template>
 
@@ -194,6 +202,7 @@ import InlineToggle from '@/components/common/inline-toggle.vue'
 import UpdateCheckButton from './components/update-check-button.vue'
 import SettingField from './components/setting-field.vue'
 import PathListItem from './components/path-list-item.vue'
+import AboutDialog from './components/about-dialog.vue'
 import { useConfig } from './composables/use-config.js'
 import { useScanPaths, DEFAULT_DEPTH } from './composables/use-scan-paths.js'
 import { useExcludePaths } from './composables/use-exclude-paths.js'
@@ -222,6 +231,11 @@ const HELP_ITEMS = [
     label: 'GitHub',
     icon: 'github',
     url: 'https://github.com/BUILDY0/project-helper'
+  },
+  {
+    label: '关于',
+    icon: 'info',
+    url: ''
   }
 ]
 
@@ -230,6 +244,7 @@ const props = defineProps({
 })
 
 const toastRef = ref(null)
+const aboutVisible = ref(false)
 
 // 应用版本号
 const { appVersion } = useAppVersion()
@@ -351,6 +366,12 @@ async function onOpenConfigFolder() {
 
 function onHelpOpenError(message) {
   toastRef.value?.show(`打开链接失败：${message}`, 'error')
+}
+
+async function onHelpAction(item) {
+  if (item.icon === 'info') {
+    aboutVisible.value = true
+  }
 }
 
 // 检查更新按钮回调

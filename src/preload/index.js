@@ -78,6 +78,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // 应用版本号
   getAppVersion: () => ipcRenderer.invoke('app:get-version'),
+  // 关于弹窗运行时信息
+  getAppInfo: () => ipcRenderer.invoke('app:get-info'),
 
   // 自动更新：手动检查 / 开始下载 / 安装并重启
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),

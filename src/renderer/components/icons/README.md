@@ -118,3 +118,4 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 | `icon-maximize.vue`   | 窗口最大化                             | VSCode codicons (chrome-maximize) |
 | `icon-restore.vue`    | 窗口还原                               | VSCode codicons (chrome-restore)  |
 | `icon-close.vue`      | 窗口关闭                               | VSCode codicons (chrome-close)    |
+| `icon-info.vue`       | 关于弹窗入口                           | lucide 风格 stroke 描线           |
