@@ -1,0 +1,11 @@
+---
+description: Load caveman skill at the start of every session to enable ultra-compressed communication mode.
+alwaysApply: true
+enabled: true
+---
+
+# 每次会话自动启用 Caveman 模式
+
+每个会话开始时，加载项目级 skill `caveman`，默认使用 **full** 级别。
+
+用户说 `stop caveman` 或 `normal mode` 时关闭。
