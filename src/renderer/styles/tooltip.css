@@ -1,4 +1,4 @@
-/* ===== Tooltip 样式：单例节点 .app-tooltip + 箭头 .app-tooltip__arrow =====
+/* ===== Tooltip 样式：单例节点 .app-tooltip =====
  * tooltip 的颜色变量（--tooltip-bg / --tooltip-fg / --tooltip-border / --tooltip-shadow）
  * 统一在 themes.css 中按主题维护，本文件只关注布局与动效。
  */
@@ -55,46 +55,4 @@
 }
 .app-tooltip__content strong {
   font-weight: 600;
-}
-
-/* 箭头：6px 等边小方块旋转 45°；位置由 JS 设置 left 或 top，方向由 dataset.placement 决定贴哪条边 */
-.app-tooltip__arrow {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: var(--tooltip-bg);
-  border: 1px solid var(--tooltip-border);
-  transform: rotate(45deg);
-  /* 默认中心位置；JS 会按 placement 覆盖具体偏移 */
-  pointer-events: none;
-}
-
-/* 顶部展示：箭头贴底边并下移一半 */
-.app-tooltip[data-placement='top'] .app-tooltip__arrow {
-  bottom: -5px;
-  margin-left: -4px;
-  /* 仅显示底部右边的两条边（旋转后视觉上是底部）*/
-  border-top: none;
-  border-left: none;
-}
-
-.app-tooltip[data-placement='bottom'] .app-tooltip__arrow {
-  top: -5px;
-  margin-left: -4px;
-  border-bottom: none;
-  border-right: none;
-}
-
-.app-tooltip[data-placement='left'] .app-tooltip__arrow {
-  right: -5px;
-  margin-top: -4px;
-  border-bottom: none;
-  border-left: none;
-}
-
-.app-tooltip[data-placement='right'] .app-tooltip__arrow {
-  left: -5px;
-  margin-top: -4px;
-  border-top: none;
-  border-right: none;
 }

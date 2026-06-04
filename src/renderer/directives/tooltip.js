@@ -23,7 +23,6 @@ const GAP = 8 // tooltip 与触发元素之间的间距
 
 // ===== 单例 tooltip 节点 =====
 let tipEl = null
-let arrowEl = null
 
 /** 懒创建单例节点 */
 function ensureTip() {
@@ -31,12 +30,9 @@ function ensureTip() {
   tipEl = document.createElement('div')
   tipEl.className = 'app-tooltip'
   tipEl.setAttribute('role', 'tooltip')
-  arrowEl = document.createElement('div')
-  arrowEl.className = 'app-tooltip__arrow'
   const content = document.createElement('div')
   content.className = 'app-tooltip__content'
   tipEl.appendChild(content)
-  tipEl.appendChild(arrowEl)
   document.body.appendChild(tipEl)
   return tipEl
 }
@@ -200,20 +196,6 @@ function place(triggerRect, placement) {
   tip.dataset.placement = final
   tip.style.left = `${Math.round(pos.x)}px`
   tip.style.top = `${Math.round(pos.y)}px`
-
-  // 箭头：按 final 方向定位到触发元素中心相对 tooltip 的偏移
-  if (final === 'top' || final === 'bottom') {
-    const center = triggerRect.left + triggerRect.width / 2
-    // 箭头在 tooltip 内的水平偏移；夹紧避免溢出 tooltip 边界
-    const ax = Math.max(10, Math.min(center - pos.x, tipRect.width - 10))
-    arrowEl.style.left = `${ax}px`
-    arrowEl.style.top = ''
-  } else {
-    const center = triggerRect.top + triggerRect.height / 2
-    const ay = Math.max(10, Math.min(center - pos.y, tipRect.height - 10))
-    arrowEl.style.top = `${ay}px`
-    arrowEl.style.left = ''
-  }
 }
 
 /** 真正展示 tooltip */
