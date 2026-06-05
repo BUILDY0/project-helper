@@ -68,7 +68,7 @@ export function useContextMenu({ availableIdes, actions }) {
   async function onMenuSelect(item) {
     const p = ctxTarget.value
     if (!p) return
-    // IDE 打开：action 形如 `open-ide:vscode`
+    // IDE 打开：action 形如 `open-ide:<id>`
     if (typeof item.action === 'string' && item.action.startsWith('open-ide:')) {
       const id = item.action.slice('open-ide:'.length)
       await actions.openInIde(id, p)

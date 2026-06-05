@@ -2,7 +2,7 @@
   <!-- 项目页顶部工具栏：标题 + 计数 + 搜索 + 回到顶部 + 刷新；自管两端对齐布局 -->
   <div class="toolbar">
     <div class="page-title">
-      我的项目
+      本地项目
       <!-- 用定宽容器包裹 count，避免筛选时数字位数变化导致后面元素位移 -->
       <div class="count-wrap">
         <span class="count">

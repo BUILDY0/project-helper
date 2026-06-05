@@ -58,10 +58,24 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
   /** 用指定 IDE 打开路径，id 取自 detectIdes 返回项 */
   openInIde: (id, p) => ipcRenderer.invoke('shell:open-in-ide', { id, targetPath: p }),
+  /** 用"默认 IDE"打开路径（优先级：ide_cfg.default > 第一个可用 > vscode > 文件管理器） */
+  openWithDefaultIde: (p) => ipcRenderer.invoke('shell:open-with-default', p),
   /** 读取启动期探测缓存的 IDE 列表（含 available 字段），不会触发新探测 */
   getAvailableIdes: () => ipcRenderer.invoke('ide:get-available'),
   /** 强制重新探测受支持 IDE 的可用性，并刷新主进程缓存 */
   detectIdes: () => ipcRenderer.invoke('ide:detect'),
+  /** 探测单个 entry 是否在系统 PATH 中存在（弹窗"检测"按钮用） */
+  probeIdeEntry: (entry) => ipcRenderer.invoke('ide:probe-entry', entry),
+  /** 调试 IDE 脚本：执行占位替换后的命令，验证可执行性 */
+  debugIdeScript: (cmd) => ipcRenderer.invoke('ide:debug-script', cmd),
+  /** 保存 ide_cfg 到 config.json */
+  saveIdeConfig: (payload) => ipcRenderer.invoke('ide:save-config', payload),
+  /** 监听 ide:detect 逐步推送的进度（每完成一个 entry 触发一次） */
+  onIdeDetectProgress: (cb) => {
+    const listener = (_e, val) => cb(val)
+    ipcRenderer.on('ide:detect-progress', listener)
+    return () => ipcRenderer.removeListener('ide:detect-progress', listener)
+  },
   deleteFolder: (p, options = {}) =>
     ipcRenderer.invoke('shell:delete-folder', { targetPath: p, force: !!options.force }),
   /** 同级目录下重命名项目文件夹，返回 { ok, path }（path 为新绝对路径） */

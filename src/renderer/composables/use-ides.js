@@ -1,60 +1,89 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 /**
- * 全局可用 IDE 列表（模块级单例，整个 app 生命周期共享一份缓存）
+ * 全局 IDE 状态（模块级单例）
  *
- * 数据来源：主进程在 app.whenReady 后一次性探测 SUPPORTED_IDES 中每个 IDE 的 CLI 是否可用，
- * 结果缓存在主进程的 detectedIdes，渲染层通过 ide:get-available 读取该缓存，避免每次右键
- * 菜单都触发 exec。
- *
- * 列表顺序与主进程 SUPPORTED_IDES 一致（VS Code → CodeBuddy → WebStorm → IDEA → Cursor → Trae），
- * 过滤掉 available=false 的项。
+ * - allDetectedIdes：主进程探测结果全集（含 available=false 的项），用于设置页展示
+ * - 检测支持推送机制：ide:detect-progress 事件逐步更新，无需等待全部完成即可渲染
  */
-const availableIdes = ref([])
+const allDetectedIdes = ref([])
 
-// 用 Promise 标记是否已发起初始化；多个组件同时挂载时复用同一次请求
 let initPromise = null
+let progressUnlisten = null
 
 /**
  * 首次拉取：
  * 1. 先读主进程已缓存结果（ide:get-available），命中即用，零等待。
- * 2. 缓存为空说明主进程仍在探测（IDE CLI 冷启动可能耗时数秒），主动调用
- *    ide:detect 让主进程把当前那次探测 await 完再返回，避免渲染层做重试 / 轮询。
- *    主进程的 detectIdesOnce 内部会覆盖同一个 detectedIdes 变量，多次并发调用语义安全。
+ * 2. 缓存为空说明主进程仍在探测，注册推送监听后调用 ide:detect 等待完成。
  */
 async function fetchOnce() {
   try {
     const cached = (await window.api.getAvailableIdes()) || []
     if (cached.length > 0) {
-      availableIdes.value = cached.filter((x) => x.available)
+      allDetectedIdes.value = cached
       return
     }
-    // 缓存空：等主进程把当前探测做完再拿结果
+    // 订阅逐步推送
+    if (progressUnlisten) progressUnlisten()
+    progressUnlisten = window.api.onIdeDetectProgress((list) => {
+      allDetectedIdes.value = list || []
+    })
     const fresh = (await window.api.detectIdes()) || []
-    availableIdes.value = fresh.filter((x) => x.available)
+    allDetectedIdes.value = fresh
   } catch {
-    // 任一步骤失败都退化为空数组：右键菜单不出现 IDE 项，双击降级走 vscode 兜底
-    availableIdes.value = []
+    allDetectedIdes.value = []
+  } finally {
+    if (progressUnlisten) {
+      progressUnlisten()
+      progressUnlisten = null
+    }
   }
 }
 
 /**
- * Composable：返回全局 availableIdes 引用与刷新方法
- * - 首次调用时触发一次拉取；后续调用复用同一份响应式引用
- * - refresh 用于用户主动触发重新探测（例如安装了新 IDE 后），会强制主进程重测
+ * Composable：返回全局 IDE 状态与操作方法
+ *
+ * @param {{ excludeIds?: import('vue').Ref<string[]> }} [opts]
+ *   excludeIds：需要在右键菜单中排除的 IDE id 列表（来自 ide_cfg.exclude）
  */
-export function useIdes() {
+export function useIdes(opts = {}) {
   if (!initPromise) {
     initPromise = fetchOnce()
   }
-  /** 强制重新探测：调用主进程 detectIdes，更新主进程缓存与本地引用 */
+
+  /** 所有已检测的 IDE（含不可用），用于设置页下拉选项 */
+  const detectedIdes = computed(() => allDetectedIdes.value)
+
+  /** 检测到的可用 IDE，过滤不可用 */
+  const availableIdes = computed(() => allDetectedIdes.value.filter((x) => x.available))
+
+  /**
+   * 右键菜单展示的 IDE 列表：仅可用 + 不在 exclude 列表中
+   * excludeIds 由调用方传入（响应式 Ref）
+   */
+  const menuIdes = computed(() => {
+    const excludeSet = new Set(opts.excludeIds?.value || [])
+    return availableIdes.value.filter((x) => !excludeSet.has(x.id))
+  })
+
+  /** 强制重新探测，支持推送回调实时更新 allDetectedIdes */
   async function refresh() {
     try {
+      if (progressUnlisten) progressUnlisten()
+      progressUnlisten = window.api.onIdeDetectProgress((list) => {
+        allDetectedIdes.value = list || []
+      })
       const list = (await window.api.detectIdes()) || []
-      availableIdes.value = list.filter((x) => x.available)
+      allDetectedIdes.value = list
     } catch {
-      availableIdes.value = []
+      // 保留现有状态，不清空
+    } finally {
+      if (progressUnlisten) {
+        progressUnlisten()
+        progressUnlisten = null
+      }
     }
   }
-  return { availableIdes, refresh }
+
+  return { detectedIdes, availableIdes, menuIdes, refresh }
 }

@@ -6,6 +6,7 @@ const os = require('node:os')
 const { normalizePaths, PathType } = require('../../shared/path-types.js')
 const { DEFAULT_THEME, normalizeTheme } = require('../../shared/theme.js')
 const { bus, Events } = require('./event-bus.js')
+const { normalizeJSONObject } = require('../../shared/data.js')
 
 // 应用工作目录与配置文件：放在用户主目录下的独立目录，避免污染 home
 const APP_HOME = path.join(os.homedir(), '.project-helper')
@@ -28,12 +29,14 @@ const DEFAULT_CONFIG = {
   theme: DEFAULT_THEME,
   auto_run_startup: false,
   auto_check_update: true,
-  tray: true,
-  auto_clear_installer: false
+  tray: false,
+  auto_clear_installer: false,
+  ide_cfg: { default: '', exclude: [], extends: [] }
 }
 
 /** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
 function normalizeConfig(json) {
+  const rawIdeCfg = json?.ide_cfg
   return {
     paths: normalizePaths(json?.paths),
     depth: typeof json?.depth === 'number' ? json.depth : 1,
@@ -41,12 +44,14 @@ function normalizeConfig(json) {
     pinned: Array.isArray(json?.pinned) ? json.pinned : [],
     theme: normalizeTheme(json?.theme),
     auto_run_startup: !!json?.auto_run_startup,
-    // 老配置缺省时回退默认值 true，保持"默认开启自动检查"的行为
     auto_check_update: typeof json?.auto_check_update === 'boolean' ? json.auto_check_update : true,
-    // 关闭按钮是否最小化到托盘；老配置缺省时默认开启
-    tray: typeof json?.tray === 'boolean' ? json.tray : true,
-    // 空闲时自动清理安装包缓存目录；默认关闭
-    auto_clear_installer: !!json?.auto_clear_installer
+    tray: typeof json?.tray === 'boolean' ? json.tray : false,
+    auto_clear_installer: !!json?.auto_clear_installer,
+    ide_cfg: {
+      default: typeof rawIdeCfg?.default === 'string' ? rawIdeCfg.default : '',
+      exclude: Array.isArray(rawIdeCfg?.exclude) ? rawIdeCfg.exclude : [],
+      extends: Array.isArray(rawIdeCfg?.extends) ? rawIdeCfg.extends : []
+    }
   }
 }
 
@@ -205,6 +210,7 @@ async function patchConfig(patch) {
     auto_check_update: prev.auto_check_update,
     tray: prev.tray,
     auto_clear_installer: prev.auto_clear_installer,
+    ide_cfg: prev.ide_cfg ?? { default: '', exclude: [], extends: [] },
     // 保留未经 normalizeConfig 管理的字段
     ...(Array.isArray(rawJson.recent_opened) ? { recent_opened: rawJson.recent_opened } : {})
   }
@@ -335,6 +341,15 @@ function registerConfigIpc() {
       typeof payload?.auto_clear_installer === 'boolean'
         ? payload.auto_clear_installer
         : prev.auto_clear_installer
+    const rawIdeCfg = payload?.ide_cfg
+    const ideCfg = {
+      default:
+        typeof rawIdeCfg?.default === 'string' ? rawIdeCfg.default : (prev.ide_cfg?.default ?? ''),
+      exclude: Array.isArray(rawIdeCfg?.exclude)
+        ? rawIdeCfg.exclude
+        : (prev.ide_cfg?.exclude ?? []),
+      extends: Array.isArray(rawIdeCfg?.extends) ? rawIdeCfg.extends : (prev.ide_cfg?.extends ?? [])
+    }
     await writeConfig({
       paths: normalizePaths(payload?.paths),
       depth,
@@ -344,7 +359,8 @@ function registerConfigIpc() {
       auto_run_startup: autoRun,
       auto_check_update: autoCheckUpdate,
       tray,
-      auto_clear_installer: autoClearInstaller
+      auto_clear_installer: autoClearInstaller,
+      ide_cfg: ideCfg
     })
 
     // 仅在变化时调 setLoginItemSettings，避免无谓写注册表

@@ -7,6 +7,7 @@ const os = require('node:os')
 
 const { readConfig, patchConfig, appendRecentOpened } = require('./config-store')
 const { bus, Events } = require('./event-bus')
+const { runWithConcurrency } = require('../../shared/task')
 
 /** 创建主窗口：无边框，使用自定义顶部 banner */
 function createWindow() {
@@ -48,43 +49,123 @@ function createWindow() {
 }
 
 /**
- * 已支持的 IDE 列表：
- * - id：渲染层用来标识/定位的 key
- * - label：菜单展示名
- * - cli：CLI 命令名，依赖系统 PATH 解析（Windows 下通常是 .cmd 包装脚本）
- *
- * 探测：`where <cli>`，能解析到即可用。
- * 打开：`<cli> "<path>"`，路径双引号包裹规避空格。
+ * 默认 IDE 配置：
+ * - id：唯一标识，渲染层 action key；默认配置写死字符串，用户配置自动生成 `${entry}::${script}`
+ * - name：IDE 名称，用于占位符 `<name>` 的解析
+ * - label：菜单展示名，支持 `<name>`/`<entry>` 占位符
+ * - entry：CLI 入口命令，用于 `where <entry>` 探测可用性；多条配置可共享同一 entry，
+ *   内部用 Set 去重，每个 entry 只探测一次
+ * - script：执行命令模板，支持 `<name>`/`<entry>`/`<path>` 占位符
  *
  * 数组顺序即菜单展示顺序：VS Code → CodeBuddy → 其它 VSCode fork。
  */
-const SUPPORTED_IDES = [
-  { id: 'vscode', label: 'VS Code 打开', cli: 'code' },
-  { id: 'codebuddy', label: 'CodeBuddy 打开', cli: 'buddycn' },
-  { id: 'cursor', label: 'Cursor 打开', cli: 'cursor' },
-  { id: 'trae', label: 'Trae 打开', cli: 'trae-cn' }
+const DEFAULT_IDES = [
+  { id: 'vscode', name: 'VS Code', entry: 'code', label: '<name> 打开', script: '<entry> <path>' },
+  {
+    id: 'codebuddy-cn',
+    name: 'CodeBuddy CN',
+    entry: 'buddycn',
+    label: '<name> 打开',
+    script: '<entry> <path>'
+  },
+  { id: 'cursor', name: 'Cursor', entry: 'cursor', label: '<name> 打开', script: '<entry> <path>' },
+  {
+    id: 'trae-cn',
+    name: 'Trae-CN',
+    entry: 'trae-cn',
+    label: '<name> 打开',
+    script: '<entry> <path>'
+  }
 ]
 
-/** 探测 CLI 是否可用：执行 `where <cli>`，PATH 能解析到即视为可用 */
-function probeIdeCli(cli) {
+/**
+ * 将模板字符串中的静态占位符替换为 ide 对应字段值。
+ * - `<name>`  → ide.name
+ * - `<entry>` → ide.entry
+ * - `<path>`  为运行时参数（目标项目路径），构建期无值，不在此处理，执行时单独替换
+ */
+function resolveIdeMeta(tpl, ide) {
+  return tpl.replace('<name>', ide.name ?? '').replace('<entry>', ide.entry ?? '')
+}
+
+/**
+ * 将默认配置与用户配置归一化合并为最终 IDE 检测列表。
+ * - 默认配置 id 写死；用户配置 id 自动生成为 `${entry}::${script}`
+ * - label/script 中的占位符在此统一解析（<path> 除外，执行时再替换）
+ * - 顺序：默认配置在前，用户配置追加末尾
+ * @param {Array} userIdes 用户自定义 IDE 配置（ide_cfg.extends）
+ */
+function buildIdeList(userIdes = []) {
+  const resolve = (item) => ({
+    ...item,
+    label: resolveIdeMeta(item.label, item),
+    script: resolveIdeMeta(item.script, item)
+  })
+  const defaults = DEFAULT_IDES.map(resolve)
+  const normalized = userIdes.map((item) =>
+    resolve({ ...item, id: `${item.entry}::${item.script}` })
+  )
+  return [...defaults, ...normalized]
+}
+
+/**
+ * 探测单个 entry 是否可用：执行 `where <entry>`，PATH 能解析到即视为可用
+ * @param {string} entry
+ * @returns {Promise<boolean>}
+ */
+function probeIdeEntry(entry) {
   return new Promise((resolve) => {
-    exec(`where ${cli}`, { shell: true, timeout: 3000, windowsHide: true }, (err, stdout) => {
-      resolve({ ok: !err && !!stdout && stdout.trim().length > 0 })
+    exec(`where ${entry}`, { shell: true, timeout: 3000, windowsHide: true }, (err, stdout) => {
+      resolve(!err && !!stdout && stdout.trim().length > 0)
     })
   })
 }
 
-/** 启动期一次性探测的结果缓存，渲染层通过 ide:get-available 读取 */
+/** 已检测到的 IDE 列表缓存；渲染层通过 ide:get-available 读取 */
 let detectedIdes = []
 
-/** 探测所有受支持的 IDE 可用性，并行执行 */
-async function detectIdesOnce() {
-  detectedIdes = await Promise.all(
-    SUPPORTED_IDES.map(async (ide) => {
-      const r = await probeIdeCli(ide.cli)
-      return { id: ide.id, label: ide.label, cli: ide.cli, available: r.ok }
-    })
-  )
+/** 当前运行时 IDE 列表（默认 + 用户配置合并，每次重新探测时由 detectIdesOnce 刷新） */
+let SUPPORTED_IDES = buildIdeList()
+
+/**
+ * 推送机制 IDE 检测：
+ * - 从 config 读取用户扩展配置，合并重建 SUPPORTED_IDES
+ * - 相同 entry 去重，并发数限制为 3
+ * - 每完成一个 entry 探测即推送当前结果（发布订阅），视图层可实时渲染
+ * - 返回最终完整的 detectedIdes
+ * @param {{ onProgress?: (list: Array) => void }} [opts]
+ */
+async function detectIdesOnce(opts = {}) {
+  let userExtends = []
+  try {
+    const cfg = await readConfig()
+    userExtends = Array.isArray(cfg.ide_cfg?.extends) ? cfg.ide_cfg.extends : []
+  } catch {}
+  SUPPORTED_IDES = buildIdeList(userExtends)
+
+  const uniqueEntries = [...new Set(SUPPORTED_IDES.map((ide) => ide.entry))]
+  const entryAvailable = new Map(uniqueEntries.map((e) => [e, false]))
+
+  const buildSnapshot = () =>
+    SUPPORTED_IDES.map((ide) => ({
+      id: ide.id,
+      name: ide.name,
+      label: ide.label,
+      entry: ide.entry,
+      script: ide.script,
+      available: entryAvailable.get(ide.entry) ?? false
+    }))
+
+  const tasks = uniqueEntries.map((entry) => async () => {
+    const ok = await probeIdeEntry(entry)
+    entryAvailable.set(entry, ok)
+    detectedIdes = buildSnapshot()
+    opts.onProgress?.(detectedIdes)
+    return ok
+  })
+
+  await runWithConcurrency(tasks, 3)
+  detectedIdes = buildSnapshot()
   return detectedIdes
 }
 
@@ -111,49 +192,61 @@ function remapPathPrefix(p, oldBase, newBase) {
 
 /**
  * 主进程内部用：用默认 IDE 打开项目路径
- * 优先 detectedIdes[0]（启动期探测的第一个可用 IDE），
- * 降级顺序：vscode CLI → shell.openPath（系统默认程序打开文件夹）
+ * 优先级：ide_cfg.default 配置的 IDE > 检测到的第一个可用 IDE > vscode CLI > shell.openPath
+ * @returns {Promise<{ ok: boolean }>} 托盘调用不关心返回值，渲染层通过 shell:open-with-default 消费
  */
 function openProjectWithDefaultIde(targetPath) {
-  if (!targetPath) return
+  return new Promise((resolve) => {
+    if (!targetPath) return resolve({ ok: false })
 
-  const tryExec = (cli) =>
-    new Promise((resolve) => {
-      exec(`${cli} "${targetPath}"`, { shell: true, windowsHide: true }, (err) => resolve(!err))
-    })
+    const tryExec = (script) =>
+      new Promise((r) => {
+        exec(script, { shell: true, windowsHide: true }, (err) => r(!err))
+      })
 
-  const notifyOpened = async () => {
-    await appendRecentOpened(targetPath).catch(() => {})
-    bus.emit(Events.PROJECT_OPENED, { projectPath: targetPath })
-  }
-
-  const run = async () => {
-    const first = detectedIdes.find((x) => x.available)
-    if (first) {
-      const ok = await tryExec(first.cli)
-      if (ok) {
-        notifyOpened()
-        return
-      }
+    const notifyOpened = async () => {
+      await appendRecentOpened(targetPath).catch(() => {})
+      bus.emit(Events.PROJECT_OPENED, { projectPath: targetPath })
     }
 
-    // 兜底：vscode
-    if (!first || first.cli !== 'code') {
-      const ok = await tryExec('code')
-      if (ok) {
-        notifyOpened()
-        return
+    const buildScript = (ide) => ide.script.replace('<path>', `"${targetPath}"`)
+
+    const run = async () => {
+      let defaultId = null
+      try {
+        const cfg = await readConfig()
+        defaultId = cfg.ide_cfg?.default ?? null
+      } catch {}
+
+      const available = detectedIdes.filter((x) => x.available)
+
+      if (defaultId) {
+        const preferred = available.find((x) => x.id === defaultId)
+        if (preferred && (await tryExec(buildScript(preferred)))) {
+          await notifyOpened()
+          return resolve({ ok: true })
+        }
       }
+
+      const first = available[0]
+      if (first && (await tryExec(buildScript(first)))) {
+        await notifyOpened()
+        return resolve({ ok: true })
+      }
+
+      if (!first || first.entry !== 'code') {
+        if (await tryExec(`code "${targetPath}"`)) {
+          await notifyOpened()
+          return resolve({ ok: true })
+        }
+      }
+
+      await shell.openPath(targetPath).catch(() => {})
+      await notifyOpened()
+      resolve({ ok: true })
     }
-
-    // 最终兜底：系统默认程序打开文件夹
-    shell
-      .openPath(targetPath)
-      .then(() => notifyOpened())
-      .catch(() => {})
-  }
-
-  run().catch((err) => console.error('[tray] 打开项目失败:', err.message))
+    run().catch((err) => resolve({ ok: false, message: err.message }))
+  })
 }
 
 /**
@@ -268,18 +361,82 @@ function registerSystemBridge() {
   /** 直接读取启动期缓存；尚未探测完时返回空数组，渲染层可显式调 ide:detect 等待结果 */
   ipcMain.handle('ide:get-available', () => detectedIdes)
 
-  /** 强制重新探测（例如用户主动点"刷新 IDE"），并更新缓存 */
-  ipcMain.handle('ide:detect', async () => {
-    return await detectIdesOnce()
+  /**
+   * 强制重新探测 IDE 可用性，并通过 ide:detect-progress 事件逐步推送结果。
+   * 返回最终完整列表。
+   */
+  ipcMain.handle('ide:detect', async (e) => {
+    const sender = e.sender
+    return await detectIdesOnce({
+      onProgress: (list) => {
+        if (!sender.isDestroyed()) {
+          sender.send('ide:detect-progress', list)
+        }
+      }
+    })
   })
 
-  /** 用指定 IDE 打开路径，CLI 名以白名单约束，避免渲染层注入任意命令 */
+  /**
+   * 探测单个 entry 是否存在（弹窗"检测"按钮用）
+   * @param {string} entry
+   * @returns {Promise<{ ok: boolean }>}
+   */
+  ipcMain.handle('ide:probe-entry', async (_e, entry) => {
+    if (!entry || typeof entry !== 'string') return { ok: false }
+    const ok = await probeIdeEntry(entry.trim())
+    return { ok }
+  })
+
+  /**
+   * 调试 IDE 脚本：执行占位符已替换好的命令，仅用于验证脚本可执行
+   * @param {string} cmd 已完成占位替换的命令字符串
+   */
+  ipcMain.handle('ide:debug-script', (_e, cmd) => {
+    return new Promise((resolve) => {
+      if (!cmd || typeof cmd !== 'string') return resolve({ ok: false, message: '命令为空' })
+      exec(
+        cmd.trim(),
+        { shell: true, timeout: 5000, windowsHide: true },
+        (err, _stdout, stderr) => {
+          if (err) resolve({ ok: false, message: stderr?.trim() || err.message })
+          else resolve({ ok: true })
+        }
+      )
+    })
+  })
+
+  /**
+   * 保存 ide_cfg 到 config.json（patch 写，不影响其他字段）
+   * @param {{ default?: string, exclude?: string[], extends?: Array }} payload
+   */
+  ipcMain.handle('ide:save-config', async (_e, payload) => {
+    try {
+      const ideCfg = {
+        default: typeof payload?.default === 'string' ? payload.default : '',
+        exclude: Array.isArray(payload?.exclude) ? payload.exclude : [],
+        extends: Array.isArray(payload?.extends) ? payload.extends : []
+      }
+      await patchConfig({ ide_cfg: ideCfg })
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
+  })
+
+  /**
+   * 用"默认 IDE"打开路径：直接调用 openProjectWithDefaultIde，复用降级链。
+   */
+  ipcMain.handle('shell:open-with-default', (_e, targetPath) => {
+    return openProjectWithDefaultIde(targetPath)
+  })
+
+  /** 用指定 IDE 打开路径，id 取自 detectedIdes；script 中 `<entry>` 和 `<path>` 自动替换 */
   ipcMain.handle('shell:open-in-ide', (_e, { id, targetPath } = {}) => {
     return new Promise((resolve) => {
       if (!targetPath) return resolve({ ok: false, message: '路径为空' })
       const ide = SUPPORTED_IDES.find((x) => x.id === id)
       if (!ide) return resolve({ ok: false, message: `未知 IDE：${id}` })
-      const cmd = `${ide.cli} "${targetPath}"`
+      const cmd = ide.script.replace('<path>', `"${targetPath}"`)
       exec(cmd, { shell: true, windowsHide: true }, async (err, _stdout, stderr) => {
         if (err) {
           resolve({ ok: false, message: stderr || err.message })

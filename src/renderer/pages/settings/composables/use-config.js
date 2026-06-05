@@ -1,3 +1,4 @@
+import { normalizeJSONObject } from '@shared/data'
 import { ref } from 'vue'
 
 /**
@@ -22,7 +23,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     auto_check_update: true,
     tray: true,
     auto_clear_installer: false,
-    // 配置文件最后修改时间（ms 时间戳），0 表示未知
+    ide_cfg: { default: '', exclude: [], extends: [] },
     mtime: 0
   })
   const saving = ref(false)
@@ -40,7 +41,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       auto_run_startup: !!c.auto_run_startup,
       auto_check_update: !!c.auto_check_update,
       tray: !!c.tray,
-      auto_clear_installer: !!c.auto_clear_installer
+      auto_clear_installer: !!c.auto_clear_installer,
+      ide_cfg: c.ide_cfg ?? { default: '', exclude: [], extends: [] }
     })
   }
 
@@ -75,6 +77,11 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       auto_check_update: typeof cfg.auto_check_update === 'boolean' ? cfg.auto_check_update : true,
       tray: typeof cfg.tray === 'boolean' ? cfg.tray : true,
       auto_clear_installer: !!cfg.auto_clear_installer,
+      ide_cfg: {
+        default: cfg.ide_cfg?.default ?? '',
+        exclude: Array.isArray(cfg.ide_cfg?.exclude) ? cfg.ide_cfg.exclude : [],
+        extends: Array.isArray(cfg.ide_cfg?.extends) ? cfg.ide_cfg.extends : []
+      },
       mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
     }
     // 更新基线快照
@@ -88,26 +95,29 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     saving.value = true
     const start = Date.now()
     try {
-      // 通过 JSON 序列化剥离 Vue 的 Proxy，避免 IPC structured clone 失败
-      const payload = JSON.parse(
-        JSON.stringify({
-          paths: config.value.paths,
-          depth: Number(config.value.depth) || 0,
-          exclude_paths: config.value.exclude_paths,
-          pinned: config.value.pinned,
-          theme: config.value.theme,
-          auto_run_startup: !!config.value.auto_run_startup,
-          auto_check_update: !!config.value.auto_check_update,
-          tray: !!config.value.tray,
-          auto_clear_installer: !!config.value.auto_clear_installer
-        })
-      )
+      const c = config.value
+
+      const payload = normalizeJSONObject({
+        paths: c.paths,
+        depth: Number(c.depth) || 0,
+        exclude_paths: c.exclude_paths,
+        pinned: c.pinned,
+        theme: c.theme,
+        auto_run_startup: !!c.auto_run_startup,
+        auto_check_update: !!c.auto_check_update,
+        tray: !!c.tray,
+        auto_clear_installer: !!c.auto_clear_installer,
+        ide_cfg: {
+          default: c.ide_cfg?.default ?? '',
+          exclude: Array.isArray(c.ide_cfg?.exclude) ? c.ide_cfg.exclude : [],
+          extends: Array.isArray(c.ide_cfg?.extends) ? c.ide_cfg.extends : []
+        }
+      })
+
       const prevAutoRun = originalSnapshotAutoRun()
       const result = await window.api.saveConfig(payload)
-      // 落盘成功后重新拉取以刷新最后修改时间
       await loadConfig()
 
-      // 切换了开关但系统层未生效（dev 等）时，附加说明避免用户误以为已生效
       const autoRunChanged =
         typeof payload.auto_run_startup === 'boolean' && payload.auto_run_startup !== prevAutoRun
       const sysApplied = result?.autoRun?.appliedToSystem !== false

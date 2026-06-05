@@ -132,8 +132,17 @@ const layoutRef = ref(null)
 const bodyRef = computed(() => layoutRef.value?.bodyRef)
 
 // 可用 IDE 列表来自全局 composable：app 启动时主进程探测一次，渲染层缓存为模块级单例
-// 这里只读，不做任何探测；用户切换页面 / 频繁打开右键菜单都不会再次触发 exec
-const { availableIdes } = useIdes()
+// excludeIds 从 config 读取，实时过滤右键菜单
+const excludeIds = ref([])
+const { availableIdes, menuIdes } = useIdes({ excludeIds })
+
+// 切换到项目页 / 挂载时同步最新 exclude 配置
+async function syncExcludeIds() {
+  try {
+    const cfg = await window.api.readConfig()
+    excludeIds.value = Array.isArray(cfg.ide_cfg?.exclude) ? cfg.ide_cfg.exclude : []
+  } catch {}
+}
 
 // 列表加载与刷新
 const { projects, loading, loadProjects } = useProjects({ toastRef })
@@ -175,7 +184,7 @@ watch(renameVisible, (val) => {
 // 右键菜单：把分发动作显式注入，避免 composable 之间隐式耦合
 const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect, closeMenu } =
   useContextMenu({
-    availableIdes,
+    availableIdes: menuIdes,
     actions: {
       openInIde: async (ideId, project) => {
         const r = await window.api.openInIde(ideId, project.path)
@@ -236,11 +245,15 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
 // 进入页面或激活 tab 时拉取
 onMounted(() => {
   loadProjects()
+  syncExcludeIds()
 })
 watch(
   () => props.active,
   (val) => {
-    if (val) loadProjects()
+    if (val) {
+      loadProjects()
+      syncExcludeIds()
+    }
   }
 )
 </script>

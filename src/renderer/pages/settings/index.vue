@@ -150,6 +150,24 @@
         </SettingFieldSection>
       </SettingFieldGroup>
 
+      <!-- IDE 配置（默认IDE / 排除IDE / 自定义脚本） -->
+      <IdeConfigCard
+        :detected-ides="detectedIdes"
+        :model-default="config.ide_cfg.default"
+        :model-exclude="config.ide_cfg.exclude"
+        :model-extends="config.ide_cfg.extends"
+        @update:model-default="(v) => (config.ide_cfg.default = v)"
+        @update:model-exclude="(v) => (config.ide_cfg.exclude = v)"
+        @update:model-extends="(v) => (config.ide_cfg.extends = v)"
+        @request-save-default="onSaveIdeCfg"
+        @add-extend="openIdeDialog(null)"
+        @edit-extend="(i) => openIdeDialog(i)"
+        @remove-extend="removeExtend"
+        @move-up="(i) => doMoveExtend(i, -1)"
+        @move-down="(i) => doMoveExtend(i, 1)"
+        @clear-extends="config.ide_cfg.extends = []"
+      />
+
       <!-- 置顶项目（pin） -->
       <SettingField label="置顶项目">
         <template #actions>
@@ -202,6 +220,30 @@
       @confirm="onConfirmAction"
     />
 
+    <IdeScriptDialog
+      :visible="ideDialogVisible"
+      :initial-data="ideDialogData"
+      :existing-ids="ideExistingIds"
+      :config-dir="configDir"
+      @close="ideDialogVisible = false"
+      @confirm="onIdeDialogConfirm"
+      @validate-error="(msg) => toastRef?.show(msg, 'error')"
+      @probe-result="
+        (ok) =>
+          toastRef?.show(
+            ok ? '检测成功，入口可用' : '检测失败，未找到该入口',
+            ok ? 'success' : 'error'
+          )
+      "
+      @debug-result="
+        (ok, msg) =>
+          toastRef?.show(
+            ok ? '调试成功，脚本已执行' : `调试失败：${msg || '未知错误'}`,
+            ok ? 'success' : 'error'
+          )
+      "
+    />
+
     <BaseToast ref="toastRef" />
 
     <AboutDialog
@@ -214,7 +256,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed, unref, toRaw } from 'vue'
 import PageLayout from '@/components/common/page-layout.vue'
 import BaseInput from '@/components/common/base-input.vue'
 import BaseButton from '@/components/common/base-button.vue'
@@ -230,6 +272,8 @@ import SettingFieldGroup from './components/setting-field-group.vue'
 import SettingFieldSection from './components/setting-field-section.vue'
 import PathListItem from './components/path-list-item.vue'
 import AboutDialog from './components/about-dialog.vue'
+import IdeConfigCard from './components/ide-config-card.vue'
+import IdeScriptDialog from './components/ide-script-dialog.vue'
 import { useConfig } from './composables/use-config.js'
 import { useScanPaths, DEFAULT_DEPTH } from './composables/use-scan-paths.js'
 import { useExcludePaths } from './composables/use-exclude-paths.js'
@@ -237,8 +281,10 @@ import { usePinnedPaths } from './composables/use-pinned-paths.js'
 import { useConfirmDialog } from './composables/use-confirm-dialog.js'
 import { useUpdateCheck } from './composables/use-update-check.js'
 import { useAppVersion } from './composables/use-app-version.js'
+import { useIdes } from '@/composables/use-ides.js'
 import { getPathText } from './utils/path-helper.js'
 import { formatTime } from '@/utils/format-time.js'
+import { normalizeJSONObject } from '@shared/data.js'
 
 // ===== 页面级 UI 文案常量（仅本页使用，直接内联） =====
 const TRAY_TIP =
@@ -418,6 +464,78 @@ async function onHelpAction(item) {
 
 // 检查更新按钮回调
 const { onUpdateCheckResult, onUpdateCheckError } = useUpdateCheck({ toastRef })
+
+// ===== IDE 配置 =====
+const { detectedIdes, refresh: refreshIdes } = useIdes()
+
+/** config.json 所在目录，用于弹窗 <path> 占位符预览 */
+const configDir = computed(() => {
+  const p = config.value.config_path
+  if (!p) return ''
+  const sep = p.includes('/') ? '/' : '\\'
+  return p.split(sep).slice(0, -1).join(sep)
+})
+
+const ideDialogVisible = ref(false)
+const ideDialogData = ref(null)
+/** 编辑时正在编辑的行索引，新增为 null */
+const ideEditingIdx = ref(null)
+
+/** 已有用户配置 id 列表（供弹窗重复校验用） */
+const ideExistingIds = computed(() =>
+  (config.value.ide_cfg.extends || []).map((x) => `${x.entry}::${x.script}`)
+)
+
+function openIdeDialog(idx) {
+  ideEditingIdx.value = idx
+  ideDialogData.value = idx !== null ? { ...(config.value.ide_cfg.extends[idx] || {}) } : null
+  ideDialogVisible.value = true
+}
+
+/** 检测完成后自动写盘 ide_cfg.default（首次初始化或 IDE 不可用时触发） */
+async function onSaveIdeCfg(refresh = false) {
+  try {
+    const patchConfig = normalizeJSONObject({
+      default: config.value.ide_cfg.default || '',
+      exclude: config.value.ide_cfg.exclude || [],
+      extends: config.value.ide_cfg.extends || []
+    })
+    await window.api.saveIdeConfig(patchConfig)
+    if (refresh) refreshIdes()
+  } catch {}
+}
+
+function onIdeDialogConfirm(data) {
+  const list = [...(config.value.ide_cfg.extends || [])]
+  if (ideEditingIdx.value !== null) {
+    list.splice(ideEditingIdx.value, 1, data)
+  } else {
+    list.push(data)
+  }
+  config.value.ide_cfg.extends = list
+  ideDialogVisible.value = false
+  toastRef.value?.show(
+    ideEditingIdx.value !== null ? '已更新 IDE 脚本' : '已添加 IDE 脚本',
+    'success'
+  )
+  onSaveIdeCfg(true)
+}
+
+function removeExtend(idx) {
+  const list = [...(config.value.ide_cfg.extends || [])]
+  list.splice(idx, 1)
+  config.value.ide_cfg.extends = list
+  onSaveIdeCfg(true)
+}
+
+function doMoveExtend(idx, dir) {
+  const list = [...(config.value.ide_cfg.extends || [])]
+  const target = idx + dir
+  if (target < 0 || target >= list.length) return
+  ;[list[idx], list[target]] = [list[target], list[idx]]
+  config.value.ide_cfg.extends = list
+  onSaveIdeCfg(true)
+}
 
 onMounted(() => {
   loadConfig()

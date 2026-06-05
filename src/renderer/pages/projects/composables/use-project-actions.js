@@ -10,19 +10,18 @@
  * }} options
  */
 export function useProjectActions({ toastRef, availableIdes, projects }) {
-  /** 双击：用首个可用 IDE 打开（VS Code 优先，其次 CodeBuddy ...） */
+  /**
+   * 双击：调主进程 openWithDefaultIde，优先级由主进程统一管理：
+   * ide_cfg.default > 第一个可用 IDE > vscode > 文件管理器打开
+   */
   async function openWithDefaultIde(project) {
-    const first = availableIdes.value[0]
-    if (!first) {
-      toastRef.value?.show('未检测到可用 IDE，请先安装并将 CLI 加入 PATH', 'error')
-      return
+    // 无任何可用 IDE 时给予提示（主进程会降级到文件管理器，这里额外提示用户）
+    if (availableIdes.value.length === 0) {
+      toastRef.value?.show('未检测到可用 IDE，将直接打开项目目录', 'info')
     }
-    const r = await window.api.openInIde(first.id, project.path)
+    const r = await window.api.openWithDefaultIde(project.path)
     if (!r?.ok) {
-      toastRef.value?.show(
-        `无法启动 ${first.label.replace(' 打开', '')}：${r?.message || '未知错误'}`,
-        'error'
-      )
+      toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
     }
   }
 
