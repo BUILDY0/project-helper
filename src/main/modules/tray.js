@@ -1,14 +1,15 @@
-const { Tray, Menu, nativeImage } = require('electron')
+const { Tray, Menu, nativeImage, app } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 
 // 单例引用：进程内只允许一个托盘实例，避免 dev 热重载或重复调用导致句柄泄漏
 let trayInstance = null
 
-/** 加载托盘图标：优先工程根 build/icon.ico，缺失时返回空 image 兜底 */
+/** 加载托盘图标：打包后从 extraResources 读取，dev 从工程根 build/ 读取 */
 function loadTrayImage() {
-  // __dirname 指向 src/main/modules，回退三层到工程根
-  const iconPath = path.join(__dirname, '..', '..', '..', 'build', 'icon.ico')
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon.ico')
+    : path.join(__dirname, '..', '..', '..', 'build', 'icon.ico')
   try {
     if (fs.existsSync(iconPath)) {
       const img = nativeImage.createFromPath(iconPath)
