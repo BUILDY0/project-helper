@@ -2,6 +2,13 @@
 
 所有版本对应的安装包可在 [GitHub Releases](https://github.com/BUILDY0/project-helper/releases) 下载。
 
+## v1.5.2
+
+> 发布时间：2026-06-06
+
+- 项目卡片置顶按钮改为 **Fluent UI 图钉图标**。
+- 修复 **默认 IDE 设置**清除选项按钮异常展示的问题。
+
 ## v1.5.1
 
 > 发布时间：2026-06-05
