@@ -1,6 +1,6 @@
 {
   "name": "project-helper",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "开发项目本地管理器",
   "main": "src/main/index.js",
   "author": "BUILDY0",
