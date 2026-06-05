@@ -39,8 +39,10 @@ project-helper/
 │  │  ├─ index.js                     # 入口：app 生命周期 + 模块装配
 │  │  └─ modules/                     # 主进程领域模块
 │  │      ├─ config-store.js          # 配置读写、pinned 管理、config:* / pin:toggle
+│  │      ├─ event-bus.js             # 主进程内部事件总线
 │  │      ├─ system-bridge.js         # 窗口、对话框、shell、IDE 探测、剪贴板、属性框
 │  │      ├─ project-scanner.js       # 项目识别 / meta 读取 / BFS 扫描 + projects:scan
+│  │      ├─ tray.js                  # 系统托盘：图标、菜单、最近打开、最小化到托盘
 │  │      └─ updater.js               # 自动更新 + updater:* / app:get-version
 │  ├─ preload/                        # 预加载脚本（contextBridge 暴露 window.api）
 │  │  └─ index.js
@@ -67,17 +69,22 @@ project-helper/
 │     │   ├─ business/                 # 跨页复用的业务组件
 │     │   │   ├─ top-banner.vue
 │     │   │   └─ update-banner.vue
-│     │   ├─ common/                   # 跨页复用的通用 UI 组件
-│     │   │   ├─ confirm-dialog.vue
-│     │   │   ├─ context-menu.vue
+│     │   ├─ common/                   # 跨页复用的通用 UI 组件（原子组件用 base- 前缀，详见 README.md）
+│     │   │   ├─ image/                # 图片资源（README 截图等）
+│     │   │   ├─ base-button.vue
+│     │   │   ├─ base-confirm-dialog.vue
+│     │   │   ├─ base-context-menu.vue
+│     │   │   ├─ base-input.vue
+│     │   │   ├─ base-number-input.vue
+│     │   │   ├─ base-popconfirm.vue
+│     │   │   ├─ base-select.vue
+│     │   │   ├─ base-switch.vue
+│     │   │   ├─ base-toast.vue
 │     │   │   ├─ help-circle-link.vue
 │     │   │   ├─ inline-toggle.vue
-│     │   │   ├─ number-input.vue
 │     │   │   ├─ page-layout.vue
-│     │   │   ├─ popconfirm.vue
-│     │   │   ├─ switch-input.vue
+│     │   │   ├─ shell-code.vue
 │     │   │   ├─ theme-switch.vue
-│     │   │   ├─ toast.vue
 │     │   │   └─ unsaved-dialog.vue
 │     │   └─ icons/                    # SVG 图标组件库（详见 README.md）
 │     │       ├─ icon-*.vue
