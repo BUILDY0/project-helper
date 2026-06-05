@@ -182,4 +182,13 @@ npm run build
 
 ## 第三方资源
 
-- 按钮图标部分来自[microsoft/vscode-codicons](https://github.com/microsoft/vscode-codicons)，版权归 Microsoft 所有，遵循[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 协议。
+本项目图标（`src/renderer/components/icons/`）来自以下开源图标集：
+
+| 图标集                                                                                | 许可协议                                                                    | 涉及图标                                                            |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [microsoft/vscode-codicons](https://github.com/microsoft/vscode-codicons)             | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)                   | minimize, maximize, restore, close, terminal, docs                  |
+| [microsoft/fluentui-system-icons](https://github.com/microsoft/fluentui-system-icons) | [MIT](https://github.com/microsoft/fluentui-system-icons/blob/main/LICENSE) | pin, plus                                                           |
+| [lucide-icons/lucide](https://github.com/lucide-icons/lucide)                         | [ISC](https://github.com/lucide-icons/lucide/blob/main/LICENSE)             | sun, moon, info, copy, check, edit, trash, chevron-up, chevron-down |
+| [primer/octicons](https://github.com/primer/octicons)                                 | [MIT](https://github.com/primer/octicons/blob/main/LICENSE)                 | github                                                              |
+
+所有图标版权归原作者所有，本项目仅作内联引用。

@@ -8,7 +8,6 @@
           :options="defaultIdeOptions"
           :disabled="availableIdes.length === 0"
           :placeholder="availableIdes.length === 0 ? '无可选 IDE' : '请选择'"
-          clearable
           class="ide-select"
           :class="{ 'is-error': defaultError }"
         />
@@ -97,14 +96,15 @@
               >
                 <IconEdit :size="13" />
               </BaseButton>
-              <BaseButton
-                variant="icon"
-                size="xs"
-                v-tooltip="'删除脚本'"
-                @click="$emit('remove-extend', i)"
+              <BasePopconfirm
+                message="确认删除此脚本吗？"
+                confirmText="删除"
+                @confirm="$emit('remove-extend', i)"
               >
-                <IconTrash :size="13" />
-              </BaseButton>
+                <BaseButton variant="icon" size="xs" v-tooltip="'删除脚本'">
+                  <IconTrash :size="13" />
+                </BaseButton>
+              </BasePopconfirm>
             </td>
           </tr>
         </tbody>
@@ -119,6 +119,7 @@ import SettingFieldGroup from './setting-field-group.vue'
 import SettingFieldSection from './setting-field-section.vue'
 import BaseSelect from '@/components/common/base-select.vue'
 import BaseButton from '@/components/common/base-button.vue'
+import BasePopconfirm from '@/components/common/base-popconfirm.vue'
 import IconChevronUp from '@/components/icons/icon-chevron-up.vue'
 import IconChevronDown from '@/components/icons/icon-chevron-down.vue'
 import IconEdit from '@/components/icons/icon-edit.vue'

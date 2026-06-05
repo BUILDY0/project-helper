@@ -60,6 +60,16 @@ defineProps({
 - **stroke 描线**：少数图标设计上是描线风格（如 lucide 系的 sun / moon），保留 `stroke="currentColor" fill="none"` 写法即可，不必强行改为 fill
 - 带固定品牌色（如 Node.js 绿）则在 `<path fill="...">` 写死
 
+### 双样式切换（filled / regular）
+
+少数图标同一语义有 filled/regular 两套 svg（如 Fluent UI 体系），通过 `filled` prop 切换：
+
+```vue
+<IconPin :size="16" :filled="project.pinned" />
+```
+
+组件内用 `v-if/v-else` 切换 `<path>`，两条 path 共享同一个 `<svg>` 容器，`color` 和 `size` 保持一致。
+
 ## 动画
 
 动画交给调用方用 css 控制；本目录组件不内置任何 transition / animation。
@@ -126,3 +136,4 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 | `icon-trash.vue`        | 删除（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
 | `icon-chevron-up.vue`   | 上移（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
 | `icon-chevron-down.vue` | 下移（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
+| `icon-pin.vue`          | 置顶（项目卡片 pin 按钮）              | Fluent UI 实心/常规双样式         |

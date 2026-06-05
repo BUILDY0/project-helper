@@ -5,7 +5,7 @@
     @dblclick="$emit('open', project)"
     @contextmenu.prevent="$emit('contextmenu', $event, project)"
   >
-    <!-- 右上角 pin 按钮：pinned 时常显示金色实星；未 pinned 时仅在 hover 时显示空心星 -->
+    <!-- 右上角 pin 按钮：pinned 时显示实心图标常驻；未 pinned 时仅在 hover 显示空心图标 -->
     <BaseButton
       variant="icon"
       size="xs"
@@ -15,7 +15,7 @@
       @click.stop="$emit('toggle-pin', project)"
       @dblclick.stop
     >
-      {{ project.pinned ? '★' : '☆' }}
+      <IconPin :size="16" :filled="project.pinned" />
     </BaseButton>
 
     <!-- 头部：folder emoji + 状态图标列 -->
@@ -72,6 +72,7 @@
 <script setup>
 import IconGithub from '@/components/icons/icon-github.vue'
 import IconNode from '@/components/icons/icon-node.vue'
+import IconPin from '@/components/icons/icon-pin.vue'
 import IconReadme from '@/components/icons/icon-readme.vue'
 import BaseButton from '@/components/common/base-button.vue'
 
@@ -169,7 +170,6 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   right: 8px;
   width: 24px;
   height: 24px;
-  font-size: 16px;
   color: var(--color-text-tertiary);
   /* 默认未 pin 时半透明，hover 卡片再淡入 */
   opacity: 0;
