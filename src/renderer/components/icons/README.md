@@ -105,6 +105,7 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 | ----------------------- | -------------------------------------- | --------------------------------- |
 | `icon-search.vue`       | 搜索框放大镜                           | —                                 |
 | `icon-arrow-up.vue`     | 回到顶部                               | —                                 |
+| `icon-plus.vue`         | 新增扫描目录（项目页工具栏）           | fluent 实心加号                   |
 | `icon-refresh.vue`      | 刷新（顺时针圆弧+箭头）                | 配合 `class="spin"` 旋转          |
 | `icon-refresh-cw.vue`   | 检查更新（C 形圆弧）                   | 配合 `class="is-spinning"` 旋转   |
 | `icon-github.vue`       | GitHub logo（卡片状态图标 / 帮助链接） | octicons 风格                     |

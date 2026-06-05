@@ -10,6 +10,7 @@
         :at-top="atTop"
         @scroll-to-top="scrollToTop"
         @refresh="loadProjects"
+        @add-scan-dir="handleAddScanDir"
       />
     </template>
 
@@ -120,6 +121,7 @@ import { useContextMenu } from './composables/use-context-menu.js'
 import { useDeleteProject } from './composables/use-delete-project.js'
 import { useRenameProject } from './composables/use-rename-project.js'
 import { getParentPath } from '@/utils/path.js'
+import { computeNewPaths } from '@/pages/settings/utils/path-helper.js'
 
 const props = defineProps({
   active: Boolean
@@ -241,6 +243,24 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
       requestDelete
     }
   })
+
+/** 新增扫描目录：弹出选择 → 去重写入 config → 保存 → 刷新 */
+async function handleAddScanDir() {
+  const dirs = await window.api.selectDirectory({ multi: true })
+  if (!dirs || !dirs.length) return
+  try {
+    const cfg = await window.api.readConfig()
+    const { newPaths, added } = computeNewPaths(dirs, cfg.paths || [])
+    if (added > 0) {
+      cfg.paths.push(...newPaths)
+      await window.api.saveConfig(cfg)
+      toastRef.value?.show(`已添加 ${added} 个扫描目录`, 'success', 1500)
+    }
+    loadProjects()
+  } catch (err) {
+    toastRef.value?.show(`添加失败：${err.message}`, 'error')
+  }
+}
 
 // 进入页面或激活 tab 时拉取
 onMounted(() => {

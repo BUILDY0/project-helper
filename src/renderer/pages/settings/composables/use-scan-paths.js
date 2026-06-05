@@ -1,5 +1,5 @@
 import { SystemPath } from '@shared/path-types.js'
-import { getPathKey } from '../utils/path-helper.js'
+import { computeNewPaths } from '../utils/path-helper.js'
 
 /** 默认扫描深度（与主进程的默认值保持一致） */
 export const DEFAULT_DEPTH = 1
@@ -17,19 +17,8 @@ export function useScanPaths({ config, notifyBatchAdd }) {
   async function addPath() {
     const dirs = await window.api.selectDirectory({ multi: true })
     if (!dirs || !dirs.length) return
-    const existKeys = new Set(config.value.paths.map(getPathKey))
-    let added = 0
-    let skipped = 0
-    for (const dir of dirs) {
-      const key = getPathKey(dir)
-      if (!key || existKeys.has(key)) {
-        skipped++
-        continue
-      }
-      existKeys.add(key)
-      config.value.paths.push(new SystemPath({ path: dir }))
-      added++
-    }
+    const { newPaths, added, skipped } = computeNewPaths(dirs, config.value.paths)
+    config.value.paths.push(...newPaths)
     notifyBatchAdd(added, skipped)
   }
 

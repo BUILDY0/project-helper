@@ -31,6 +31,15 @@
         class="square-btn"
         variant="secondary"
         size="sm"
+        v-tooltip="'新增扫描目录，后续可以在配置页中管理'"
+        @click="emit('add-scan-dir')"
+      >
+        <IconPlus :size="14" />
+      </BaseButton>
+      <BaseButton
+        class="square-btn"
+        variant="secondary"
+        size="sm"
         v-tooltip="'回到顶部'"
         :disabled="atTop"
         @click="emit('scroll-to-top')"
@@ -53,6 +62,7 @@ import BaseInput from '@/components/common/base-input.vue'
 import BaseButton from '@/components/common/base-button.vue'
 import IconArrowUp from '@/components/icons/icon-arrow-up.vue'
 import IconRefresh from '@/components/icons/icon-refresh.vue'
+import IconPlus from '@/components/icons/icon-plus.vue'
 
 defineProps({
   keyword: { type: String, default: '' },
@@ -63,7 +73,7 @@ defineProps({
   loading: { type: Boolean, default: false },
   atTop: { type: Boolean, default: true }
 })
-const emit = defineEmits(['update:keyword', 'scroll-to-top', 'refresh'])
+const emit = defineEmits(['update:keyword', 'scroll-to-top', 'refresh', 'add-scan-dir'])
 </script>
 
 <style scoped>

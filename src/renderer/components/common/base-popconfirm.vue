@@ -39,7 +39,7 @@
         </div>
 
         <div class="base-popconfirm__actions">
-          <BaseButton variant="primary" size="xs" @click="onConfirm">
+          <BaseButton variant="text" tone="primary" size="xs" @click="onConfirm">
             {{ confirmText }}
           </BaseButton>
         </div>
