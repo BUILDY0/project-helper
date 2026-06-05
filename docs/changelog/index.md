@@ -2,6 +2,12 @@
 
 所有版本对应的安装包可在 [GitHub Releases](https://github.com/BUILDY0/project-helper/releases) 下载。
 
+## v1.5.1
+
+> 发布时间：2026-06-05
+
+- 修复托盘图标加载失败的问题。
+
 ## v1.5.0
 
 > 发布时间：2026-06-05
