@@ -58,35 +58,18 @@
       :visible="addVisible"
       @close="addVisible = false"
       @confirm="onAddConfirm"
-      @validate-error="(msg) => toastRef?.show(msg, 'error')"
-      @debug-result="
-        (ok, msg) =>
-          toastRef?.show(
-            ok ? '调试成功' : `调试失败：${msg || '未知错误'}`,
-            ok ? 'success' : 'error'
-          )
-      "
+      @validate-error="onValidateError"
+      @debug-result="onDebugResult"
     />
 
     <AddRemoteDialog
       v-if="editProject"
       :visible="editVisible"
       :initial-data="editProject"
-      @close="
-        () => {
-          editVisible = false
-          editProject = null
-        }
-      "
+      @close="closeEditDialog"
       @confirm="onEditConfirm"
-      @validate-error="(msg) => toastRef?.show(msg, 'error')"
-      @debug-result="
-        (ok, msg) =>
-          toastRef?.show(
-            ok ? '调试成功' : `调试失败：${msg || '未知错误'}`,
-            ok ? 'success' : 'error'
-          )
-      "
+      @validate-error="onValidateError"
+      @debug-result="onDebugResult"
     />
 
     <BaseConfirmDialog
@@ -94,12 +77,7 @@
       title="删除项目"
       close-icon
       confirm-text="确认删除"
-      @cancel="
-        () => {
-          confirmVisible = false
-          pendingProject = null
-        }
-      "
+      @cancel="cancelDelete"
       @confirm="onConfirmDelete"
     >
       <div class="delete-path">{{ pendingProject?.name || '' }}</div>
@@ -253,6 +231,24 @@ function requestEdit(project) {
 function requestDelete(project) {
   pendingProject.value = project
   confirmVisible.value = true
+}
+
+function closeEditDialog() {
+  editVisible.value = false
+  editProject.value = null
+}
+
+function cancelDelete() {
+  confirmVisible.value = false
+  pendingProject.value = null
+}
+
+function onValidateError(msg) {
+  toastRef.value?.show(msg, 'error')
+}
+
+function onDebugResult(ok, msg) {
+  toastRef.value?.show(ok ? '调试成功' : `调试失败：${msg || '未知错误'}`, ok ? 'success' : 'error')
 }
 
 async function onConfirmDelete() {
