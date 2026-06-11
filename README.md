@@ -93,8 +93,9 @@ project-helper/
 │         ├─ README.md
 │         ├─ projects/                 # 项目展示页
 │         │   ├─ index.vue
-│         │   ├─ components/
-│         │   └─ composables/
+│         │   ├─ common/               # 本地 / 远程共享组件与逻辑
+│         │   ├─ local/                # 本地项目（SYSTEM 路径）
+│         │   └─ remote/               # 远程连接项目
 │         └─ settings/                 # 配置页
 │             ├─ index.vue
 │             ├─ components/

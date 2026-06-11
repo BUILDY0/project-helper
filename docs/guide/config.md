@@ -34,6 +34,10 @@
   "depth": 1,
   "exclude_paths": ["D:/work/legacy"],
   "pinned": ["D:/work/my-favorite-project"],
+  "remote": {
+    "paths": [],
+    "pinned": []
+  },
   "theme": "light",
   "auto_run_startup": false,
   "auto_check_update": true,
@@ -55,6 +59,7 @@
 | `depth`                | `number`            | `1`       | 扫描深度，范围 `0 - 5`                   |
 | `exclude_paths`        | `string[]`          | `[]`      | 排除目录列表                             |
 | `pinned`               | `string[]`          | `[]`      | 置顶项目的绝对路径列表                   |
+| `remote`               | `object`            | —         | 远程连接项目配置（paths、pinned）        |
 | `theme`                | `"light" \| "dark"` | `"light"` | 主题风格                                 |
 | `auto_run_startup`     | `boolean`           | `false`   | 是否随系统开机自启                       |
 | `auto_check_update`    | `boolean`           | `true`    | 是否在启动后自动检查 GitHub Release 更新 |
@@ -144,6 +149,42 @@
 - **类型**：`string[]`
 - **默认值**：`[]`
 - **说明**：扫描时会自动清理已失效的项（路径不存在或不再是目录）。一般通过项目卡片右键菜单管理，不建议手动修改。
+
+### remote
+
+远程连接项目配置，统一管理 SSH / WSL / DevContainer / 远程仓库等项目。
+
+- **类型**：`object`
+- **默认值**：`{ "paths": [], "pinned": [] }`
+
+示例：
+
+```json
+{
+  "remote": {
+    "paths": [
+      { "path": "//wsl.localhost/Ubuntu/home/user/project", "type": "WSL" },
+      { "path": "ssh://user@192.168.1.100:/home/user/project", "type": "SSH" }
+    ],
+    "pinned": ["ssh://user@192.168.1.100:/home/user/project"]
+  }
+}
+```
+
+#### remote.paths
+
+远程项目扫描根目录列表，格式与 `paths` 相同，但 `type` 使用远程连接标识（`SSH` / `WSL` / `DevContainer` / `RemoteRepo`）。
+
+- **类型**：`object[]`
+- **默认值**：`[]`
+
+#### remote.pinned
+
+远程项目置顶列表，存储远程项目的标识路径。
+
+- **类型**：`string[]`
+- **默认值**：`[]`
+- **说明**：一般通过项目卡片右键菜单管理，不建议手动修改。
 
 ### theme
 
