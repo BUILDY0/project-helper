@@ -471,10 +471,26 @@ function startForm(type) {
 
 // 脏检测与关闭
 const dirty = computed(() => Boolean(form.alias || form.path || form.script))
+
+/** 与 initialData 对比：编辑模式下无实际改动则不弹挽留 */
+const hasChanges = computed(() => {
+  if (!props.initialData) return true
+  const d = props.initialData
+  return (
+    form.alias !== (d.cfg?.alias || '') ||
+    form.desc !== (d.cfg?.desc || '') ||
+    form.path !== (d.path || '') ||
+    form.param !== (d.cfg?.param || '') ||
+    form.scheme !== (d.cfg?.scheme || '') ||
+    form.dir !== (d.cfg?.dir || '') ||
+    form.script !== (d.cfg?.script || '')
+  )
+})
+
 const dirtyConfirmVisible = ref(false)
 
 function onClose() {
-  if (step.value === 2 && dirty.value) {
+  if (step.value === 2 && dirty.value && hasChanges.value) {
     dirtyConfirmVisible.value = true
     return
   }
