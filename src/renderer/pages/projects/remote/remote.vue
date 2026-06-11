@@ -73,8 +73,10 @@
       :visible="editVisible"
       :initial-data="editProject"
       @close="
-        editVisible = false
-        editProject = null
+        () => {
+          editVisible = false
+          editProject = null
+        }
       "
       @confirm="onEditConfirm"
       @validate-error="(msg) => toastRef?.show(msg, 'error')"
@@ -93,8 +95,10 @@
       close-icon
       confirm-text="确认删除"
       @cancel="
-        confirmVisible = false
-        pendingProject = null
+        () => {
+          confirmVisible = false
+          pendingProject = null
+        }
       "
       @confirm="onConfirmDelete"
     >
