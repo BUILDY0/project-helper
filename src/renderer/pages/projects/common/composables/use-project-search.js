@@ -17,13 +17,11 @@ export const SEARCH_DEBOUNCE_MS = 200
  */
 export function useProjectSearch({ projects }) {
   const keyword = ref('')
-  // 经防抖后的关键字，参与实际过滤；输入变化时延迟 SEARCH_DEBOUNCE_MS 同步
   const debouncedKeyword = ref('')
   let keywordTimer = null
 
   watch(keyword, (val) => {
     if (keywordTimer) clearTimeout(keywordTimer)
-    // 清空时立即生效，体验更顺滑
     if (!val) {
       debouncedKeyword.value = ''
       return
@@ -33,7 +31,6 @@ export function useProjectSearch({ projects }) {
     }, SEARCH_DEBOUNCE_MS)
   })
 
-  /** 过滤后的项目列表（基于防抖后的关键字） */
   const filteredProjects = computed(() => {
     const kw = debouncedKeyword.value.trim().toLowerCase()
     if (!kw) return projects.value
@@ -42,6 +39,47 @@ export function useProjectSearch({ projects }) {
       const desc = (p.description || '').toLowerCase()
       const fullPath = (p.path || '').toLowerCase()
       return name.includes(kw) || desc.includes(kw) || fullPath.includes(kw)
+    })
+  })
+
+  return { keyword, debouncedKeyword, filteredProjects }
+}
+
+/**
+ * 远程项目搜索：除 name/desc/path 外还搜索 cfg.param / cfg.scheme
+ */
+export function useRemoteProjectSearch({ projects }) {
+  const keyword = ref('')
+  const debouncedKeyword = ref('')
+  let keywordTimer = null
+
+  watch(keyword, (val) => {
+    if (keywordTimer) clearTimeout(keywordTimer)
+    if (!val) {
+      debouncedKeyword.value = ''
+      return
+    }
+    keywordTimer = setTimeout(() => {
+      debouncedKeyword.value = val
+    }, SEARCH_DEBOUNCE_MS)
+  })
+
+  const filteredProjects = computed(() => {
+    const kw = debouncedKeyword.value.trim().toLowerCase()
+    if (!kw) return projects.value
+    return projects.value.filter((p) => {
+      const name = (p.cfg?.alias || p.alias || '').toLowerCase()
+      const desc = (p.cfg?.desc || p.desc || '').toLowerCase()
+      const fullPath = (p.path || '').toLowerCase()
+      const param = (p.cfg?.param || '' || '').toLowerCase()
+      const scheme = (p.cfg?.scheme || '' || '').toLowerCase()
+      return (
+        name.includes(kw) ||
+        desc.includes(kw) ||
+        fullPath.includes(kw) ||
+        param.includes(kw) ||
+        scheme.includes(kw)
+      )
     })
   })
 

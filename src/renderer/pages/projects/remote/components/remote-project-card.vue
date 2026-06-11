@@ -1,11 +1,10 @@
 <template>
   <div
-    class="card"
+    class="card remote-card"
     :class="{ pinned: project.pinned }"
-    @dblclick="$emit('open', project)"
+    @dblclick="onOpen"
     @contextmenu.prevent="$emit('contextmenu', $event, project)"
   >
-    <!-- 右上角 pin 按钮：pinned 时显示实心图标常驻；未 pinned 时仅在 hover 显示空心图标 -->
     <BaseButton
       variant="icon"
       size="xs"
@@ -18,40 +17,12 @@
       <IconPin :size="16" :filled="project.pinned" />
     </BaseButton>
 
-    <!-- 头部：folder emoji + 状态图标列 -->
     <div class="card-head">
-      <div class="card-icon">📁</div>
+      <div class="card-icon">🌐</div>
       <div class="status-icons" @dblclick.stop>
-        <BaseButton
-          v-if="project.gitUrl"
-          variant="icon"
-          size="xs"
-          class="status-btn"
-          v-tooltip="'在浏览器打开仓库'"
-          @click.stop="$emit('open-git', project)"
-        >
-          <IconGithub :size="14" />
-        </BaseButton>
-        <BaseButton
-          v-if="project.hasPackageJson"
-          variant="icon"
-          size="xs"
-          class="status-btn"
-          v-tooltip="'打开项目文件夹'"
-          @click.stop="$emit('open-pkg', project)"
-        >
-          <IconNode :size="14" />
-        </BaseButton>
-        <BaseButton
-          v-if="project.readmePath"
-          variant="icon"
-          size="xs"
-          class="status-btn"
-          v-tooltip="'打开 README'"
-          @click.stop="$emit('open-readme', project)"
-        >
-          <IconReadme :size="14" />
-        </BaseButton>
+        <span class="remote-tag" :style="tagStyle">
+          {{ typeLabel }}
+        </span>
       </div>
     </div>
 
@@ -70,20 +41,23 @@
 </template>
 
 <script setup>
-import IconGithub from '@/components/icons/icon-github.vue'
-import IconNode from '@/components/icons/icon-node.vue'
 import IconPin from '@/components/icons/icon-pin.vue'
-import IconReadme from '@/components/icons/icon-readme.vue'
 import BaseButton from '@/components/common/base-button.vue'
 
-defineProps({
-  project: { type: Object, required: true }
+const props = defineProps({
+  project: { type: Object, required: true },
+  tagStyle: { type: Object, default: () => ({}) },
+  typeLabel: { type: String, default: '' }
 })
-defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-readme'])
+const emit = defineEmits(['open', 'contextmenu', 'toggle-pin'])
+
+async function onOpen() {
+  emit('open', props.project)
+}
 </script>
 
 <style scoped>
-.card {
+.remote-card {
   position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -100,29 +74,25 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   min-height: 110px;
   box-shadow: var(--shadow-sm);
 }
-.card:hover {
+.remote-card:hover {
   border-color: var(--color-border-strong);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
-/* pinned 状态时左侧加一条强调色 */
-.card.pinned {
+.remote-card.pinned {
   border-color: var(--color-accent-border);
   box-shadow:
     var(--shadow-sm),
     inset 3px 0 0 var(--color-accent);
 }
-
 .card-icon {
   font-size: 24px;
   line-height: 1;
 }
-/* 头部行：folder emoji 与状态图标列同行；status-icons 在 emoji 右侧 */
 .card-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  /* 给右上角 pin 按钮预留空间，避免状态图标右移撞到星标 */
   padding-right: 26px;
 }
 .status-icons {
@@ -130,7 +100,15 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   align-items: center;
   gap: 2px;
 }
-/* status-btn 沿用 BaseButton icon xs 默认外观，仅 14px 图标天然居中无需额外样式 */
+.remote-tag {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border-width: 1px;
+  border-style: solid;
+}
 .card-info {
   flex: 1;
   min-width: 0;
@@ -142,13 +120,13 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* 给右上角 pin 按钮预留空间 */
   padding-right: 22px;
 }
 .card-desc {
   margin-top: 4px;
   font-size: 12px;
   color: var(--color-text-secondary);
+  height: 3em;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -162,8 +140,6 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* pin 按钮：基于 BaseButton icon xs，定制 24px 边长 + 绝对定位 + 卡片 hover 渐显 + active 金色 */
 .pin-btn {
   position: absolute;
   top: 8px;
@@ -171,17 +147,15 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   width: 24px;
   height: 24px;
   color: var(--color-text-tertiary);
-  /* 默认未 pin 时半透明，hover 卡片再淡入 */
   opacity: 0;
 }
-.card:hover .pin-btn {
+.remote-card:hover .pin-btn {
   opacity: 1;
 }
 .pin-btn:hover:not(:disabled) {
   color: var(--color-accent-hover);
 }
 .pin-btn.active {
-  /* pinned 状态常显并点亮 */
   opacity: 1;
   color: var(--color-accent);
 }

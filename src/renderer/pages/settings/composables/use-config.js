@@ -12,6 +12,7 @@ import { ref } from 'vue'
  * }} options
  */
 export function useConfig({ toastRef, minLoadingMs = 1000 }) {
+  const configLoaded = ref(false)
   const config = ref({
     config_path: '',
     installer_path: '',
@@ -19,6 +20,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     depth: 1,
     exclude_paths: [],
     pinned: [],
+    remote: { paths: [], pinned: [] },
     auto_run_startup: false,
     auto_check_update: true,
     tray: true,
@@ -38,6 +40,10 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       depth: Number(c.depth) || 0,
       exclude_paths: [...(c.exclude_paths || [])],
       pinned: [...(c.pinned || [])],
+      remote: {
+        paths: [...(c.remote?.paths || [])],
+        pinned: [...(c.remote?.pinned || [])]
+      },
       auto_run_startup: !!c.auto_run_startup,
       auto_check_update: !!c.auto_check_update,
       tray: !!c.tray,
@@ -73,6 +79,10 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       depth: typeof cfg.depth === 'number' ? cfg.depth : 1,
       exclude_paths: Array.isArray(cfg.exclude_paths) ? cfg.exclude_paths : [],
       pinned: Array.isArray(cfg.pinned) ? cfg.pinned : [],
+      remote: {
+        paths: Array.isArray(cfg.remote?.paths) ? cfg.remote.paths : [],
+        pinned: Array.isArray(cfg.remote?.pinned) ? cfg.remote.pinned : []
+      },
       auto_run_startup: !!cfg.auto_run_startup,
       auto_check_update: typeof cfg.auto_check_update === 'boolean' ? cfg.auto_check_update : true,
       tray: typeof cfg.tray === 'boolean' ? cfg.tray : true,
@@ -86,6 +96,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     }
     // 更新基线快照
     originalSnapshot = snapshot(config.value)
+    configLoaded.value = true
   }
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -102,6 +113,10 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
         depth: Number(c.depth) || 0,
         exclude_paths: c.exclude_paths,
         pinned: c.pinned,
+        remote: {
+          paths: Array.isArray(c.remote?.paths) ? c.remote.paths : [],
+          pinned: Array.isArray(c.remote?.pinned) ? c.remote.pinned : []
+        },
         theme: c.theme,
         auto_run_startup: !!c.auto_run_startup,
         auto_check_update: !!c.auto_check_update,
@@ -142,6 +157,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
 
   return {
     config,
+    configLoaded,
     saving,
     loadConfig,
     onSave,

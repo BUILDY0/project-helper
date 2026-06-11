@@ -111,29 +111,32 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 
 ## 现有图标清单
 
-| 文件                    | 用途                                   | 特殊点                            |
-| ----------------------- | -------------------------------------- | --------------------------------- |
-| `icon-search.vue`       | 搜索框放大镜                           | —                                 |
-| `icon-arrow-up.vue`     | 回到顶部                               | —                                 |
-| `icon-plus.vue`         | 新增扫描目录（项目页工具栏）           | fluent 实心加号                   |
-| `icon-refresh.vue`      | 刷新（顺时针圆弧+箭头）                | 配合 `class="spin"` 旋转          |
-| `icon-refresh-cw.vue`   | 检查更新（C 形圆弧）                   | 配合 `class="is-spinning"` 旋转   |
-| `icon-github.vue`       | GitHub logo（卡片状态图标 / 帮助链接） | octicons 风格                     |
-| `icon-docs.vue`         | 文档（帮助链接）                       | codicons book 风格                |
-| `icon-sun.vue`          | 太阳（主题切换-浅色态）                | lucide 风格 stroke 描线           |
-| `icon-moon.vue`         | 月亮（主题切换-深色态）                | lucide 风格 stroke 描线           |
-| `icon-node.vue`         | 卡片状态图标                           | 固定品牌绿 `#83cd29`              |
-| `icon-readme.vue`       | 卡片状态图标                           | 双 path + group fill              |
-| `icon-terminal.vue`     | DevTools 入口                          | VSCode codicons                   |
-| `icon-minimize.vue`     | 窗口最小化                             | VSCode codicons (chrome-minimize) |
-| `icon-maximize.vue`     | 窗口最大化                             | VSCode codicons (chrome-maximize) |
-| `icon-restore.vue`      | 窗口还原                               | VSCode codicons (chrome-restore)  |
-| `icon-close.vue`        | 窗口关闭                               | VSCode codicons (chrome-close)    |
-| `icon-info.vue`         | 关于弹窗入口                           | lucide 风格 stroke 描线           |
-| `icon-copy.vue`         | 复制（ShellCode 复制按钮）             | lucide 风格 stroke 描线           |
-| `icon-check.vue`        | 勾选（ShellCode 复制成功反馈）         | lucide 风格 stroke 描线           |
-| `icon-edit.vue`         | 编辑（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
-| `icon-trash.vue`        | 删除（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
-| `icon-chevron-up.vue`   | 上移（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
-| `icon-chevron-down.vue` | 下移（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线           |
-| `icon-pin.vue`          | 置顶（项目卡片 pin 按钮）              | Fluent UI 实心/常规双样式         |
+| 文件                    | 用途                                   | 特殊点                              |
+| ----------------------- | -------------------------------------- | ----------------------------------- |
+| `icon-search.vue`       | 搜索框放大镜                           | —                                   |
+| `icon-arrow-up.vue`     | 回到顶部                               | —                                   |
+| `icon-plus.vue`         | 新增扫描目录（项目页工具栏）           | fluent 实心加号                     |
+| `icon-refresh.vue`      | 刷新（顺时针圆弧+箭头）                | 配合 `class="spin"` 旋转            |
+| `icon-refresh-cw.vue`   | 检查更新（C 形圆弧）                   | 配合 `class="is-spinning"` 旋转     |
+| `icon-github.vue`       | GitHub logo（卡片状态图标 / 帮助链接） | octicons 风格                       |
+| `icon-docs.vue`         | 文档（帮助链接）                       | codicons book 风格                  |
+| `icon-sun.vue`          | 太阳（主题切换-浅色态）                | lucide 风格 stroke 描线             |
+| `icon-moon.vue`         | 月亮（主题切换-深色态）                | lucide 风格 stroke 描线             |
+| `icon-node.vue`         | 卡片状态图标                           | 固定品牌绿 `#83cd29`                |
+| `icon-readme.vue`       | 卡片状态图标                           | 双 path + group fill                |
+| `icon-terminal.vue`     | DevTools 入口                          | VSCode codicons                     |
+| `icon-minimize.vue`     | 窗口最小化                             | VSCode codicons (chrome-minimize)   |
+| `icon-maximize.vue`     | 窗口最大化                             | VSCode codicons (chrome-maximize)   |
+| `icon-restore.vue`      | 窗口还原                               | VSCode codicons (chrome-restore)    |
+| `icon-close.vue`        | 窗口关闭                               | VSCode codicons (chrome-close)      |
+| `icon-info.vue`         | 关于弹窗入口                           | lucide 风格 stroke 描线             |
+| `icon-copy.vue`         | 复制（ShellCode 复制按钮）             | lucide 风格 stroke 描线             |
+| `icon-check.vue`        | 勾选（ShellCode 复制成功反馈）         | lucide 风格 stroke 描线             |
+| `icon-edit.vue`         | 编辑（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线             |
+| `icon-trash.vue`        | 删除（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线             |
+| `icon-chevron-up.vue`   | 上移（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线             |
+| `icon-chevron-down.vue` | 下移（自定义 IDE 脚本表格操作）        | lucide 风格 stroke 描线             |
+| `icon-pin.vue`          | 置顶（项目卡片 pin 按钮）              | Fluent UI 实心/常规双样式           |
+| `icon-location.vue`     | 本地项目（项目类型切换侧边栏）         | Fluent UI Location 24 Regular       |
+| `icon-globe.vue`        | 远程连接项目（项目类型切换侧边栏）     | Fluent UI Globe Location 24 Regular |
+| `icon-newtab.vue`       | 创建远程连接（连接方式选择卡片）       | Carbon NewTab，线框+加号组合风格    |

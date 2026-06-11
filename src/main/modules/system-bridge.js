@@ -14,7 +14,7 @@ function createWindow() {
   // 任务栏 / 窗口图标（__dirname 指向 src/main/modules，需回退三层到工程根）
   const iconPath = path.join(__dirname, '..', '..', '..', 'build', 'icon.ico')
   const winOptions = {
-    width: 1180,
+    width: 1230,
     height: 760,
     minWidth: 900,
     minHeight: 600,
@@ -204,14 +204,13 @@ function openProjectWithDefaultIde(targetPath) {
         exec(script, { shell: true, windowsHide: true }, (err) => r(!err))
       })
 
-    const notifyOpened = async () => {
-      await appendRecentOpened(targetPath).catch(() => {})
-      bus.emit(Events.PROJECT_OPENED, { projectPath: targetPath })
-    }
-
     const buildScript = (ide) => ide.script.replace('<path>', `"${targetPath}"`)
 
     const run = async () => {
+      // 先记录最近打开，确保托盘菜单立即刷新
+      await appendRecentOpened(targetPath).catch(() => {})
+      bus.emit(Events.PROJECT_OPENED, { projectPath: targetPath })
+
       let defaultId = null
       try {
         const cfg = await readConfig()
@@ -223,26 +222,22 @@ function openProjectWithDefaultIde(targetPath) {
       if (defaultId) {
         const preferred = available.find((x) => x.id === defaultId)
         if (preferred && (await tryExec(buildScript(preferred)))) {
-          await notifyOpened()
           return resolve({ ok: true })
         }
       }
 
       const first = available[0]
       if (first && (await tryExec(buildScript(first)))) {
-        await notifyOpened()
         return resolve({ ok: true })
       }
 
       if (!first || first.entry !== 'code') {
         if (await tryExec(`code "${targetPath}"`)) {
-          await notifyOpened()
           return resolve({ ok: true })
         }
       }
 
       await shell.openPath(targetPath).catch(() => {})
-      await notifyOpened()
       resolve({ ok: true })
     }
     run().catch((err) => resolve({ ok: false, message: err.message }))
@@ -417,6 +412,42 @@ function registerSystemBridge() {
         extends: Array.isArray(payload?.extends) ? payload.extends : []
       }
       await patchConfig({ ide_cfg: ideCfg })
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
+  })
+
+  /**
+   * 追加最近打开记录（统一 key：local=path，remote=path::alias）
+   */
+  ipcMain.handle('recent:append', async (_e, projectKey) => {
+    try {
+      await appendRecentOpened(projectKey)
+      bus.emit(Events.PROJECT_OPENED, { projectPath: projectKey })
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
+  })
+
+  /** 删除指定 key 的最近打开记录 */
+  ipcMain.handle('recent:remove', async (_e, key) => {
+    try {
+      const { removeRecentOpened } = require('./config-store')
+      await removeRecentOpened(key)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, message: err.message }
+    }
+  })
+
+  /** key 变更时替换最近打开记录，并通知托盘刷新 */
+  ipcMain.handle('recent:replace', async (_e, { oldKey, newKey }) => {
+    try {
+      const { replaceRecentOpened } = require('./config-store')
+      await replaceRecentOpened(oldKey, newKey)
+      bus.emit(Events.PROJECT_OPENED, { projectPath: newKey })
       return { ok: true }
     } catch (err) {
       return { ok: false, message: err.message }
@@ -613,13 +644,52 @@ while ((Get-Date) -lt $end) { [System.Windows.Forms.Application]::DoEvents(); St
   })
 }
 
+/**
+ * 主进程内部用：根据 key 打开远程项目
+ * 读取 config.remote.paths 找到对应项，解析脚本占位符后执行
+ */
+async function openRemoteProjectByKey(key) {
+  if (!key) return
+  const { normalizePathItem, projectKey } = require('../../shared/path-types.js')
+  const cfg = await readConfig()
+  const remotePaths = cfg.remote?.paths || []
+  const entry = remotePaths.find((raw) => {
+    const item = normalizePathItem(raw)
+    return item && projectKey(item) === key
+  })
+  if (!entry) return
+  const item = normalizePathItem(entry)
+  // 找默认 IDE 入口
+  const defaultIdeId = cfg.ide_cfg?.default
+  const availableIdes = detectedIdes.filter((i) => i.available)
+  let ide = availableIdes.find((i) => i.id === defaultIdeId) || availableIdes[0]
+  const ideEntry = ide?.entry || ''
+  // 解析脚本占位符
+  let script = item.cfg?.script || ''
+  script = script.replace(/<entry>/g, ideEntry || '')
+  script = script.replace(/<path>/g, item.path || '')
+  script = script.replace(/<param>/g, item.cfg?.param || '')
+  script = script.replace(/<scheme>/g, item.cfg?.scheme || '')
+  script = script.replace(/<dir>/g, item.cfg?.dir || '')
+  script = script.replace(/<[^>]+>/g, '').trim()
+  if (!script) return
+  // 先记录最近打开，确保托盘菜单立即刷新
+  await appendRecentOpened(key).catch(() => {})
+  bus.emit(Events.PROJECT_OPENED, { projectPath: key })
+  return new Promise((resolve) => {
+    exec(script, { shell: true, windowsHide: true }, (err, _stdout, stderr) => {
+      if (err) {
+        console.error('[remote-open] 执行失败:', stderr || err.message)
+      }
+      resolve()
+    })
+  })
+}
+
 module.exports = {
   createWindow,
   detectIdesOnce,
   registerSystemBridge,
-  /**
-   * 主进程内部用：用默认 IDE 打开项目路径
-   * 优先 detectedIdes[0]，不存在则尝试 vscode，再降级 shell.openPath
-   */
-  openProjectWithDefaultIde
+  openProjectWithDefaultIde,
+  openRemoteProjectByKey
 }

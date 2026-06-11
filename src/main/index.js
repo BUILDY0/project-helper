@@ -11,7 +11,8 @@ const {
   createWindow,
   detectIdesOnce,
   registerSystemBridge,
-  openProjectWithDefaultIde
+  openProjectWithDefaultIde,
+  openRemoteProjectByKey
 } = require('./modules/system-bridge')
 const { registerScannerIpc, getRecentProjects } = require('./modules/project-scanner')
 const {
@@ -126,23 +127,69 @@ if (!gotTheLock) {
       }
     })
 
-    // 托盘常驻：与 tray 配置无关，应用生命周期内始终展示
+    // 托盘常驻
     setupTray({
       getMainWindow: () => mainWindow,
       onQuit: forceQuit,
-      openProject: (projectPath) => openProjectWithDefaultIde(projectPath)
+      openProject: ({ key, isRemote }) => {
+        if (isRemote) {
+          openRemoteProjectByKey(key).catch(() => {})
+        } else {
+          openProjectWithDefaultIde(key)
+        }
+      }
     })
 
     // 项目扫描完成后，更新托盘菜单中的最近打开项目列表
+    const { normalizePathItem, projectKey } = require('../shared/path-types.js')
     let lastScannedProjects = []
     const refreshTrayRecent = async () => {
       const recentOpened = await readRecentOpened()
-      const recent = getRecentProjects(lastScannedProjects, recentOpened, 5)
+      // 本地项目：通过 getRecentProjects 匹配扫描结果
+      const localRecent = getRecentProjects(lastScannedProjects, recentOpened, 5)
+      // 远程项目：从 config 读取，匹配 recent_opened
+      const cfg = await readConfig()
+      const remotePaths = cfg.remote?.paths || []
+      const recentSet = new Set(recentOpened.map((r) => r.path))
+      const remoteRecent = []
+      for (const raw of remotePaths) {
+        const item = normalizePathItem(raw)
+        if (!item) continue
+        const key = projectKey(item)
+        if (recentSet.has(key)) {
+          remoteRecent.push({ key, name: item.cfg?.alias || item.path })
+        }
+      }
+      // 合并排序：按 openedAt 降序，最近打开的在首位
+      const recentMap = new Map(recentOpened.map((r) => [r.path, r.openedAt]))
+      const merged = [
+        ...localRecent.map((p) => ({
+          key: p.path,
+          name: p.name,
+          isRemote: false,
+          openedAt: recentMap.get(p.path) || 0
+        })),
+        ...remoteRecent.map((p) => ({
+          key: p.key,
+          name: p.name,
+          isRemote: true,
+          openedAt: recentMap.get(p.key) || 0
+        }))
+      ]
+        .sort((a, b) => b.openedAt - a.openedAt)
+        .slice(0, 8)
+
       updateTrayMenu(
-        recent,
+        merged,
         () => mainWindow,
         forceQuit,
-        (projectPath) => openProjectWithDefaultIde(projectPath)
+        ({ key, isRemote }) => {
+          if (isRemote) {
+            openRemoteProjectByKey(key).catch(() => {})
+          } else {
+            openProjectWithDefaultIde(key)
+          }
+        }
       )
     }
 

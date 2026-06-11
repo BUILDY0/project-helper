@@ -26,6 +26,7 @@ const DEFAULT_CONFIG = {
   depth: 1,
   exclude_paths: [],
   pinned: [],
+  remote: { paths: [], pinned: [] },
   theme: DEFAULT_THEME,
   auto_run_startup: false,
   auto_check_update: true,
@@ -37,11 +38,16 @@ const DEFAULT_CONFIG = {
 /** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
 function normalizeConfig(json) {
   const rawIdeCfg = json?.ide_cfg
+  const rawRemote = json?.remote
   return {
     paths: normalizePaths(json?.paths),
     depth: typeof json?.depth === 'number' ? json.depth : 1,
     exclude_paths: Array.isArray(json?.exclude_paths) ? json.exclude_paths : [],
     pinned: Array.isArray(json?.pinned) ? json.pinned : [],
+    remote: {
+      paths: normalizePaths(rawRemote?.paths),
+      pinned: Array.isArray(rawRemote?.pinned) ? rawRemote.pinned : []
+    },
     theme: normalizeTheme(json?.theme),
     auto_run_startup: !!json?.auto_run_startup,
     auto_check_update: typeof json?.auto_check_update === 'boolean' ? json.auto_check_update : true,
@@ -205,6 +211,7 @@ async function patchConfig(patch) {
     depth: prev.depth,
     exclude_paths: prev.exclude_paths,
     pinned: prev.pinned,
+    remote: prev.remote ?? { paths: [], pinned: [] },
     theme: prev.theme,
     auto_run_startup: prev.auto_run_startup,
     auto_check_update: prev.auto_check_update,
@@ -250,6 +257,40 @@ async function appendRecentOpened(projectPath) {
     await fsp.writeFile(CONFIG_PATH, JSON.stringify(json, null, 2), 'utf-8')
   } catch (err) {
     console.error('[config] appendRecentOpened 失败:', err.message)
+  }
+}
+
+/** 删除指定 key 的最近打开记录 */
+async function removeRecentOpened(key) {
+  if (!key) return
+  try {
+    await ensureConfigFile()
+    const text = await fsp.readFile(CONFIG_PATH, 'utf-8')
+    const json = JSON.parse(text)
+    const list = Array.isArray(json.recent_opened) ? json.recent_opened : []
+    json.recent_opened = list.filter((r) => r.path !== key)
+    await fsp.writeFile(CONFIG_PATH, JSON.stringify(json, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('[config] removeRecentOpened 失败:', err.message)
+  }
+}
+
+/** key 变更时替换最近打开记录：删旧加新（保持 openedAt 时间戳） */
+async function replaceRecentOpened(oldKey, newKey) {
+  if (!oldKey || !newKey || oldKey === newKey) return
+  try {
+    await ensureConfigFile()
+    const text = await fsp.readFile(CONFIG_PATH, 'utf-8')
+    const json = JSON.parse(text)
+    const list = Array.isArray(json.recent_opened) ? json.recent_opened : []
+    const target = list.find((r) => r.path === oldKey)
+    if (target) {
+      target.path = newKey
+    }
+    json.recent_opened = list
+    await fsp.writeFile(CONFIG_PATH, JSON.stringify(json, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('[config] replaceRecentOpened 失败:', err.message)
   }
 }
 
@@ -325,6 +366,13 @@ function registerConfigIpc() {
 
   ipcMain.handle('config:save', async (_e, payload) => {
     const prev = await readConfig()
+    // 读原始 JSON 以保留 recent_opened（不在 normalizeConfig 白名单中）
+    let rawJson = {}
+    try {
+      const text = await fsp.readFile(CONFIG_PATH, 'utf-8')
+      rawJson = JSON.parse(text)
+    } catch {}
+    const recentOpened = Array.isArray(rawJson.recent_opened) ? rawJson.recent_opened : []
     // 兼容字符串/数字两种深度入参，并在 [0, 5] 区间夹紧
     const rawDepth = Number(payload?.depth)
     const depth = Number.isFinite(rawDepth) ? Math.max(0, Math.min(5, rawDepth)) : 1
@@ -350,11 +398,18 @@ function registerConfigIpc() {
         : (prev.ide_cfg?.exclude ?? []),
       extends: Array.isArray(rawIdeCfg?.extends) ? rawIdeCfg.extends : (prev.ide_cfg?.extends ?? [])
     }
+    const rawRemote = payload?.remote
+    const remote = {
+      paths: normalizePaths(rawRemote?.paths ?? prev.remote?.paths),
+      pinned: Array.isArray(rawRemote?.pinned) ? rawRemote.pinned : (prev.remote?.pinned ?? [])
+    }
     await writeConfig({
       paths: normalizePaths(payload?.paths),
       depth,
       exclude_paths: Array.isArray(payload?.exclude_paths) ? payload.exclude_paths : [],
       pinned: Array.isArray(payload?.pinned) ? payload.pinned : prev.pinned,
+      remote,
+      recent_opened: recentOpened,
       theme: normalizeTheme(payload?.theme ?? prev.theme),
       auto_run_startup: autoRun,
       auto_check_update: autoCheckUpdate,
@@ -421,5 +476,7 @@ module.exports = {
   syncAutoRunStartupOnStartup,
   readRecentOpened,
   appendRecentOpened,
+  removeRecentOpened,
+  replaceRecentOpened,
   registerConfigIpc
 }

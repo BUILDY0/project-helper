@@ -38,8 +38,8 @@
     </template>
 
     <div class="settings-fields">
-      <!-- 配置文件路径 + 安装包缓存路径：合并为一个 card -->
-      <SettingFieldGroup>
+      <!-- 通用 -->
+      <SettingFieldGroup title="通用">
         <SettingFieldSection label="配置文件路径">
           <div class="row">
             <BaseInput class="config-path" :model-value="config.config_path" readonly />
@@ -70,8 +70,26 @@
         </SettingFieldSection>
       </SettingFieldGroup>
 
-      <!-- 扫描目录 + 扫描深度 + 排除文件夹（合并为一个大 card） -->
-      <SettingFieldGroup>
+      <!-- IDE 配置（默认IDE / 排除IDE / 自定义脚本） -->
+      <IdeConfigCard
+        :detected-ides="detectedIdes"
+        :model-default="config.ide_cfg.default"
+        :model-exclude="config.ide_cfg.exclude"
+        :model-extends="config.ide_cfg.extends"
+        @update:model-default="(v) => (config.ide_cfg.default = v)"
+        @update:model-exclude="(v) => (config.ide_cfg.exclude = v)"
+        @update:model-extends="(v) => (config.ide_cfg.extends = v)"
+        @request-save-default="onSaveIdeCfg"
+        @add-extend="openIdeDialog(null)"
+        @edit-extend="(i) => openIdeDialog(i)"
+        @remove-extend="removeExtend"
+        @move-up="(i) => doMoveExtend(i, -1)"
+        @move-down="(i) => doMoveExtend(i, 1)"
+        @clear-extends="config.ide_cfg.extends = []"
+      />
+
+      <!-- 本地项目 -->
+      <SettingFieldGroup title="本地项目">
         <SettingFieldSection label="扫描目录">
           <template #actions>
             <BaseButton
@@ -148,51 +166,84 @@
           </div>
           <div v-else class="empty-tip">暂未配置排除项</div>
         </SettingFieldSection>
+
+        <SettingFieldSection label="置顶项目">
+          <template #actions>
+            <BaseButton
+              variant="text"
+              inline
+              :disabled="!config.pinned.length"
+              @click="askClearPinned"
+            >
+              清空
+            </BaseButton>
+          </template>
+          <div v-if="config.pinned.length" class="list">
+            <PathListItem
+              v-for="(p, i) in config.pinned"
+              :key="`pin-${i}`"
+              :path="p"
+              remove-message="确认移除该置顶项目？"
+              @remove="removePinned(i)"
+            >
+              <template #prefix><IconPin :size="14" filled class="pin-icon" /></template>
+            </PathListItem>
+          </div>
+          <div v-else class="empty-tip">暂未置顶任何项目</div>
+        </SettingFieldSection>
       </SettingFieldGroup>
 
-      <!-- IDE 配置（默认IDE / 排除IDE / 自定义脚本） -->
-      <IdeConfigCard
-        :detected-ides="detectedIdes"
-        :model-default="config.ide_cfg.default"
-        :model-exclude="config.ide_cfg.exclude"
-        :model-extends="config.ide_cfg.extends"
-        @update:model-default="(v) => (config.ide_cfg.default = v)"
-        @update:model-exclude="(v) => (config.ide_cfg.exclude = v)"
-        @update:model-extends="(v) => (config.ide_cfg.extends = v)"
-        @request-save-default="onSaveIdeCfg"
-        @add-extend="openIdeDialog(null)"
-        @edit-extend="(i) => openIdeDialog(i)"
-        @remove-extend="removeExtend"
-        @move-up="(i) => doMoveExtend(i, -1)"
-        @move-down="(i) => doMoveExtend(i, 1)"
-        @clear-extends="config.ide_cfg.extends = []"
-      />
+      <!-- 远程连接项目 -->
+      <SettingFieldGroup title="远程连接项目">
+        <SettingFieldSection label="项目列表">
+          <template #actions>
+            <BaseButton
+              variant="text"
+              inline
+              :disabled="!remotePathCount"
+              @click="askClearRemotePaths"
+            >
+              清空
+            </BaseButton>
+            <BaseButton variant="text" inline @click="openRemoteAddDialog">+ 新增</BaseButton>
+          </template>
+          <div v-if="remotePathCount" class="list">
+            <PathListItem
+              v-for="(p, i) in config.remote.paths"
+              :key="`rp-${i}`"
+              :path="remotePathDisplay(p)"
+              remove-message="确认移除该远程项目？"
+              @remove="removeRemotePath(i)"
+            />
+          </div>
+          <div v-else class="empty-tip">暂未配置远程项目</div>
+        </SettingFieldSection>
 
-      <!-- 置顶项目（pin） -->
-      <SettingField label="置顶项目">
-        <template #actions>
-          <BaseButton
-            variant="text"
-            inline
-            :disabled="!config.pinned.length"
-            @click="askClearPinned"
-          >
-            清空
-          </BaseButton>
-        </template>
-        <div v-if="config.pinned.length" class="list">
-          <PathListItem
-            v-for="(p, i) in config.pinned"
-            :key="`pin-${i}`"
-            :path="p"
-            remove-message="确认移除该置顶项目？"
-            @remove="removePinned(i)"
-          >
-            <template #prefix><span class="pin-icon">★</span></template>
-          </PathListItem>
-        </div>
-        <div v-else class="empty-tip">暂未置顶任何项目</div>
-      </SettingField>
+        <SettingFieldSection label="置顶项目">
+          <template #actions>
+            <BaseButton
+              variant="text"
+              inline
+              :disabled="!remotePinnedCount"
+              @click="askClearRemotePinned"
+            >
+              清空
+            </BaseButton>
+          </template>
+          <div v-if="remotePinnedCount" class="list">
+            <PathListItem
+              v-for="(p, i) in config.remote.pinned"
+              :key="`rpin-${i}`"
+              :path="p"
+              remove-message="确认移除该置顶项目？"
+              @remove="removeRemotePinned(i)"
+            >
+              <template #prefix><IconPin :size="14" filled class="pin-icon" /></template>
+            </PathListItem>
+          </div>
+          <div v-else class="empty-tip">暂未置顶任何远程项目</div>
+        </SettingFieldSection>
+      </SettingFieldGroup>
 
       <!-- 帮助 -->
       <SettingField label="帮助">
@@ -252,6 +303,20 @@
       @copy-success="toastRef?.show('已复制到剪贴板', 'success')"
       @copy-error="(msg) => toastRef?.show(`复制失败：${msg}`, 'error')"
     />
+
+    <AddRemoteDialog
+      :visible="remoteAddVisible"
+      @close="remoteAddVisible = false"
+      @confirm="onRemoteAddConfirm"
+      @validate-error="(msg) => toastRef?.show(msg, 'error')"
+      @debug-result="
+        (ok, msg) =>
+          toastRef?.show(
+            ok ? '调试成功' : `调试失败：${msg || '未知错误'}`,
+            ok ? 'success' : 'error'
+          )
+      "
+    />
   </PageLayout>
 </template>
 
@@ -282,9 +347,12 @@ import { useConfirmDialog } from './composables/use-confirm-dialog.js'
 import { useUpdateCheck } from './composables/use-update-check.js'
 import { useAppVersion } from './composables/use-app-version.js'
 import { useIdes } from '@/composables/use-ides.js'
+import { useRemotePaths } from './composables/use-remote-paths.js'
 import { getPathText } from './utils/path-helper.js'
 import { formatTime } from '@/utils/format-time.js'
 import { normalizeJSONObject } from '@shared/data.js'
+import AddRemoteDialog from '@/pages/projects/remote/components/add-remote-dialog.vue'
+import IconPin from '@/components/icons/icon-pin.vue'
 
 // ===== 页面级 UI 文案常量（仅本页使用，直接内联） =====
 const TRAY_TIP =
@@ -325,7 +393,9 @@ const aboutVisible = ref(false)
 const { appVersion } = useAppVersion()
 
 // 配置加载 / 保存 / 未保存检测
-const { config, saving, loadConfig, onSave, hasChanges, discard } = useConfig({ toastRef })
+const { config, configLoaded, saving, loadConfig, onSave, hasChanges, discard } = useConfig({
+  toastRef
+})
 
 /** 批量新增后的提示文案：扫描目录 / 排除目录共用 */
 function notifyBatchAdd(added, skipped) {
@@ -357,6 +427,30 @@ const {
 })
 const { removePinned, clearAll: clearPinnedPaths } = usePinnedPaths({ config })
 
+// 远程项目配置
+const {
+  removePath: removeRemotePath,
+  clearAll: clearRemotePaths,
+  removePinned: removeRemotePinned,
+  clearPinned: clearRemotePinnedPaths,
+  addRemotePath,
+  remotePathDisplay
+} = useRemotePaths({ config, toastRef })
+
+const remotePathCount = computed(() => config.value.remote?.paths?.length || 0)
+const remotePinnedCount = computed(() => config.value.remote?.pinned?.length || 0)
+
+// 远程项目新增弹窗（配置页版本，不需要实时刷新列表，只更新持久化值）
+const remoteAddVisible = ref(false)
+function openRemoteAddDialog() {
+  remoteAddVisible.value = true
+}
+function onRemoteAddConfirm(data) {
+  addRemotePath(data)
+  remoteAddVisible.value = false
+  toastRef.value?.show('已添加远程项目', 'success')
+}
+
 // 通用清空二次确认弹窗：注册各 action 对应的实际操作
 const {
   state: confirmDlg,
@@ -374,6 +468,14 @@ const {
   'clear-pinned': () => {
     clearPinnedPaths()
     toastRef.value?.show('已清空置顶项目', 'success')
+  },
+  'clear-remote-paths': () => {
+    clearRemotePaths()
+    toastRef.value?.show('已清空远程项目列表', 'success')
+  },
+  'clear-remote-pinned': () => {
+    clearRemotePinnedPaths()
+    toastRef.value?.show('已清空远程置顶项目', 'success')
   }
 })
 
@@ -404,6 +506,26 @@ function askClearPinned() {
     message: `确认清空全部 ${config.value.pinned.length} 个置顶项？保存后生效~`,
     confirmText: '清空',
     action: 'clear-pinned'
+  })
+}
+
+function askClearRemotePaths() {
+  if (!remotePathCount.value) return
+  openConfirm({
+    title: '清空远程项目列表',
+    message: `确认清空全部 ${remotePathCount.value} 个远程项目？保存后生效~`,
+    confirmText: '清空',
+    action: 'clear-remote-paths'
+  })
+}
+
+function askClearRemotePinned() {
+  if (!remotePinnedCount.value) return
+  openConfirm({
+    title: '清空远程置顶项目',
+    message: `确认清空全部 ${remotePinnedCount.value} 个远程置顶项？保存后生效~`,
+    confirmText: '清空',
+    action: 'clear-remote-pinned'
   })
 }
 
@@ -494,6 +616,8 @@ function openIdeDialog(idx) {
 
 /** 检测完成后自动写盘 ide_cfg.default（首次初始化或 IDE 不可用时触发） */
 async function onSaveIdeCfg(refresh = false) {
+  // config 未加载完成时 IDE 自动修正可能读到默认空值，跳过等 loadConfig 完成后二次触发
+  if (!configLoaded.value) return
   try {
     const patchConfig = normalizeJSONObject({
       default: config.value.ide_cfg.default || '',
@@ -600,6 +724,11 @@ defineExpose({
   align-items: center;
   gap: 8px;
 }
+.pin-icon {
+  color: var(--color-accent);
+  margin-right: 4px;
+}
+
 .wrap {
   flex: 1;
   position: relative;
@@ -609,12 +738,6 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-.pin-icon {
-  color: var(--color-accent);
-  margin-right: 6px;
-  font-size: 13px;
-  line-height: 1;
 }
 
 /* 扫描目录项右侧"强制命中"开关：放在关闭按钮左边，二者保持适当距离 */

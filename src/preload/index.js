@@ -92,6 +92,13 @@ contextBridge.exposeInMainWorld('api', {
   // 切换 pin 状态，返回最新的 pinned 路径数组
   togglePin: (p) => ipcRenderer.invoke('pin:toggle', p),
 
+  // 最近打开记录（统一 key：local=path，remote=path::alias）
+  appendRecentOpened: (key) => ipcRenderer.invoke('recent:append', key),
+  /** 删除指定 key 的最近打开记录 */
+  removeRecentKey: (key) => ipcRenderer.invoke('recent:remove', key),
+  /** key 变更时替换最近打开记录 */
+  replaceRecentKey: (oldKey, newKey) => ipcRenderer.invoke('recent:replace', { oldKey, newKey }),
+
   // 应用版本号
   getAppVersion: () => ipcRenderer.invoke('app:get-version'),
   // 关于弹窗运行时信息

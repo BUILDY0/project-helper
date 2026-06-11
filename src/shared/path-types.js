@@ -126,3 +126,13 @@ export function normalizePaths(paths) {
   if (!Array.isArray(paths)) return []
   return paths.map(normalizePathItem).filter(Boolean)
 }
+
+/**
+ * 项目唯一键：local 用 path，remote 用 path::alias
+ * 统一给最近打开 / 置顶 / 删除等操作做查找
+ */
+export function projectKey(item) {
+  if (!item) return ''
+  const alias = item.cfg?.alias
+  return alias ? `${item.path}::${alias}` : item.path
+}

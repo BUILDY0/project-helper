@@ -95,63 +95,63 @@
         />
       </svg>
     </span>
-  </div>
 
-  <!-- 下拉浮层 -->
-  <Teleport to="body">
-    <div v-if="open" class="base-select__mask" @mousedown.prevent="close" />
-    <transition name="base-select-drop">
-      <div
-        v-if="open"
-        ref="dropdownRef"
-        class="base-select__dropdown"
-        :style="dropStyle"
-        role="listbox"
-        :aria-multiselectable="multiple"
-        @mousedown.prevent
-      >
-        <!-- 无结果 -->
-        <div v-if="filteredOptions.length === 0" class="base-select__empty">无匹配选项</div>
-
-        <template
-          v-for="item in filteredOptions"
-          :key="item._isGroup ? `g:${item.group}` : item.value"
+    <!-- 下拉浮层 -->
+    <Teleport to="body">
+      <div v-if="open" class="base-select__mask" @mousedown.prevent="close" />
+      <transition name="base-select-drop">
+        <div
+          v-if="open"
+          ref="dropdownRef"
+          class="base-select__dropdown"
+          :style="dropStyle"
+          role="listbox"
+          :aria-multiselectable="multiple"
+          @mousedown.prevent
         >
-          <!-- 分组标题 -->
-          <div v-if="item._isGroup" class="base-select__group-label">{{ item.group }}</div>
+          <!-- 无结果 -->
+          <div v-if="filteredOptions.length === 0" class="base-select__empty">无匹配选项</div>
 
-          <!-- 选项 -->
-          <div
-            v-else
-            class="base-select__option"
-            :class="{
-              'is-selected': isSelected(item.value),
-              'is-disabled': item.disabled,
-              'is-focused': focusedIndex === item._flatIndex
-            }"
-            role="option"
-            :aria-selected="isSelected(item.value)"
-            :aria-disabled="item.disabled"
-            @click="onOptionClick(item)"
-            @mouseenter="focusedIndex = item._flatIndex"
+          <template
+            v-for="item in filteredOptions"
+            :key="item._isGroup ? `g:${item.group}` : item.value"
           >
-            <!-- option 插槽 -->
-            <slot name="option" :option="item" :selected="isSelected(item.value)">
-              <span class="base-select__option-label">{{ item.label }}</span>
-            </slot>
-            <!-- 多选选中标记（末尾 ✓，无方框） -->
-            <span
-              v-if="multiple && isSelected(item.value)"
-              class="base-select__check-mark"
-              aria-hidden="true"
+            <!-- 分组标题 -->
+            <div v-if="item._isGroup" class="base-select__group-label">{{ item.group }}</div>
+
+            <!-- 选项 -->
+            <div
+              v-else
+              class="base-select__option"
+              :class="{
+                'is-selected': isSelected(item.value),
+                'is-disabled': item.disabled,
+                'is-focused': focusedIndex === item._flatIndex
+              }"
+              role="option"
+              :aria-selected="isSelected(item.value)"
+              :aria-disabled="item.disabled"
+              @click="onOptionClick(item)"
+              @mouseenter="focusedIndex = item._flatIndex"
             >
-              ✓
-            </span>
-          </div>
-        </template>
-      </div>
-    </transition>
-  </Teleport>
+              <!-- option 插槽 -->
+              <slot name="option" :option="item" :selected="isSelected(item.value)">
+                <span class="base-select__option-label">{{ item.label }}</span>
+              </slot>
+              <!-- 多选选中标记（末尾 ✓，无方框） -->
+              <span
+                v-if="multiple && isSelected(item.value)"
+                class="base-select__check-mark"
+                aria-hidden="true"
+              >
+                ✓
+              </span>
+            </div>
+          </template>
+        </div>
+      </transition>
+    </Teleport>
+  </div>
 </template>
 
 <script setup>

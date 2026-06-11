@@ -59,7 +59,6 @@ function truncateName(name, maxLen = 32) {
 function buildContextMenu(getMainWindow, onQuit, recentProjects, openProject) {
   const template = []
 
-  // 最近项目区块（有项目时才展示）
   if (recentProjects && recentProjects.length > 0) {
     template.push({
       label: '最近打开项目',
@@ -67,8 +66,8 @@ function buildContextMenu(getMainWindow, onQuit, recentProjects, openProject) {
     })
     for (const proj of recentProjects) {
       template.push({
-        label: `📁 ${truncateName(proj.name)}`,
-        click: () => openProject(proj.path)
+        label: `${proj.isRemote ? '🌐' : '📁'} ${truncateName(proj.name)}`,
+        click: () => openProject({ key: proj.key, isRemote: proj.isRemote })
       })
     }
     template.push({ type: 'separator' })

@@ -1,5 +1,5 @@
 <template>
-  <SettingFieldGroup>
+  <SettingFieldGroup title="IDE 配置">
     <!-- ===== 默认 IDE 配置 ===== -->
     <SettingFieldSection label="默认 IDE 配置">
       <div class="ide-row">
