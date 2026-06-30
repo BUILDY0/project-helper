@@ -43,8 +43,12 @@
         <SettingFieldSection label="配置文件路径">
           <div class="row">
             <BaseInput class="config-path" :model-value="config.config_path" readonly />
-            <BaseButton @click="onOpenConfigFile">打开文件</BaseButton>
-            <BaseButton @click="onOpenConfigFolder">打开文件夹</BaseButton>
+            <BaseButton variant="icon" v-tooltip="'打开文件'" @click="onOpenConfigFile">
+              <IconFileTray :size="16" />
+            </BaseButton>
+            <BaseButton variant="icon" v-tooltip="'打开文件夹'" @click="onOpenConfigFolder">
+              <IconFolderOpen :size="16" />
+            </BaseButton>
           </div>
           <div class="hint">
             <span>最后修改：{{ formatTime(config.mtime) }}</span>
@@ -65,7 +69,9 @@
                 </span>
               </span>
             </div>
-            <BaseButton @click="onOpenInstallerFolder">打开文件夹</BaseButton>
+            <BaseButton variant="icon" v-tooltip="'打开文件夹'" @click="onOpenInstallerFolder">
+              <IconFolderOpen :size="16" />
+            </BaseButton>
           </div>
         </SettingFieldSection>
       </SettingFieldGroup>
@@ -108,6 +114,8 @@
               :key="`path-${i}`"
               :path="getPathText(p)"
               remove-message="确认移除该扫描目录？"
+              openable
+              @open="openDir(getPathText(p))"
               @remove="removePath(i)"
             >
               <template #middle>
@@ -184,6 +192,8 @@
               :key="`pin-${i}`"
               :path="p"
               remove-message="确认移除该置顶项目？"
+              openable
+              @open="openDir(p)"
               @remove="removePinned(i)"
             >
               <template #prefix><IconPin :size="14" filled class="pin-icon" /></template>
@@ -353,6 +363,8 @@ import { formatTime } from '@/utils/format-time.js'
 import { normalizeJSONObject } from '@shared/data.js'
 import AddRemoteDialog from '@/pages/projects/remote/components/add-remote-dialog.vue'
 import IconPin from '@/components/icons/icon-pin.vue'
+import IconFileTray from '@/components/icons/icon-file-tray.vue'
+import IconFolderOpen from '@/components/icons/icon-folder-open.vue'
 
 // ===== 页面级 UI 文案常量（仅本页使用，直接内联） =====
 const TRAY_TIP =
@@ -566,6 +578,18 @@ async function onOpenInstallerFolder() {
   const p = config.value.installer_path
   if (!p) {
     toastRef.value?.show('安装包缓存路径为空', 'error')
+    return
+  }
+  const r = await window.api.openFolder(p)
+  if (!r?.ok) {
+    toastRef.value?.show(`打开失败：${r?.message || '未知错误'}`, 'error')
+  }
+}
+
+/** 在资源管理器中打开目录（扫描目录 / 本地置顶项目） */
+async function openDir(p) {
+  if (!p) {
+    toastRef.value?.show('目录路径为空', 'error')
     return
   }
   const r = await window.api.openFolder(p)

@@ -140,4 +140,6 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 | `icon-location.vue`     | 本地项目（项目类型切换侧边栏）         | Fluent UI Location 24 Regular        |
 | `icon-globe.vue`        | 远程连接项目（项目类型切换侧边栏）     | Fluent UI Globe Location 24 Regular  |
 | `icon-newtab.vue`       | 创建远程连接（连接方式选择卡片）       | Carbon NewTab，线框+加号组合风格     |
-| `icon-app-launch.vue`   | 快捷IDE启动入口                        | Fluent UI 实心 ApprovalsApp28Regular |
+| `icon-app-launch.vue`   | 快捷IDE启动入口                        | Fluent UI 实心 ApprovalsApp28Regular |
+| `icon-file-tray.vue`    | 打开目录按钮（settings 本地项目列表）  | Ionicons 5 实心 fill                 |
+| `icon-folder-open.vue`  | 打开文件夹按钮（settings 通用配置）    | Ionicons 5 实心 fill                 |
