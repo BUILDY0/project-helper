@@ -103,6 +103,7 @@ onBeforeUnmount(() => {
   line-height: 1.6;
   word-break: break-all;
   margin-bottom: 18px;
+  padding: 16px 0;
 }
 .base-confirm-dialog__actions {
   display: flex;

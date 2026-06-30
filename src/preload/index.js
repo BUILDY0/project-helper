@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 // 暴露给渲染进程的安全 API，全部走 ipcRenderer.invoke
 contextBridge.exposeInMainWorld('api', {
@@ -50,6 +50,10 @@ contextBridge.exposeInMainWorld('api', {
    * @param {{ multi?: boolean }} [options] multi=true 时返回 string[]，否则返回 string
    */
   selectFile: (options = {}) => ipcRenderer.invoke('dialog:select-file', options),
+  /** 取拖拽 File 对象的真实文件系统路径（Electron 32+ 已移除 File.path） */
+  getPathForFile: (file) => webUtils.getPathForFile(file),
+  /** 从一组路径中过滤出存在且为目录的项 */
+  filterDirectories: (paths) => ipcRenderer.invoke('path:filter-directories', paths),
 
   // shell
   openFolder: (p) => ipcRenderer.invoke('shell:open-folder', p),

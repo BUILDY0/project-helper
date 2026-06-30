@@ -12,9 +12,11 @@
         :has-filter="!!debouncedKeyword"
         :loading="loading"
         :at-top="atTop"
+        :ides="menuIdes"
         @scroll-to-top="scrollToTop"
         @refresh="loadProjects"
         @add="addVisible = true"
+        @launch-ide="launchIde"
       />
     </template>
 
@@ -196,6 +198,18 @@ async function openInIde(ideId, project) {
   }
   // 记录最近打开
   await window.api.appendRecentOpened(project.key).catch(() => {})
+}
+
+/** 快速启动 IDE：执行该 IDE 的 entry 命令，仅唤起应用本身（不带项目路径） */
+async function launchIde(ide) {
+  if (!ide?.entry) {
+    toastRef.value?.show('该 IDE 缺少启动命令', 'error')
+    return
+  }
+  const r = await window.api.debugIdeScript(ide.entry)
+  if (!r?.ok) {
+    toastRef.value?.show(`启动失败：${r?.message || '未知错误'}`, 'error')
+  }
 }
 
 /** 双击打开：使用默认 IDE（全量查找），fallback 到首个可用 IDE */

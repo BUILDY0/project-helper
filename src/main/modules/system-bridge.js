@@ -312,6 +312,25 @@ function registerSystemBridge() {
     return multi ? result.filePaths : result.filePaths[0]
   })
 
+  /**
+   * 从一组路径中过滤出"存在且为目录"的项，保持原顺序。
+   * 拖拽 drop 的内容可能混入文件，需在主进程用 fs.stat 判定。
+   * @returns {Promise<string[]>}
+   */
+  ipcMain.handle('path:filter-directories', async (_e, paths) => {
+    const arr = Array.isArray(paths) ? paths : []
+    const checks = await Promise.all(
+      arr.map(async (p) => {
+        try {
+          return (await fsp.stat(p)).isDirectory()
+        } catch {
+          return false
+        }
+      })
+    )
+    return arr.filter((_, i) => checks[i])
+  })
+
   // ==================== Shell 操作 ====================
   /** 用系统默认程序打开文件或文件夹 */
   ipcMain.handle('shell:open-folder', async (_e, targetPath) => {

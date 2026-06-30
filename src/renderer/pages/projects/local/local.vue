@@ -1,104 +1,156 @@
 <template>
-  <!-- 本地项目子页：卡片网格 + 空态 + 右键菜单 + 对话框 -->
-  <PageLayout ref="layoutRef" @scroll="onBodyScroll">
-    <template #header>
-      <ProjectsToolbar
-        v-model:keyword="keyword"
-        title="本地项目"
-        search-placeholder="搜索项目（路径 / 项目名 / 描述）"
-        add-tooltip="新增扫描目录，后续可以在配置页中管理"
-        :total-count="projects.length"
-        :filtered-count="filteredProjects.length"
-        :has-filter="!!debouncedKeyword"
-        :loading="loading"
-        :at-top="atTop"
-        @scroll-to-top="scrollToTop"
-        @refresh="loadProjects"
-        @add="handleAddScanDir"
+  <!-- 本地项目子页：卡片网格 + 空态 + 右键菜单 + 对话框 + 目录拖拽添加 -->
+  <div
+    class="local-drop-zone"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
+    <PageLayout ref="layoutRef" @scroll="onBodyScroll">
+      <template #header>
+        <ProjectsToolbar
+          v-model:keyword="keyword"
+          title="本地项目"
+          search-placeholder="搜索项目（路径 / 项目名 / 描述）"
+          add-tooltip="新增扫描目录，后续可以在配置页中管理"
+          :total-count="projects.length"
+          :filtered-count="filteredProjects.length"
+          :has-filter="!!debouncedKeyword"
+          :loading="loading"
+          :at-top="atTop"
+          :ides="menuIdes"
+          @scroll-to-top="scrollToTop"
+          @refresh="loadProjects"
+          @add="openAddScan"
+          @launch-ide="launchIde"
+        />
+      </template>
+
+      <EmptyState v-if="loading && projects.length === 0">正在扫描项目...</EmptyState>
+      <EmptyState
+        v-else-if="projects.length === 0"
+        emoji="📂"
+        title="暂无项目"
+        tip="点击上方 + 按钮添加扫描目录"
       />
-    </template>
-
-    <EmptyState v-if="loading && projects.length === 0">正在扫描项目...</EmptyState>
-    <EmptyState
-      v-else-if="projects.length === 0"
-      emoji="📂"
-      title="暂无项目"
-      tip="点击上方 + 按钮添加扫描目录"
-    />
-    <EmptyState
-      v-else-if="debouncedKeyword && filteredProjects.length === 0"
-      emoji="🔍"
-      title="没有匹配的项目"
-      tip="尝试调整搜索关键字或清空搜索"
-    />
-    <div v-else class="grid">
-      <ProjectCard
-        v-for="p in filteredProjects"
-        :key="p.path"
-        :project="p"
-        @open="openWithDefaultIde"
-        @contextmenu="onContextMenu"
-        @toggle-pin="togglePin"
-        @open-git="openGitUrl"
-        @open-pkg="openPackageFolder"
-        @open-readme="openReadme"
+      <EmptyState
+        v-else-if="debouncedKeyword && filteredProjects.length === 0"
+        emoji="🔍"
+        title="没有匹配的项目"
+        tip="尝试调整搜索关键字或清空搜索"
       />
-    </div>
-
-    <BaseContextMenu
-      :visible="ctxVisible"
-      :x="ctxX"
-      :y="ctxY"
-      :items="ctxItems"
-      :footnote="ctxTarget?.name || ''"
-      @close="closeMenu"
-      @select="onMenuSelect"
-    />
-
-    <BaseConfirmDialog
-      :visible="renameVisible"
-      title="重命名项目"
-      close-icon
-      confirm-text="确定"
-      confirm-tone="primary"
-      @cancel="onCancelRename"
-      @confirm="onConfirmRename"
-    >
-      <div class="rename-body">
-        <BaseInput
-          ref="renameInputRef"
-          v-model="renameValue"
-          placeholder="请输入新的文件夹名称"
-          @enter="onConfirmRename"
+      <div v-else class="grid">
+        <ProjectCard
+          v-for="p in filteredProjects"
+          :key="p.path"
+          :project="p"
+          @open="openWithDefaultIde"
+          @contextmenu="onContextMenu"
+          @toggle-pin="togglePin"
+          @open-git="openGitUrl"
+          @open-pkg="openPackageFolder"
+          @open-readme="openReadme"
         />
       </div>
-    </BaseConfirmDialog>
 
-    <BaseConfirmDialog
-      :visible="confirmVisible"
-      title="删除项目"
-      close-icon
-      :confirm-text="permanentDelete ? '永久删除' : '移入回收站'"
-      @cancel="onCancelDelete"
-      @confirm="onConfirmDelete"
-    >
-      <div class="delete-confirm">
-        <div class="delete-path">{{ pendingProject?.path || '' }}</div>
-        <label class="permanent-delete-option">
-          <span
-            class="delete-help-icon"
-            v-tooltip:bottom="'开启后将直接从磁盘移除，无法从回收站恢复。'"
+      <BaseContextMenu
+        :visible="ctxVisible"
+        :x="ctxX"
+        :y="ctxY"
+        :items="ctxItems"
+        :footnote="ctxTarget?.name || ''"
+        @close="closeMenu"
+        @select="onMenuSelect"
+      />
+
+      <BaseConfirmDialog
+        :visible="renameVisible"
+        title="重命名项目"
+        close-icon
+        confirm-text="确定"
+        confirm-tone="primary"
+        @cancel="onCancelRename"
+        @confirm="onConfirmRename"
+      >
+        <div class="rename-body">
+          <BaseInput
+            ref="renameInputRef"
+            v-model="renameValue"
+            placeholder="请输入新的文件夹名称"
+            @enter="onConfirmRename"
+          />
+        </div>
+      </BaseConfirmDialog>
+
+      <BaseConfirmDialog
+        :visible="confirmVisible"
+        title="删除项目"
+        close-icon
+        :confirm-text="permanentDelete ? '永久删除' : '移入回收站'"
+        @cancel="onCancelDelete"
+        @confirm="onConfirmDelete"
+      >
+        <div class="delete-confirm">
+          <div class="delete-path">{{ pendingProject?.path || '' }}</div>
+          <label class="permanent-delete-option">
+            <span
+              class="delete-help-icon"
+              v-tooltip:bottom="'开启后将直接从磁盘移除，无法从回收站恢复。'"
+            >
+              i
+            </span>
+            <span class="permanent-delete-copy">永久删除</span>
+            <BaseSwitch v-model="permanentDelete" tone="danger" aria-label="永久删除" />
+          </label>
+        </div>
+      </BaseConfirmDialog>
+
+      <BaseConfirmDialog
+        :visible="addScanVisible"
+        title="确认添加扫描目录"
+        close-icon
+        confirm-text="确认添加"
+        confirm-tone="primary"
+        :width="520"
+        @cancel="cancelAddScan"
+        @confirm="confirmAddScan"
+      >
+        <div v-if="addScanPending.length" class="add-scan-list">
+          <PathListItem
+            v-for="(p, i) in addScanPending"
+            :key="`add-scan-${i}`"
+            :path="p.path"
+            remove-message="确认移除该目录？"
+            @remove="removeAddScanAt(i)"
           >
-            i
-          </span>
-          <span class="permanent-delete-copy">永久删除</span>
-          <BaseSwitch v-model="permanentDelete" tone="danger" aria-label="永久删除" />
-        </label>
-      </div>
-    </BaseConfirmDialog>
+            <template #middle>
+              <span class="forced-toggle" v-tooltip="ADD_FORCED_TIP">
+                <BaseSwitch
+                  :model-value="isAddScanForced(p)"
+                  size="sm"
+                  aria-label="强制命中"
+                  @update:model-value="(v) => setAddScanForced(i, v)"
+                />
+                <span class="forced-toggle__label" @click="toggleAddScanForced(i)">强制命中</span>
+              </span>
+            </template>
+          </PathListItem>
+        </div>
+        <div v-else class="add-scan-empty">已无待添加目录</div>
+      </BaseConfirmDialog>
 
-    <BaseToast ref="toastRef" />
-  </PageLayout>
+      <BaseToast ref="toastRef" />
+    </PageLayout>
+
+    <transition name="drop-overlay-fade">
+      <div v-if="isDragging" class="drop-overlay">
+        <div class="drop-overlay__inner">
+          <span class="drop-overlay__text">拖拽可以快速添加扫描目录…</span>
+        </div>
+      </div>
+    </transition>
+  </div>
 </template>
 
 <script setup>
@@ -121,7 +173,9 @@ import { useContextMenu } from './composables/use-context-menu.js'
 import { useDeleteProject } from './composables/use-delete-project.js'
 import { useRenameProject } from './composables/use-rename-project.js'
 import { getParentPath } from '@/utils/path.js'
-import { computeNewPaths } from '@/pages/settings/utils/path-helper.js'
+import PathListItem from '@/pages/settings/components/path-list-item.vue'
+import { useAddScanDirDialog } from './composables/use-add-scan-dir-dialog.js'
+import { useDirDrop } from './composables/use-dir-drop.js'
 
 const props = defineProps({
   active: Boolean
@@ -147,6 +201,18 @@ const { keyword, debouncedKeyword, filteredProjects } = useProjectSearch({ proje
 const { atTop, onBodyScroll, scrollToTop } = useScrollToTop({ bodyRef })
 const { openWithDefaultIde, openGitUrl, openPackageFolder, openReadme, togglePin } =
   useProjectActions({ toastRef, availableIdes, projects })
+
+/** 快速启动 IDE：执行该 IDE 的 entry 命令，仅唤起应用本身（不带项目路径） */
+async function launchIde(ide) {
+  if (!ide?.entry) {
+    toastRef.value?.show('该 IDE 缺少启动命令', 'error')
+    return
+  }
+  const r = await window.api.debugIdeScript(ide.entry)
+  if (!r?.ok) {
+    toastRef.value?.show(`启动失败：${r?.message || '未知错误'}`, 'error')
+  }
+}
 
 const {
   confirmVisible,
@@ -229,22 +295,25 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
     }
   })
 
-async function handleAddScanDir() {
-  const dirs = await window.api.selectDirectory({ multi: true })
-  if (!dirs || !dirs.length) return
-  try {
-    const cfg = await window.api.readConfig()
-    const { newPaths, added } = computeNewPaths(dirs, cfg.paths || [])
-    if (added > 0) {
-      cfg.paths.push(...newPaths)
-      await window.api.saveConfig(cfg)
-      toastRef.value?.show(`已添加 ${added} 个扫描目录`, 'success', 1500)
-    }
-    loadProjects()
-  } catch (err) {
-    toastRef.value?.show(`添加失败：${err.message}`, 'error')
-  }
-}
+const ADD_FORCED_TIP = '开启后，扫描时强制命中该目录。'
+const {
+  visible: addScanVisible,
+  pendingPaths: addScanPending,
+  open: openAddScan,
+  openFromPaths: openAddScanFromPaths,
+  removeAt: removeAddScanAt,
+  isForced: isAddScanForced,
+  setForced: setAddScanForced,
+  toggleForced: toggleAddScanForced,
+  cancel: cancelAddScan,
+  confirm: confirmAddScan
+} = useAddScanDirDialog({ toastRef, loadProjects })
+
+// 拖拽目录到本地项目区域 → 复用添加扫描目录弹窗
+const { isDragging, onDragEnter, onDragOver, onDragLeave, onDrop } = useDirDrop({
+  toastRef,
+  onDirs: openAddScanFromPaths
+})
 
 onMounted(() => {
   loadProjects()
@@ -262,6 +331,45 @@ watch(
 </script>
 
 <style scoped>
+.local-drop-zone {
+  position: relative;
+  height: 100%;
+}
+/* dragging 遮罩：覆盖整个本地项目区域，提示可拖拽添加 */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-mask));
+  /* 让 drop 事件落到外层 drop-zone，避免遮罩自身吞掉子元素冒泡 */
+  pointer-events: none;
+}
+.drop-overlay__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 40px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-lg);
+}
+.drop-overlay__text {
+  font-size: 14px;
+  font-weight: 600;
+}
+.drop-overlay-fade-enter-active,
+.drop-overlay-fade-leave-active {
+  transition: opacity 0.15s;
+}
+.drop-overlay-fade-enter-from,
+.drop-overlay-fade-leave-to {
+  opacity: 0;
+}
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -313,5 +421,35 @@ watch(
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
+}
+.add-scan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.add-scan-empty {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  padding: 8px 0;
+}
+.forced-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  margin-right: 20px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+.forced-toggle__label {
+  cursor: pointer;
+  user-select: none;
+}
+.forced-toggle__label:hover {
+  color: var(--color-text);
 }
 </style>
