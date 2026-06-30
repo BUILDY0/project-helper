@@ -58,7 +58,7 @@ const emit = defineEmits(['update:modelValue'])
     background 0.15s;
 }
 .type-btn:hover:not(:disabled) {
-  color: var(--color-text-secondary);
+  color: var(--color-accent);
   background: var(--color-hover);
 }
 .type-btn.active {
