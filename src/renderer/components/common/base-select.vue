@@ -48,6 +48,7 @@
         :placeholder="!hasValue ? placeholder : ''"
         :readonly="!open"
         @click.stop="onTriggerClick"
+        @keydown.enter.prevent="onSearchEnter"
         @keydown.backspace="onBackspace"
         @keydown.stop
       />
@@ -65,6 +66,7 @@
         :readonly="!open"
         @input="keyword = $event.target.value"
         @click.stop="onTriggerClick"
+        @keydown.enter.prevent="onSearchEnter"
         @keydown.stop
       />
       <span v-else class="base-select__value" :class="{ 'is-placeholder': !hasValue }">
@@ -110,7 +112,19 @@
           @mousedown.prevent
         >
           <!-- 无结果 -->
-          <div v-if="filteredOptions.length === 0" class="base-select__empty">无匹配选项</div>
+          <div v-if="filteredOptions.length === 0 && !showCreate" class="base-select__empty">
+            无匹配选项
+          </div>
+
+          <!-- 新增选项（allowCreate）：当前搜索词无完全匹配项时置顶展示 -->
+          <div
+            v-if="showCreate"
+            class="base-select__option base-select__create"
+            role="option"
+            @click="onCreate"
+          >
+            <span class="base-select__option-label">创建 “{{ trimmedKeyword }}”</span>
+          </div>
 
           <template
             v-for="item in filteredOptions"
@@ -174,10 +188,12 @@ const props = defineProps({
   filterable: { type: Boolean, default: false },
   /** 多选模式下：选中后保留搜索词（默认选中后清空） */
   reserveKeyword: { type: Boolean, default: false },
+  /** 允许根据搜索词新增不存在的选项（需配合 filterable） */
+  allowCreate: { type: Boolean, default: false },
   /** sm=30px / md=32px */
   size: { type: String, default: 'md' }
 })
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'change', 'create'])
 
 // ─── refs ───────────────────────────────────────────────
 const triggerRef = ref(null)
@@ -213,6 +229,18 @@ const flatOptions = computed(() => {
 
 // 仅叶子选项（非分组行）
 const leafOptions = computed(() => flatOptions.value.filter((o) => !o._isGroup))
+
+// ─── 新增选项（allowCreate） ─────────────────────────────
+const trimmedKeyword = computed(() => keyword.value.trim())
+const showCreate = computed(() => {
+  if (!props.allowCreate || !props.filterable) return false
+  const kw = trimmedKeyword.value.toLowerCase()
+  if (!kw) return false
+  // 已存在 label/value 完全匹配的选项时不再提示创建
+  return !leafOptions.value.some(
+    (o) => String(o.label).toLowerCase() === kw || String(o.value).toLowerCase() === kw
+  )
+})
 
 // 筛选后的选项列表（含分组标题行保留）
 const filteredOptions = computed(() => {
@@ -341,6 +369,39 @@ function onOptionClick(opt) {
     emit('change', opt.value, opt)
     close()
   }
+}
+
+/** 新增并选中当前搜索词：emit('create')，多选追加 / 单选直接置值 */
+function onCreate() {
+  const val = trimmedKeyword.value
+  if (!val) return
+  emit('create', val)
+  if (props.multiple) {
+    const cur = Array.isArray(props.modelValue) ? [...props.modelValue] : []
+    if (!cur.includes(val)) cur.push(val)
+    emit('update:modelValue', cur)
+    emit('change', cur, { value: val, label: val })
+    if (!props.reserveKeyword) keyword.value = ''
+    nextTick(() => searchRef.value?.focus())
+  } else {
+    emit('update:modelValue', val)
+    emit('change', val, { value: val, label: val })
+    close()
+  }
+}
+
+/** 搜索框回车：优先选中当前高亮项，否则触发新增（allowCreate） */
+function onSearchEnter() {
+  if (focusedIndex.value >= 0) {
+    const opt = filteredOptions.value.find(
+      (o) => !o._isGroup && o._flatIndex === focusedIndex.value
+    )
+    if (opt) {
+      onOptionClick(opt)
+      return
+    }
+  }
+  if (showCreate.value) onCreate()
 }
 
 function onClear() {
@@ -707,6 +768,11 @@ defineExpose({ focus: () => triggerRef.value?.focus() })
   font-size: 13px;
   color: var(--color-primary);
   line-height: 1;
+}
+
+/* ===== 新增选项 ===== */
+.base-select__create .base-select__option-label {
+  color: var(--color-primary);
 }
 
 /* ===== 无结果 ===== */

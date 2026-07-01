@@ -143,3 +143,6 @@ Vue scoped 会把组件根元素继承到子组件根 dom 上，所以**直接�
 | `icon-app-launch.vue`   | 快捷IDE启动入口                        | Fluent UI 实心 ApprovalsApp28Regular |
 | `icon-file-tray.vue`    | 打开目录按钮（settings 本地项目列表）  | Ionicons 5 实心 fill                 |
 | `icon-folder-open.vue`  | 打开文件夹按钮（settings 通用配置）    | Ionicons 5 实心 fill                 |
+| `icon-tag-dismiss.vue`  | 删除标签（settings 标签管理）          | Fluent UI TagDismiss 24 Filled       |
+| `icon-view-grid.vue`    | 平铺视图（项目页视图切换）             | Ant Design AppstoreFilled, fill 实心 |
+| `icon-view-tags.vue`    | 分类视图（项目页视图切换）             | Ionicons 4 MdPricetags, fill 实心    |

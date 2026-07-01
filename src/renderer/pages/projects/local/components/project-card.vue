@@ -62,6 +62,9 @@
       >
         {{ project.description }}
       </div>
+      <div v-if="project.tags && project.tags.length" class="card-tags">
+        <BaseTag v-for="t in project.tags" :key="t" :label="t" hash size="sm" />
+      </div>
     </div>
     <div class="card-path" v-tooltip:bottom.overflow="project.path">{{ project.path }}</div>
   </div>
@@ -73,6 +76,7 @@ import IconNode from '@/components/icons/icon-node.vue'
 import IconPin from '@/components/icons/icon-pin.vue'
 import IconReadme from '@/components/icons/icon-readme.vue'
 import BaseButton from '@/components/common/base-button.vue'
+import BaseTag from '@/components/common/base-tag.vue'
 
 defineProps({
   project: { type: Object, required: true }
@@ -154,6 +158,12 @@ defineEmits(['open', 'contextmenu', 'toggle-pin', 'open-git', 'open-pkg', 'open-
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
 }
 .pin-btn {
   position: absolute;

@@ -34,6 +34,8 @@ defineExpose({
 .page-header {
   flex-shrink: 0;
   margin-bottom: 14px;
+  position: relative;
+  z-index: 99;
 }
 .page-body {
   flex: 1;

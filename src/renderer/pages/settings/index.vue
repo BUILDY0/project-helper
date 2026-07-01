@@ -255,6 +255,37 @@
         </SettingFieldSection>
       </SettingFieldGroup>
 
+      <!-- 标签 -->
+      <SettingField label="标签">
+        <template #actions>
+          <BaseButton variant="text" inline :disabled="!tagCount" @click="askClearTags">
+            清空
+          </BaseButton>
+        </template>
+        <div v-if="tagCount" class="tag-tree">
+          <div v-for="name in tagNames" :key="name" class="tag-tree__group">
+            <div class="tag-tree__tag">
+              <BaseTag :label="name" />
+              <BasePopconfirm message="确认删除该标签？" @confirm="deleteTag(name)">
+                <BaseButton variant="icon" size="xs" class="tag-tree__del" v-tooltip="'删除标签'">
+                  <IconTagDismiss :size="15" />
+                </BaseButton>
+              </BasePopconfirm>
+            </div>
+            <div v-if="config.tags[name].length" class="tag-tree__paths">
+              <PathListItem
+                v-for="(p, i) in config.tags[name]"
+                :key="`${name}-${i}`"
+                :path="p"
+                remove-message="确认移除该关联路径？"
+                @remove="removeTagPath(name, i)"
+              />
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-tip">暂无标签</div>
+      </SettingField>
+
       <!-- 帮助 -->
       <SettingField label="帮助">
         <div class="help-list">
@@ -340,6 +371,8 @@ import BaseConfirmDialog from '@/components/common/base-confirm-dialog.vue'
 import BaseToast from '@/components/common/base-toast.vue'
 import HelpCircleLink from '@/components/common/help-circle-link.vue'
 import BaseSwitch from '@/components/common/base-switch.vue'
+import BasePopconfirm from '@/components/common/base-popconfirm.vue'
+import BaseTag from '@/components/common/base-tag.vue'
 import InlineToggle from '@/components/common/inline-toggle.vue'
 import UpdateCheckButton from './components/update-check-button.vue'
 import SettingField from './components/setting-field.vue'
@@ -358,11 +391,13 @@ import { useUpdateCheck } from './composables/use-update-check.js'
 import { useAppVersion } from './composables/use-app-version.js'
 import { useIdes } from '@/composables/use-ides.js'
 import { useRemotePaths } from './composables/use-remote-paths.js'
+import { useTags } from './composables/use-tags.js'
 import { getPathText } from './utils/path-helper.js'
 import { formatTime } from '@/utils/format-time.js'
 import { normalizeJSONObject } from '@shared/data.js'
 import AddRemoteDialog from '@/pages/projects/remote/components/add-remote-dialog.vue'
 import IconPin from '@/components/icons/icon-pin.vue'
+import IconTagDismiss from '@/components/icons/icon-tag-dismiss.vue'
 import IconFileTray from '@/components/icons/icon-file-tray.vue'
 import IconFolderOpen from '@/components/icons/icon-folder-open.vue'
 
@@ -452,6 +487,15 @@ const {
 const remotePathCount = computed(() => config.value.remote?.paths?.length || 0)
 const remotePinnedCount = computed(() => config.value.remote?.pinned?.length || 0)
 
+// 标签管理
+const {
+  tagNames,
+  tagCount,
+  deleteTag,
+  removePath: removeTagPath,
+  clearAll: clearTags
+} = useTags({ config })
+
 // 远程项目新增弹窗（配置页版本，不需要实时刷新列表，只更新持久化值）
 const remoteAddVisible = ref(false)
 function openRemoteAddDialog() {
@@ -488,6 +532,10 @@ const {
   'clear-remote-pinned': () => {
     clearRemotePinnedPaths()
     toastRef.value?.show('已清空远程置顶项目', 'success')
+  },
+  'clear-tags': () => {
+    clearTags()
+    toastRef.value?.show('已清空标签', 'success')
   }
 })
 
@@ -538,6 +586,16 @@ function askClearRemotePinned() {
     message: `确认清空全部 ${remotePinnedCount.value} 个远程置顶项？保存后生效~`,
     confirmText: '清空',
     action: 'clear-remote-pinned'
+  })
+}
+
+function askClearTags() {
+  if (!tagCount.value) return
+  openConfirm({
+    title: '清空标签',
+    message: `确认清空全部 ${tagCount.value} 个标签？保存后生效~`,
+    confirmText: '清空',
+    action: 'clear-tags'
   })
 }
 
@@ -801,6 +859,37 @@ defineExpose({
 .empty-tip {
   font-size: 12px;
   color: var(--color-text-tertiary);
+}
+
+/* 标签树：标签为父节点，关联路径缩进展示 */
+.tag-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tag-tree__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tag-tree__tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tag-tree__popconfirm {
+  margin-left: auto;
+}
+.tag-tree__del:hover:not(:disabled) {
+  color: var(--color-danger-hover);
+}
+.tag-tree__paths {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+  border-left: 1px solid var(--color-border);
+  margin-left: 6px;
 }
 
 .help-list {

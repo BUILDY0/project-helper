@@ -4,8 +4,9 @@
     <template #header>
       <ProjectsToolbar
         v-model:keyword="keyword"
+        :view="view"
         title="远程连接项目"
-        search-placeholder="搜索项目（远程信息 / 项目名 / 描述）"
+        search-placeholder="搜索项目（远程信息 / 项目名 / 描述 / #标签）"
         add-tooltip="新增远程连接项目"
         :total-count="projects.length"
         :filtered-count="filteredProjects.length"
@@ -13,10 +14,12 @@
         :loading="loading"
         :at-top="atTop"
         :ides="menuIdes"
+        :tags="tagNames"
         @scroll-to-top="scrollToTop"
         @refresh="loadProjects"
         @add="addVisible = true"
         @launch-ide="launchIde"
+        @update:view="setView"
       />
     </template>
 
@@ -33,18 +36,32 @@
       title="没有匹配的项目"
       tip="尝试调整搜索关键字或清空搜索"
     />
-    <div v-else class="grid">
-      <RemoteProjectCard
-        v-for="p in filteredProjects"
-        :key="p.id"
-        :project="p"
-        :tag-style="typeStyleMap[p.type] || typeStyleMap.DEFAULT"
-        :type-label="typeLabelMap[p.type] || '其他'"
-        @open="handleOpen"
-        @contextmenu="onContextMenu"
-        @toggle-pin="togglePin"
-      />
-    </div>
+    <template v-else>
+      <div v-if="view === ViewType.FLAT" class="grid">
+        <RemoteProjectCard
+          v-for="p in filteredProjects"
+          :key="p.id"
+          :project="p"
+          :tag-style="typeStyleMap[p.type] || typeStyleMap.DEFAULT"
+          :type-label="typeLabelMap[p.type] || '其他'"
+          @open="handleOpen"
+          @contextmenu="onContextMenu"
+          @toggle-pin="togglePin"
+        />
+      </div>
+      <ProjectGroups v-else :groups="projectGroups" :item-key="(p) => p.id">
+        <template #default="{ project }">
+          <RemoteProjectCard
+            :project="project"
+            :tag-style="typeStyleMap[project.type] || typeStyleMap.DEFAULT"
+            :type-label="typeLabelMap[project.type] || '其他'"
+            @open="handleOpen"
+            @contextmenu="onContextMenu"
+            @toggle-pin="togglePin"
+          />
+        </template>
+      </ProjectGroups>
+    </template>
 
     <BaseContextMenu
       :visible="ctxVisible"
@@ -85,6 +102,14 @@
       <div class="delete-path">{{ pendingProject?.name || '' }}</div>
     </BaseConfirmDialog>
 
+    <TagDialog
+      :visible="tagVisible"
+      :tags="tagDialogTags"
+      :value="tagCurrent"
+      @cancel="cancelTag"
+      @confirm="confirmTag"
+    />
+
     <BaseToast ref="toastRef" />
   </PageLayout>
 </template>
@@ -99,12 +124,18 @@ import ProjectsToolbar from '../common/components/projects-toolbar.vue'
 import EmptyState from '../common/components/empty-state.vue'
 import RemoteProjectCard from './components/remote-project-card.vue'
 import AddRemoteDialog from './components/add-remote-dialog.vue'
+import ProjectGroups from '../common/components/project-groups.vue'
+import TagDialog from '../common/components/tag-dialog.vue'
 import { useIdes } from '@/composables/use-ides.js'
 import { useRemoteProjectSearch } from '../common/composables/use-project-search.js'
+import { useProjectGroups } from '../common/composables/use-project-groups.js'
+import { useProjectView } from '../common/composables/use-project-view.js'
 import { useScrollToTop } from '../common/composables/use-scroll-to-top.js'
 import { useRemoteProjects } from './composables/use-remote-projects.js'
 import { useRemoteContextMenu } from './composables/use-remote-context-menu.js'
+import { useTagDialog } from '../common/composables/use-tag-dialog.js'
 import { PathType } from '@shared/path-types.js'
+import { ViewType } from '@shared/view.js'
 
 const props = defineProps({
   active: Boolean
@@ -128,6 +159,32 @@ const { projects, loading, loadProjects, togglePin, deleteProject, updateProject
   useRemoteProjects({ toastRef })
 const { keyword, debouncedKeyword, filteredProjects } = useRemoteProjectSearch({ projects })
 const { atTop, onBodyScroll, scrollToTop } = useScrollToTop({ bodyRef })
+const { view, loadView, setView } = useProjectView({ side: 'remote' })
+const projectGroups = useProjectGroups(filteredProjects)
+
+// 可用标签名（供搜索框 #标签 自动补全）
+const tagNames = ref([])
+async function syncTagNames() {
+  try {
+    const cfg = await window.api.readConfig()
+    tagNames.value = Object.keys(cfg.tags || {})
+  } catch {}
+}
+
+const {
+  visible: tagVisible,
+  allTags: tagDialogTags,
+  current: tagCurrent,
+  open: openTagDialog,
+  cancel: cancelTag,
+  confirm: confirmTag
+} = useTagDialog({
+  toastRef,
+  reload: async () => {
+    await loadProjects()
+    await syncTagNames()
+  }
+})
 
 const addVisible = ref(false)
 const editVisible = ref(false)
@@ -309,13 +366,16 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
       copyPath,
       edit: requestEdit,
       togglePin,
-      requestDelete
+      requestDelete,
+      tag: openTagDialog
     }
   })
 
 onMounted(() => {
   loadProjects()
   syncExcludeIds()
+  syncTagNames()
+  loadView()
 })
 watch(
   () => props.active,
@@ -323,6 +383,8 @@ watch(
     if (val) {
       loadProjects()
       syncExcludeIds()
+      syncTagNames()
+      loadView()
     }
   }
 )

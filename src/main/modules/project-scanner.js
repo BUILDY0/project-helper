@@ -218,6 +218,23 @@ function normalize(p) {
 }
 
 /**
+ * 构建「本地路径 -> 标签名集合」索引，供扫描结果标记标签用。
+ * tags 的 value 可能混入远程 key（path::alias），resolve 后不会匹配任何本地目录，无副作用。
+ */
+function buildLocalTagIndex(tags) {
+  const idx = new Map()
+  for (const [name, list] of Object.entries(tags || {})) {
+    for (const k of list || []) {
+      if (typeof k !== 'string') continue
+      const np = path.resolve(k).toLowerCase()
+      if (!idx.has(np)) idx.set(np, new Set())
+      idx.get(np).add(name)
+    }
+  }
+  return idx
+}
+
+/**
  * 广度优先扫描：从 roots 出发，depth 为搜索边界，命中 exclude 则跳过
  * depth 语义：paths=[{ path: "a" }], depth=1 => 扫描 a/、a/aa/、a/bb/，不进入 a/aa/aaa
  * 即从 root 出发最多向下走 depth 层
@@ -308,6 +325,12 @@ function registerScannerIpc() {
     const list = await scanProjects(cfg.paths, cfg.depth, cfg.exclude_paths)
     // 标记每个项目的 pinned 状态
     for (const p of list) p.pinned = pinnedSet.has(path.resolve(p.path))
+    // 标记每个项目命中的标签：tags 关联 key 为本地 path，按 resolve+lowercase 匹配
+    const tagIndex = buildLocalTagIndex(cfg.tags)
+    for (const p of list) {
+      const hit = tagIndex.get(path.resolve(p.path).toLowerCase())
+      p.tags = hit ? [...hit] : []
+    }
     // pinned 优先，其次按名称
     list.sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1

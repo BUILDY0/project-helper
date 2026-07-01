@@ -26,6 +26,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
     tray: true,
     auto_clear_installer: false,
     ide_cfg: { default: '', exclude: [], extends: [] },
+    tags: {},
     mtime: 0
   })
   const saving = ref(false)
@@ -48,7 +49,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
       auto_check_update: !!c.auto_check_update,
       tray: !!c.tray,
       auto_clear_installer: !!c.auto_clear_installer,
-      ide_cfg: c.ide_cfg ?? { default: '', exclude: [], extends: [] }
+      ide_cfg: c.ide_cfg ?? { default: '', exclude: [], extends: [] },
+      tags: c.tags ?? {}
     })
   }
 
@@ -92,6 +94,7 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
         exclude: Array.isArray(cfg.ide_cfg?.exclude) ? cfg.ide_cfg.exclude : [],
         extends: Array.isArray(cfg.ide_cfg?.extends) ? cfg.ide_cfg.extends : []
       },
+      tags: cfg.tags && typeof cfg.tags === 'object' ? cfg.tags : {},
       mtime: typeof cfg.mtime === 'number' ? cfg.mtime : 0
     }
     // 更新基线快照
@@ -126,7 +129,8 @@ export function useConfig({ toastRef, minLoadingMs = 1000 }) {
           default: c.ide_cfg?.default ?? '',
           exclude: Array.isArray(c.ide_cfg?.exclude) ? c.ide_cfg.exclude : [],
           extends: Array.isArray(c.ide_cfg?.extends) ? c.ide_cfg.extends : []
-        }
+        },
+        tags: c.tags && typeof c.tags === 'object' ? c.tags : {}
       })
 
       const prevAutoRun = originalSnapshotAutoRun()

@@ -29,6 +29,7 @@ export function useContextMenu({ availableIdes, actions }) {
     if (hasParent) {
       items.push({ label: '复制项目父级路径', action: 'copy-parent-path' })
     }
+    items.push({ label: '打标签', action: 'tag' })
     items.push({ label: '重命名', action: 'rename' })
     items.push({ label: '查看项目属性', action: 'show-properties' })
     items.push({ divider: true })
@@ -58,6 +59,8 @@ export function useContextMenu({ availableIdes, actions }) {
       await actions.copyParentPath(p)
     } else if (item.action === 'rename') {
       await actions.rename(p)
+    } else if (item.action === 'tag') {
+      await actions.tag(p)
     } else if (item.action === 'show-properties') {
       await actions.showProperties(p)
     } else if (item.action === 'toggle-pin') {

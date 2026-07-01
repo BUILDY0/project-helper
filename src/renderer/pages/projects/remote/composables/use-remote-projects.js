@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { normalizePathItem, projectKey } from '@shared/path-types.js'
+import { normalizeTags, tagsForKey } from '@shared/tags.js'
 
 import { MIN_LOADING_MS } from '../../local/composables/use-projects.js'
 
@@ -18,6 +19,7 @@ export function useRemoteProjects({ toastRef }) {
       const rawPaths = cfg.remote?.paths || []
       const pinnedArr = cfg.remote?.pinned || []
       const pinnedSet = new Set(pinnedArr)
+      const tags = normalizeTags(cfg.tags)
 
       const list = []
       for (const raw of rawPaths) {
@@ -30,7 +32,8 @@ export function useRemoteProjects({ toastRef }) {
           key: key,
           name: item.cfg?.alias || item.path,
           description: item.cfg?.desc || '',
-          pinned: pinnedSet.has(key)
+          pinned: pinnedSet.has(key),
+          tags: tagsForKey(tags, key)
         })
       }
       // 置顶优先 + 名称排序

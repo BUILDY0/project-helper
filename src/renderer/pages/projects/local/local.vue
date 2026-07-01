@@ -11,8 +11,9 @@
       <template #header>
         <ProjectsToolbar
           v-model:keyword="keyword"
+          :view="view"
           title="本地项目"
-          search-placeholder="搜索项目（路径 / 项目名 / 描述）"
+          search-placeholder="搜索项目（路径 / 项目名 / 描述 / #标签）"
           add-tooltip="新增扫描目录，后续可以在配置页中管理"
           :total-count="projects.length"
           :filtered-count="filteredProjects.length"
@@ -20,10 +21,12 @@
           :loading="loading"
           :at-top="atTop"
           :ides="menuIdes"
+          :tags="tagNames"
           @scroll-to-top="scrollToTop"
           @refresh="loadProjects"
           @add="openAddScan"
           @launch-ide="launchIde"
+          @update:view="setView"
         />
       </template>
 
@@ -40,19 +43,34 @@
         title="没有匹配的项目"
         tip="尝试调整搜索关键字或清空搜索"
       />
-      <div v-else class="grid">
-        <ProjectCard
-          v-for="p in filteredProjects"
-          :key="p.path"
-          :project="p"
-          @open="openWithDefaultIde"
-          @contextmenu="onContextMenu"
-          @toggle-pin="togglePin"
-          @open-git="openGitUrl"
-          @open-pkg="openPackageFolder"
-          @open-readme="openReadme"
-        />
-      </div>
+      <template v-else>
+        <div v-if="view === ViewType.FLAT" class="grid">
+          <ProjectCard
+            v-for="p in filteredProjects"
+            :key="p.path"
+            :project="p"
+            @open="openWithDefaultIde"
+            @contextmenu="onContextMenu"
+            @toggle-pin="togglePin"
+            @open-git="openGitUrl"
+            @open-pkg="openPackageFolder"
+            @open-readme="openReadme"
+          />
+        </div>
+        <ProjectGroups v-else :groups="projectGroups" :item-key="(p) => p.path">
+          <template #default="{ project }">
+            <ProjectCard
+              :project="project"
+              @open="openWithDefaultIde"
+              @contextmenu="onContextMenu"
+              @toggle-pin="togglePin"
+              @open-git="openGitUrl"
+              @open-pkg="openPackageFolder"
+              @open-readme="openReadme"
+            />
+          </template>
+        </ProjectGroups>
+      </template>
 
       <BaseContextMenu
         :visible="ctxVisible"
@@ -143,6 +161,14 @@
       <BaseToast ref="toastRef" />
     </PageLayout>
 
+    <TagDialog
+      :visible="tagVisible"
+      :tags="tagDialogTags"
+      :value="tagCurrent"
+      @cancel="cancelTag"
+      @confirm="confirmTag"
+    />
+
     <transition name="drop-overlay-fade">
       <div v-if="isDragging" class="drop-overlay">
         <div class="drop-overlay__inner">
@@ -163,15 +189,21 @@ import BaseToast from '@/components/common/base-toast.vue'
 import BaseSwitch from '@/components/common/base-switch.vue'
 import ProjectCard from './components/project-card.vue'
 import ProjectsToolbar from '../common/components/projects-toolbar.vue'
+import ProjectGroups from '../common/components/project-groups.vue'
 import EmptyState from '../common/components/empty-state.vue'
+import TagDialog from '../common/components/tag-dialog.vue'
 import { useIdes } from '@/composables/use-ides.js'
 import { useProjects } from './composables/use-projects.js'
 import { useProjectSearch } from '../common/composables/use-project-search.js'
+import { useProjectGroups } from '../common/composables/use-project-groups.js'
+import { useProjectView } from '../common/composables/use-project-view.js'
+import { ViewType } from '@shared/view.js'
 import { useScrollToTop } from '../common/composables/use-scroll-to-top.js'
 import { useProjectActions } from './composables/use-project-actions.js'
 import { useContextMenu } from './composables/use-context-menu.js'
 import { useDeleteProject } from './composables/use-delete-project.js'
 import { useRenameProject } from './composables/use-rename-project.js'
+import { useTagDialog } from '../common/composables/use-tag-dialog.js'
 import { getParentPath } from '@/utils/path.js'
 import PathListItem from '@/pages/settings/components/path-list-item.vue'
 import { useAddScanDirDialog } from './composables/use-add-scan-dir-dialog.js'
@@ -198,6 +230,32 @@ async function syncExcludeIds() {
 
 const { projects, loading, loadProjects } = useProjects({ toastRef })
 const { keyword, debouncedKeyword, filteredProjects } = useProjectSearch({ projects })
+const { view, loadView, setView } = useProjectView({ side: 'local' })
+const projectGroups = useProjectGroups(filteredProjects)
+
+// 可用标签名（供搜索框 #标签 自动补全），随项目刷新同步
+const tagNames = ref([])
+async function syncTagNames() {
+  try {
+    const cfg = await window.api.readConfig()
+    tagNames.value = Object.keys(cfg.tags || {})
+  } catch {}
+}
+
+const {
+  visible: tagVisible,
+  allTags: tagDialogTags,
+  current: tagCurrent,
+  open: openTagDialog,
+  cancel: cancelTag,
+  confirm: confirmTag
+} = useTagDialog({
+  toastRef,
+  reload: async () => {
+    await loadProjects()
+    await syncTagNames()
+  }
+})
 const { atTop, onBodyScroll, scrollToTop } = useScrollToTop({ bodyRef })
 const { openWithDefaultIde, openGitUrl, openPackageFolder, openReadme, togglePin } =
   useProjectActions({ toastRef, availableIdes, projects })
@@ -291,7 +349,8 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
       },
       rename: requestRename,
       togglePin,
-      requestDelete
+      requestDelete,
+      tag: openTagDialog
     }
   })
 
@@ -318,6 +377,8 @@ const { isDragging, onDragEnter, onDragOver, onDragLeave, onDrop } = useDirDrop(
 onMounted(() => {
   loadProjects()
   syncExcludeIds()
+  syncTagNames()
+  loadView()
 })
 watch(
   () => props.active,
@@ -325,6 +386,8 @@ watch(
     if (val) {
       loadProjects()
       syncExcludeIds()
+      syncTagNames()
+      loadView()
     }
   }
 )

@@ -35,6 +35,9 @@
       >
         {{ project.description }}
       </div>
+      <div v-if="project.tags && project.tags.length" class="card-tags">
+        <BaseTag v-for="t in project.tags" :key="t" :label="t" hash size="sm" />
+      </div>
     </div>
     <div class="card-path" v-tooltip:bottom.overflow="project.path">{{ project.path }}</div>
   </div>
@@ -43,6 +46,7 @@
 <script setup>
 import IconPin from '@/components/icons/icon-pin.vue'
 import BaseButton from '@/components/common/base-button.vue'
+import BaseTag from '@/components/common/base-tag.vue'
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -139,6 +143,12 @@ async function onOpen() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
 }
 .pin-btn {
   position: absolute;

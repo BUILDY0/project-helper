@@ -5,8 +5,15 @@ const os = require('node:os')
 
 const { normalizePaths, PathType } = require('../../shared/path-types.js')
 const { DEFAULT_THEME, normalizeTheme } = require('../../shared/theme.js')
+const {
+  DEFAULT_VIEW,
+  normalizeView,
+  normalizeViewType,
+  normalizeViewSide
+} = require('../../shared/view.js')
 const { bus, Events } = require('./event-bus.js')
 const { normalizeJSONObject } = require('../../shared/data.js')
+const { normalizeTags } = require('../../shared/tags.js')
 
 // 应用工作目录与配置文件：放在用户主目录下的独立目录，避免污染 home
 const APP_HOME = path.join(os.homedir(), '.project-helper')
@@ -32,7 +39,9 @@ const DEFAULT_CONFIG = {
   auto_check_update: true,
   tray: false,
   auto_clear_installer: false,
-  ide_cfg: { default: '', exclude: [], extends: [] }
+  ide_cfg: { default: '', exclude: [], extends: [] },
+  tags: {},
+  view: { local: DEFAULT_VIEW, remote: DEFAULT_VIEW }
 }
 
 /** 把读到的原始 json 归一化为完整 config（不含 mtime / config_path） */
@@ -57,7 +66,9 @@ function normalizeConfig(json) {
       default: typeof rawIdeCfg?.default === 'string' ? rawIdeCfg.default : '',
       exclude: Array.isArray(rawIdeCfg?.exclude) ? rawIdeCfg.exclude : [],
       extends: Array.isArray(rawIdeCfg?.extends) ? rawIdeCfg.extends : []
-    }
+    },
+    tags: normalizeTags(json?.tags),
+    view: normalizeView(json?.view)
   }
 }
 
@@ -218,6 +229,8 @@ async function patchConfig(patch) {
     tray: prev.tray,
     auto_clear_installer: prev.auto_clear_installer,
     ide_cfg: prev.ide_cfg ?? { default: '', exclude: [], extends: [] },
+    tags: prev.tags ?? {},
+    view: prev.view ?? { local: DEFAULT_VIEW, remote: DEFAULT_VIEW },
     // 保留未经 normalizeConfig 管理的字段
     ...(Array.isArray(rawJson.recent_opened) ? { recent_opened: rawJson.recent_opened } : {})
   }
@@ -296,6 +309,14 @@ async function replaceRecentOpened(oldKey, newKey) {
 
 async function writeTheme(theme) {
   await patchConfig({ theme: normalizeTheme(theme) })
+}
+
+/** 仅更新某端视图（local/remote），其它字段保持不变 */
+async function writeView(side, value) {
+  const key = normalizeViewSide(side)
+  const prev = await readConfig()
+  const nextView = { ...(prev.view || {}), [key]: normalizeViewType(value) }
+  await patchConfig({ view: normalizeView(nextView) })
 }
 
 async function writeAutoRunStartup(enabled) {
@@ -415,7 +436,9 @@ function registerConfigIpc() {
       auto_check_update: autoCheckUpdate,
       tray,
       auto_clear_installer: autoClearInstaller,
-      ide_cfg: ideCfg
+      ide_cfg: ideCfg,
+      tags: normalizeTags(payload?.tags ?? prev.tags),
+      view: normalizeView(payload?.view ?? prev.view)
     })
 
     // 仅在变化时调 setLoginItemSettings，避免无谓写注册表
@@ -444,6 +467,12 @@ function registerConfigIpc() {
     return true
   })
 
+  /** 仅保存某端视图（local/remote），不影响其他字段 —— 用于切换视图时立即写盘 */
+  ipcMain.handle('config:save-view', async (_e, payload) => {
+    await writeView(payload?.side, payload?.view)
+    return true
+  })
+
   /** 切换某个项目的 pin 状态，返回最新 pinned 数组 */
   ipcMain.handle('pin:toggle', async (_e, targetPath) => {
     if (!targetPath) return []
@@ -468,6 +497,7 @@ module.exports = {
   patchConfig,
   writePinned,
   writeTheme,
+  writeView,
   writeAutoRunStartup,
   filterValidPaths,
   cleanupInvalidPaths,
