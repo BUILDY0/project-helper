@@ -47,7 +47,9 @@
     "default": "",
     "exclude": [],
     "extends": []
-  }
+  },
+  "tags": {},
+  "view": { "local": "flat", "remote": "tags" }
 }
 ```
 
@@ -66,8 +68,46 @@
 | `tray`                 | `boolean`           | `false`   | 是否开启关闭最小化到托盘                 |
 | `auto_clear_installer` | `boolean`           | `false`   | 是否自动清理安装包缓存                   |
 | `ide_cfg`              | `object`            | —         | IDE 配置（默认启动项、排除、自定义扩展） |
+| `tags`                 | `object`            | —         | 标签管理（标签名 → 包含的项目路径集合）  |
+| `view`                 | `object`            | —         | 视图模式（local/remote 各自独立）        |
 
-### paths
+### tags
+
+项目标签映射表，键为标签名，值为包含该标签的项目路径数组。
+
+- **类型**：`object`
+- **默认值**：`{}`
+
+示例：
+
+```json
+{
+  "tags": {
+    "tag-a": ["D:/work/project-a", "D:/work/project-b"],
+    "tag-b": ["D:/playground/my-app"]
+  }
+}
+```
+
+### view
+
+各端视图模式配置，local 与 remote 各自独立控制。
+
+- **类型**：`object`
+- **默认值**：`{ "local": "flat", "remote": "flat" }`
+
+#### view.local / view.remote
+
+单端视图配置对象。
+
+- **类型**：`"flat" | "tags"`
+- **字段**：
+  | 字段 | 说明 |
+  | --- | --- |
+  | `"flat"` | 平铺视图 |
+  | `"tags"` | 分类视图 |
+
+### ide_cfg
 
 扫描根目录列表，可配置多个。每个元素是一个对象，描述一个根目录。
 

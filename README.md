@@ -49,7 +49,9 @@ project-helper/
 │  ├─ shared/                         # 主进程 / 渲染进程共享的纯 JS（'@shared' 别名指向此目录）
 │  │  ├─ README.md                    # 编写约束 / 加载约定（require(ESM)）
 │  │  ├─ path-types.js                # PathType 枚举 + BasePath/SystemPath 等路径类
-│  │  └─ theme.js                     # 主题枚举与归一化函数
+│  │  ├─ theme.js                     # 主题枚举与归一化函数
+│  │  ├─ tags.js                      # 标签管理：normalizeTags / 标签校验与合并
+│  │  └─ view.js                      # 视图配置：DEFAULT_VIEW / normalizeView / 视图类型归一化
 │  └─ renderer/                       # 渲染进程（Vue + Vite，'@' 别名指向此目录）
 │     ├─ App.vue                      # 根组件，含 tab 切换拦截
 │     ├─ main.js
@@ -92,7 +94,7 @@ project-helper/
 │     └─ pages/                        # 路由级页面（详见 README.md）
 │         ├─ README.md
 │         ├─ projects/                 # 项目展示页
-│         │   ├─ index.vue
+│         │   ├─ index.vue              # 入口页，路由分发 local / remote 子页面
 │         │   ├─ common/               # 本地 / 远程共享组件与逻辑
 │         │   ├─ local/                # 本地项目（SYSTEM 路径）
 │         │   └─ remote/               # 远程连接项目
