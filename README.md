@@ -40,6 +40,8 @@ project-helper/
 │  │  └─ modules/                     # 主进程领域模块
 │  │      ├─ config-store.js          # 配置读写、pinned 管理、config:* / pin:toggle
 │  │      ├─ event-bus.js             # 主进程内部事件总线
+│  │      ├─ fs-copy.js               # 复制项目：文件夹拷贝 + 进度 IPC
+│  │      ├─ git-clone.js             # 克隆 Git 仓库 + 进度 IPC
 │  │      ├─ system-bridge.js         # 窗口、对话框、shell、IDE 探测、剪贴板、属性框
 │  │      ├─ project-scanner.js       # 项目识别 / meta 读取 / BFS 扫描 + projects:scan
 │  │      ├─ tray.js                  # 系统托盘：图标、菜单、最近打开、最小化到托盘
