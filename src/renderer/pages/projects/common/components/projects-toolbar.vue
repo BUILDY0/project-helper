@@ -238,7 +238,7 @@ function onPickTag(t) {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: 280px;
+  width: 320px;
 }
 /* #标签 建议浮层：紧贴搜索框下方 */
 .tag-suggest {
