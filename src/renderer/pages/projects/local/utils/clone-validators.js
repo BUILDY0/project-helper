@@ -32,3 +32,17 @@ export function isValidLocalPath(raw) {
   const rest = s.replace(/^[a-zA-Z]:/, '')
   return !/[*?"<>|]/.test(rest)
 }
+
+/** 两个路径是否指向同一位置（去尾部分隔符，Windows 大小写不敏感） */
+export function isSamePath(a, b) {
+  const norm = (p) =>
+    typeof p === 'string'
+      ? p
+          .trim()
+          .replace(/[\\/]+$/, '')
+          .toLowerCase()
+      : ''
+  const na = norm(a)
+  const nb = norm(b)
+  return !!na && na === nb
+}

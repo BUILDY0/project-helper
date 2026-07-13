@@ -94,6 +94,17 @@
       @debug-result="onDebugResult"
     />
 
+    <AddRemoteDialog
+      v-if="copyProject"
+      :visible="copyVisible"
+      :initial-data="copyProject"
+      is-copy
+      @close="closeCopyDialog"
+      @confirm="onCopyConfirm"
+      @validate-error="onValidateError"
+      @debug-result="onDebugResult"
+    />
+
     <BaseConfirmDialog
       :visible="confirmVisible"
       title="删除项目"
@@ -137,7 +148,7 @@ import { useScrollToTop } from '../common/composables/use-scroll-to-top.js'
 import { useRemoteProjects } from './composables/use-remote-projects.js'
 import { useRemoteContextMenu } from './composables/use-remote-context-menu.js'
 import { useTagDialog } from '../common/composables/use-tag-dialog.js'
-import { PathType } from '@shared/path-types.js'
+import { PathType, normalizePathItem, projectKey } from '@shared/path-types.js'
 import { ViewType } from '@shared/view.js'
 
 const props = defineProps({
@@ -219,6 +230,10 @@ function closeAddDialog() {
 const editProject = ref(null)
 const confirmVisible = ref(false)
 const pendingProject = ref(null)
+
+// 复制项目：复用新增弹窗，回填配置后按新增语义生成新条目
+const copyVisible = ref(false)
+const copyProject = ref(null)
 
 /** 类型标签颜色映射（线框、无背景色） */
 const typeStyleMap = {
@@ -327,6 +342,17 @@ function requestEdit(project) {
   editVisible.value = true
 }
 
+/** 复制项目：回填完整配置到新增弹窗 */
+function requestCopy(project) {
+  copyProject.value = projects.value.find((p) => p.id === project.id) || project
+  copyVisible.value = true
+}
+
+function closeCopyDialog() {
+  copyVisible.value = false
+  copyProject.value = null
+}
+
 function requestDelete(project) {
   pendingProject.value = project
   confirmVisible.value = true
@@ -360,17 +386,38 @@ async function onConfirmDelete() {
 }
 
 async function onAddConfirm(data) {
+  const ok = await addRemoteEntry(data)
+  if (!ok) return
   addVisible.value = false
   addMode.value = ''
+}
+
+/**
+ * 校验并写入新远程条目：
+ * key 重复（相同 path + 项目名）视为失败并保留弹窗，避免生成完全相同的配置。
+ * @returns {Promise<boolean>} 是否写入成功
+ */
+async function addRemoteEntry(data) {
   try {
     const cfg = await window.api.readConfig()
     if (!cfg.remote) cfg.remote = { paths: [], pinned: [] }
+    const newKey = projectKey(normalizePathItem(data))
+    const dup = (cfg.remote.paths || []).some((p) => {
+      const item = normalizePathItem(p)
+      return item && projectKey(item) === newKey
+    })
+    if (dup) {
+      toastRef.value?.show('已存在相同配置的远程项目，请修改项目名或地址', 'error')
+      return false
+    }
     cfg.remote.paths.push(data)
     await window.api.saveConfig(cfg)
     toastRef.value?.show('已添加远程项目', 'success')
     loadProjects()
+    return true
   } catch (err) {
     toastRef.value?.show(`添加失败：${err.message}`, 'error')
+    return false
   }
 }
 
@@ -387,6 +434,14 @@ async function onEditConfirm(data) {
   }
 }
 
+/** 复制确认：按新增语义写入新的远程条目（key 重复时保留弹窗） */
+async function onCopyConfirm(data) {
+  const ok = await addRemoteEntry(data)
+  if (!ok) return
+  copyVisible.value = false
+  copyProject.value = null
+}
+
 const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect, closeMenu } =
   useRemoteContextMenu({
     availableIdes: menuIdes,
@@ -394,6 +449,7 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
       openInIde,
       copyPath,
       edit: requestEdit,
+      copyProject: requestCopy,
       togglePin,
       requestDelete,
       tag: openTagDialog

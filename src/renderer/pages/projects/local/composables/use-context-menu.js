@@ -25,6 +25,7 @@ export function useContextMenu({ availableIdes, actions }) {
     if (hasParent) {
       items.push({ label: '打开项目父级文件夹', action: 'open-parent-folder' })
     }
+    items.push({ label: '复制项目', action: 'copy-project' })
     items.push({ label: '复制项目路径', action: 'copy-path' })
     if (hasParent) {
       items.push({ label: '复制项目父级路径', action: 'copy-parent-path' })
@@ -51,6 +52,8 @@ export function useContextMenu({ availableIdes, actions }) {
     }
     if (item.action === 'open-folder') {
       await actions.openFolder(p)
+    } else if (item.action === 'copy-project') {
+      await actions.copyProject(p)
     } else if (item.action === 'open-parent-folder') {
       await actions.openParentFolder(p)
     } else if (item.action === 'copy-path') {

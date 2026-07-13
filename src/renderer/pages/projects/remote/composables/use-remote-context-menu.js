@@ -45,6 +45,7 @@ export function useRemoteContextMenu({ availableIdes, actions }) {
     // 仅保留复制路径
     items.push({ label: '修改配置', action: 'edit' })
     items.push({ label: '打标签', action: 'tag' })
+    items.push({ label: '复制项目', action: 'copy-project' })
     items.push({ label: '复制项目路径', action: 'copy-path' })
     items.push({ divider: true })
     items.push({ label: project.pinned ? '取消置顶' : '置顶', action: 'toggle-pin' })
@@ -65,6 +66,8 @@ export function useRemoteContextMenu({ availableIdes, actions }) {
     }
     if (item.action === 'copy-path') {
       await actions.copyPath(p)
+    } else if (item.action === 'copy-project') {
+      await actions.copyProject(p)
     } else if (item.action === 'edit') {
       await actions.edit(p)
     } else if (item.action === 'tag') {

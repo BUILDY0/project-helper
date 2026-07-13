@@ -36,8 +36,17 @@
         <!-- 步骤 2：填写表单 -->
         <div v-else class="remote-dialog remote-dialog--form">
           <div class="remote-dialog__head">
-            <span class="remote-dialog__title">
-              {{ formTitle }}
+            <span class="remote-dialog__title-wrap">
+              <span class="remote-dialog__title">
+                {{ formTitle }}
+              </span>
+              <span
+                v-if="showTypeTag"
+                class="remote-tag"
+                :style="{ color: typeTag.color, borderColor: typeTag.border }"
+              >
+                {{ typeTag.label }}
+              </span>
             </span>
             <button class="remote-dialog__close" aria-label="关闭" @click="onClose">×</button>
           </div>
@@ -223,6 +232,8 @@ import { PathType, normalizePathItem, SshPath, WslPath, DefaultPath } from '@sha
 const props = defineProps({
   visible: { type: Boolean, default: false },
   initialData: { type: Object, default: null },
+  /** 复制项目：以 initialData 回填表单，但按"新增"语义提交（生成新条目） */
+  isCopy: { type: Boolean, default: false },
   /** 新建时直达指定连接方式（'ssh'|'wsl'|'other'），跳过第 1 步选择卡片 */
   initialMode: { type: String, default: '' }
 })
@@ -231,7 +242,8 @@ const emit = defineEmits(['close', 'confirm', 'validate-error', 'debug-result'])
 // 步骤：1=选择连接方式, 2=填写表单
 const step = ref(1)
 const mode = ref('') // 'ssh' | 'wsl' | 'other'
-const isEdit = computed(() => !!props.initialData)
+// 复制模式虽有 initialData 回填，但不是编辑（提交为新增）
+const isEdit = computed(() => !!props.initialData && !props.isCopy)
 
 const form = reactive({
   alias: '',
@@ -244,10 +256,22 @@ const form = reactive({
 })
 
 const formTitle = computed(() => {
+  if (props.isCopy) return '复制远程项目'
   if (isEdit.value) return '修改远程项目配置'
   const titles = { ssh: '创建 SSH 连接', wsl: '创建 WSL 连接', other: '创建其他协议连接' }
   return titles[mode.value] || '创建远程连接'
 })
+
+// 编辑/复制弹窗在标题右侧展示连接类型 tag（线框风格，与卡片一致）
+const TYPE_TAG = {
+  ssh: { label: 'SSH', color: '#2196F3', border: '#1976D2' },
+  wsl: { label: 'WSL', color: '#9C27B0', border: '#7B1FA2' },
+  other: { label: '其他', color: '#607D8B', border: '#455A64' }
+}
+const showTypeTag = computed(
+  () => (props.isCopy || isEdit.value) && step.value === 2 && !!mode.value
+)
+const typeTag = computed(() => TYPE_TAG[mode.value] || TYPE_TAG.other)
 
 const pathPlaceholder = computed(() => {
   if (mode.value === 'ssh')
@@ -582,6 +606,21 @@ watch(
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
+}
+.remote-dialog__title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.remote-tag {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border-width: 1px;
+  border-style: solid;
+  background: transparent;
 }
 .remote-dialog__close {
   width: 24px;

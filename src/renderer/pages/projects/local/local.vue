@@ -188,6 +188,23 @@
       @close="closeCloneOverlay"
     />
 
+    <CopyProjectDialog
+      :visible="copyDialogVisible"
+      :project="copyProject"
+      @cancel="cancelCopyDialog"
+      @confirm="startCopy"
+    />
+
+    <CopyProgressOverlay
+      :visible="copyOverlayVisible"
+      :source="copySource"
+      :progress="copyProgress"
+      :done="copyDone"
+      @cancel="cancelCopy"
+      @open="openCopiedProject"
+      @close="closeCopyOverlay"
+    />
+
     <BaseConfirmDialog
       :visible="cloneGitMissingVisible"
       title="未检测到 Git"
@@ -229,6 +246,8 @@ import EmptyState from '../common/components/empty-state.vue'
 import TagDialog from '../common/components/tag-dialog.vue'
 import CloneRepoDialog from './components/clone-repo-dialog.vue'
 import CloneProgressOverlay from './components/clone-progress-overlay.vue'
+import CopyProjectDialog from './components/copy-project-dialog.vue'
+import CopyProgressOverlay from './components/copy-progress-overlay.vue'
 import { useIdes } from '@/composables/use-ides.js'
 import { useProjects } from './composables/use-projects.js'
 import { useProjectSearch } from '../common/composables/use-project-search.js'
@@ -245,6 +264,7 @@ import { getParentPath } from '@/utils/path.js'
 import PathListItem from '@/pages/settings/components/path-list-item.vue'
 import { useAddScanDirDialog } from './composables/use-add-scan-dir-dialog.js'
 import { useCloneRepo } from './composables/use-clone-repo.js'
+import { useCopyProject } from './composables/use-copy-project.js'
 import { useDirDrop } from './composables/use-dir-drop.js'
 
 const props = defineProps({
@@ -323,6 +343,22 @@ const renameInputRef = ref(null)
 const { renameVisible, renameValue, requestRename, onCancelRename, onConfirmRename } =
   useRenameProject({ toastRef, projects })
 
+// 复制项目：表单弹窗 + 右下角进度浮层（在右键菜单 actions 引用前声明）
+const {
+  dialogVisible: copyDialogVisible,
+  dialogProject: copyProject,
+  overlayVisible: copyOverlayVisible,
+  overlaySource: copySource,
+  overlayProgress: copyProgress,
+  overlayDone: copyDone,
+  openDialog: openCopyDialog,
+  cancelDialog: cancelCopyDialog,
+  startCopy,
+  cancelCopy,
+  openCopiedProject,
+  closeOverlay: closeCopyOverlay
+} = useCopyProject({ toastRef, loadProjects })
+
 watch(renameVisible, (val) => {
   if (!val) return
   nextTick(() => {
@@ -388,7 +424,8 @@ const { ctxVisible, ctxX, ctxY, ctxItems, ctxTarget, onContextMenu, onMenuSelect
       rename: requestRename,
       togglePin,
       requestDelete,
-      tag: openTagDialog
+      tag: openTagDialog,
+      copyProject: openCopyDialog
     }
   })
 

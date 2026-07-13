@@ -107,6 +107,18 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('git:clone-progress', listener)
   },
 
+  // 复制项目文件夹
+  /** 复制项目：payload { id, source, dest, removeGit }，返回 { ok, path?, canceled?, message? } */
+  copyProject: (payload) => ipcRenderer.invoke('fs:copy-project', payload),
+  /** 取消指定 id 的复制任务 */
+  cancelCopyProject: (id) => ipcRenderer.invoke('fs:copy-cancel', { id }),
+  /** 监听复制进度：回调 { id, copied, total }，返回解绑函数 */
+  onCopyProgress: (cb) => {
+    const listener = (_e, val) => cb(val)
+    ipcRenderer.on('fs:copy-progress', listener)
+    return () => ipcRenderer.removeListener('fs:copy-progress', listener)
+  },
+
   // 切换 pin 状态，返回最新的 pinned 路径数组
   togglePin: (p) => ipcRenderer.invoke('pin:toggle', p),
 
