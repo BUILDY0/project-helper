@@ -95,6 +95,18 @@ contextBridge.exposeInMainWorld('api', {
   // 项目扫描
   scanProjects: () => ipcRenderer.invoke('projects:scan'),
 
+  // git 克隆
+  /** 克隆仓库：payload { id, url, dir }，返回 { ok, path?, canceled?, gitMissing?, message? } */
+  cloneRepo: (payload) => ipcRenderer.invoke('git:clone', payload),
+  /** 取消指定 id 的克隆任务 */
+  cancelClone: (id) => ipcRenderer.invoke('git:clone-cancel', { id }),
+  /** 监听克隆进度：回调 { id, method, stage, progress }，返回解绑函数 */
+  onCloneProgress: (cb) => {
+    const listener = (_e, val) => cb(val)
+    ipcRenderer.on('git:clone-progress', listener)
+    return () => ipcRenderer.removeListener('git:clone-progress', listener)
+  },
+
   // 切换 pin 状态，返回最新的 pinned 路径数组
   togglePin: (p) => ipcRenderer.invoke('pin:toggle', p),
 

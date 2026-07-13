@@ -22,9 +22,11 @@
           :at-top="atTop"
           :ides="menuIdes"
           :tags="tagNames"
+          clone-enabled
           @scroll-to-top="scrollToTop"
           @refresh="loadProjects"
           @add="openAddScan"
+          @clone-repo="openCloneDialog"
           @launch-ide="launchIde"
           @update:view="setView"
         />
@@ -169,6 +171,39 @@
       @confirm="confirmTag"
     />
 
+    <CloneRepoDialog
+      :visible="cloneDialogVisible"
+      @cancel="cancelCloneDialog"
+      @confirm="startClone"
+    />
+
+    <CloneProgressOverlay
+      :visible="cloneOverlayVisible"
+      :repo="cloneRepo"
+      :stage="cloneStage"
+      :progress="cloneProgress"
+      :done="cloneDone"
+      @cancel="cancelClone"
+      @open="openClonedProject"
+      @close="closeCloneOverlay"
+    />
+
+    <BaseConfirmDialog
+      :visible="cloneGitMissingVisible"
+      title="未检测到 Git"
+      confirm-text="前往下载 Git"
+      cancel-text="稍后再说"
+      confirm-tone="primary"
+      :width="420"
+      @cancel="dismissGitMissing"
+      @confirm="openGitDownload"
+    >
+      <div class="git-missing-guide">
+        <p>克隆仓库需要系统已安装 Git，但当前未检测到可用的 Git。</p>
+        <p>请前往官网下载安装，安装完成后重启应用再重试克隆。</p>
+      </div>
+    </BaseConfirmDialog>
+
     <transition name="drop-overlay-fade">
       <div v-if="isDragging" class="drop-overlay">
         <div class="drop-overlay__inner">
@@ -192,6 +227,8 @@ import ProjectsToolbar from '../common/components/projects-toolbar.vue'
 import ProjectGroups from '../common/components/project-groups.vue'
 import EmptyState from '../common/components/empty-state.vue'
 import TagDialog from '../common/components/tag-dialog.vue'
+import CloneRepoDialog from './components/clone-repo-dialog.vue'
+import CloneProgressOverlay from './components/clone-progress-overlay.vue'
 import { useIdes } from '@/composables/use-ides.js'
 import { useProjects } from './composables/use-projects.js'
 import { useProjectSearch } from '../common/composables/use-project-search.js'
@@ -207,6 +244,7 @@ import { useTagDialog } from '../common/composables/use-tag-dialog.js'
 import { getParentPath } from '@/utils/path.js'
 import PathListItem from '@/pages/settings/components/path-list-item.vue'
 import { useAddScanDirDialog } from './composables/use-add-scan-dir-dialog.js'
+import { useCloneRepo } from './composables/use-clone-repo.js'
 import { useDirDrop } from './composables/use-dir-drop.js'
 
 const props = defineProps({
@@ -374,6 +412,25 @@ const { isDragging, onDragEnter, onDragOver, onDragLeave, onDrop } = useDirDrop(
   onDirs: openAddScanFromPaths
 })
 
+// 克隆 git 仓库：表单弹窗 + 右下角进度浮层
+const {
+  dialogVisible: cloneDialogVisible,
+  overlayVisible: cloneOverlayVisible,
+  overlayRepo: cloneRepo,
+  overlayStage: cloneStage,
+  overlayProgress: cloneProgress,
+  overlayDone: cloneDone,
+  gitMissingVisible: cloneGitMissingVisible,
+  openDialog: openCloneDialog,
+  cancelDialog: cancelCloneDialog,
+  startClone,
+  cancelClone,
+  openGitDownload,
+  dismissGitMissing,
+  openClonedProject,
+  closeOverlay: closeCloneOverlay
+} = useCloneRepo({ toastRef, loadProjects })
+
 onMounted(() => {
   loadProjects()
   syncExcludeIds()
@@ -497,6 +554,14 @@ watch(
   font-size: 12px;
   color: var(--color-text-tertiary);
   padding: 8px 0;
+}
+.git-missing-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.git-missing-guide p {
+  margin: 0;
 }
 .forced-toggle {
   display: inline-flex;

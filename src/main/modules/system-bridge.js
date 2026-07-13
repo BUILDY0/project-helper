@@ -297,7 +297,11 @@ function registerSystemBridge() {
     const multi = !!options?.multi
     const properties = ['openDirectory']
     if (multi) properties.push('multiSelections')
-    const result = await dialog.showOpenDialog(win, { properties })
+    // defaultPath 显式指定优先；defaultToHome 时兜底用户主目录
+    const defaultPath = options?.defaultPath || (options?.defaultToHome ? os.homedir() : undefined)
+    const dialogOpts = { properties }
+    if (defaultPath) dialogOpts.defaultPath = defaultPath
+    const result = await dialog.showOpenDialog(win, dialogOpts)
     if (result.canceled || result.filePaths.length === 0) return null
     return multi ? result.filePaths : result.filePaths[0]
   })

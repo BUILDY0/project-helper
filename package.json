@@ -34,7 +34,8 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "electron-updater": "^6.1.7"
+    "electron-updater": "^6.1.7",
+    "simple-git": "^3.36.0"
   },
   "lint-staged": {
     "*.{js,vue,json,md,yml,yaml,css}": "prettier --write"

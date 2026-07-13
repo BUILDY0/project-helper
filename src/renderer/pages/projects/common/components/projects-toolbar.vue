@@ -76,15 +76,24 @@
           <div v-else class="ide-menu__empty">未检测到可用 IDE</div>
         </div>
       </div>
-      <BaseButton
-        class="square-btn"
-        variant="secondary"
-        size="sm"
-        v-tooltip="addTooltip"
-        @click="emit('add')"
-      >
-        <IconPlus :size="14" />
-      </BaseButton>
+      <!-- 新增按钮：点击=新增扫描目录；hover 展开下拉（含"克隆 git 仓库"） -->
+      <div class="add-launcher">
+        <BaseButton
+          class="square-btn"
+          variant="secondary"
+          size="sm"
+          v-tooltip="addTooltip"
+          @click="emit('add')"
+        >
+          <IconPlus :size="14" />
+        </BaseButton>
+        <div v-if="cloneEnabled" class="add-menu">
+          <button type="button" class="add-menu__item" @click="emit('clone-repo')">
+            <IconGithub :size="14" />
+            克隆 git 仓库
+          </button>
+        </div>
+      </div>
       <BaseButton
         class="square-btn"
         variant="secondary"
@@ -114,6 +123,7 @@ import BaseTag from '@/components/common/base-tag.vue'
 import IconArrowUp from '@/components/icons/icon-arrow-up.vue'
 import IconRefresh from '@/components/icons/icon-refresh.vue'
 import IconPlus from '@/components/icons/icon-plus.vue'
+import IconGithub from '@/components/icons/icon-github.vue'
 import IconAppLaunch from '@/components/icons/icon-app-launch.vue'
 import IconViewGrid from '@/components/icons/icon-view-grid.vue'
 import IconViewTags from '@/components/icons/icon-view-tags.vue'
@@ -134,7 +144,9 @@ const props = defineProps({
   /** 可用标签名，供 #标签 搜索自动补全 */
   tags: { type: Array, default: () => [] },
   /** 当前视图：flat=平铺 / tags=分类 */
-  view: { type: String, default: 'flat' }
+  view: { type: String, default: 'flat' },
+  /** 是否启用"克隆 git 仓库"下拉入口（仅本地项目页需要） */
+  cloneEnabled: { type: Boolean, default: false }
 })
 const emit = defineEmits([
   'update:keyword',
@@ -142,6 +154,7 @@ const emit = defineEmits([
   'scroll-to-top',
   'refresh',
   'add',
+  'clone-repo',
   'launch-ide'
 ])
 
@@ -335,5 +348,53 @@ function onPickTag(t) {
   font-size: 12px;
   color: var(--color-text-tertiary);
   white-space: nowrap;
+}
+/* 新增按钮 hover 下拉：复用 ide-launcher 交互，菜单紧贴按钮下方避免悬停断连 */
+.add-launcher {
+  position: relative;
+  display: inline-flex;
+}
+.add-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 60;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.12s,
+    transform 0.12s,
+    visibility 0.12s;
+}
+.add-launcher:hover .add-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.add-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.add-menu__item:hover {
+  background: var(--color-hover);
 }
 </style>

@@ -21,6 +21,7 @@ const {
   clearInstallerCacheIfEnabled
 } = require('./modules/updater')
 const { setupTray, destroyTray, updateTrayMenu } = require('./modules/tray')
+const { registerGitCloneIpc } = require('./modules/git-clone')
 const { bus, Events } = require('./modules/event-bus')
 
 // 主窗口引用：autoUpdater 等模块通过 getMainWindow() 获取，避免循环依赖
@@ -98,6 +99,7 @@ if (!gotTheLock) {
     registerConfigIpc()
     registerScannerIpc()
     registerUpdaterIpc()
+    registerGitCloneIpc()
 
     // app:quit 由 index.js 注册，复用 forceQuit；
     // 渲染层/托盘菜单需要"彻底退出"时使用，避免误用 window:close 被托盘策略拦截
