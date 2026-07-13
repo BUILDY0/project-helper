@@ -222,7 +222,9 @@ import { PathType, normalizePathItem, SshPath, WslPath, DefaultPath } from '@sha
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
-  initialData: { type: Object, default: null }
+  initialData: { type: Object, default: null },
+  /** 新建时直达指定连接方式（'ssh'|'wsl'|'other'），跳过第 1 步选择卡片 */
+  initialMode: { type: String, default: '' }
 })
 const emit = defineEmits(['close', 'confirm', 'validate-error', 'debug-result'])
 
@@ -529,6 +531,9 @@ watch(
           ? rawScheme
           : OTHER_KEY
         step.value = 2
+      } else if (props.initialMode) {
+        // 快捷入口：直达指定连接方式的表单
+        startForm(props.initialMode)
       } else {
         step.value = 1
         mode.value = ''

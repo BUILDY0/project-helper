@@ -15,9 +15,11 @@
         :at-top="atTop"
         :ides="menuIdes"
         :tags="tagNames"
+        :add-menu-items="addMenuItems"
         @scroll-to-top="scrollToTop"
         @refresh="loadProjects"
-        @add="addVisible = true"
+        @add="openAdd"
+        @add-menu-select="openAddWithMode"
         @launch-ide="launchIde"
         @update:view="setView"
       />
@@ -75,7 +77,8 @@
 
     <AddRemoteDialog
       :visible="addVisible"
-      @close="addVisible = false"
+      :initial-mode="addMode"
+      @close="closeAddDialog"
       @confirm="onAddConfirm"
       @validate-error="onValidateError"
       @debug-result="onDebugResult"
@@ -187,7 +190,32 @@ const {
 })
 
 const addVisible = ref(false)
+const addMode = ref('') // 快捷入口预选的连接方式：'ssh'|'wsl'|'other'
 const editVisible = ref(false)
+
+/** 新增下拉的快捷入口，点击直达对应连接方式的表单 */
+const addMenuItems = [
+  { key: 'ssh', label: '创建 SSH 连接' },
+  { key: 'wsl', label: '创建 WSL 连接' },
+  { key: 'other', label: '创建其他协议连接' }
+]
+
+/** 点击 + 按钮：走原有第 1 步选择卡片 */
+function openAdd() {
+  addMode.value = ''
+  addVisible.value = true
+}
+
+/** 下拉快捷入口：直达指定连接方式表单 */
+function openAddWithMode(mode) {
+  addMode.value = mode
+  addVisible.value = true
+}
+
+function closeAddDialog() {
+  addVisible.value = false
+  addMode.value = ''
+}
 const editProject = ref(null)
 const confirmVisible = ref(false)
 const pendingProject = ref(null)
@@ -333,6 +361,7 @@ async function onConfirmDelete() {
 
 async function onAddConfirm(data) {
   addVisible.value = false
+  addMode.value = ''
   try {
     const cfg = await window.api.readConfig()
     if (!cfg.remote) cfg.remote = { paths: [], pinned: [] }

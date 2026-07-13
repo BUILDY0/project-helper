@@ -87,10 +87,25 @@
         >
           <IconPlus :size="14" />
         </BaseButton>
-        <div v-if="cloneEnabled" class="add-menu">
-          <button type="button" class="add-menu__item" @click="emit('clone-repo')">
+        <div v-if="cloneEnabled || addMenuItems.length" class="add-menu">
+          <button
+            v-if="cloneEnabled"
+            type="button"
+            class="add-menu__item"
+            @click="emit('clone-repo')"
+          >
             <IconGithub :size="14" />
             克隆 git 仓库
+          </button>
+          <button
+            v-for="item in addMenuItems"
+            :key="item.key"
+            type="button"
+            class="add-menu__item"
+            @click="emit('add-menu-select', item.key)"
+          >
+            <IconNewtab :size="14" />
+            {{ item.label }}
           </button>
         </div>
       </div>
@@ -124,6 +139,7 @@ import IconArrowUp from '@/components/icons/icon-arrow-up.vue'
 import IconRefresh from '@/components/icons/icon-refresh.vue'
 import IconPlus from '@/components/icons/icon-plus.vue'
 import IconGithub from '@/components/icons/icon-github.vue'
+import IconNewtab from '@/components/icons/icon-newtab.vue'
 import IconAppLaunch from '@/components/icons/icon-app-launch.vue'
 import IconViewGrid from '@/components/icons/icon-view-grid.vue'
 import IconViewTags from '@/components/icons/icon-view-tags.vue'
@@ -146,7 +162,9 @@ const props = defineProps({
   /** 当前视图：flat=平铺 / tags=分类 */
   view: { type: String, default: 'flat' },
   /** 是否启用"克隆 git 仓库"下拉入口（仅本地项目页需要） */
-  cloneEnabled: { type: Boolean, default: false }
+  cloneEnabled: { type: Boolean, default: false },
+  /** 新增按钮 hover 下拉的快捷入口项：[{ key, label }]，点击 emit('add-menu-select', key) */
+  addMenuItems: { type: Array, default: () => [] }
 })
 const emit = defineEmits([
   'update:keyword',
@@ -154,6 +172,7 @@ const emit = defineEmits([
   'scroll-to-top',
   'refresh',
   'add',
+  'add-menu-select',
   'clone-repo',
   'launch-ide'
 ])
